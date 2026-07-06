@@ -29,7 +29,7 @@ describe('distribution/agent', () => {
 
   it('writes index.html, llms.txt, article.html, robots.txt, sitemap.xml to outputDir', async () => {
     const r = await new AgentPublisher().publish(
-      { content: sampleMarkdown, config: { siteName: 'My Site', themeColor: '#0ea5e9', assetFolder: 'assets' } },
+      { content: sampleMarkdown, config: { siteName: 'My Site', themeColor: '#0ea5e9', assetFolder: 'assets', outputDir: tmp } },
       globalThis.fetch,
     );
     const outDir = r.externalUrl!.replace(/^file:\/\//, '');
