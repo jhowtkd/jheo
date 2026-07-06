@@ -6,5 +6,15 @@ export { OpenAIProvider } from './llm/openai.js';
 export { AnthropicProvider } from './llm/anthropic.js';
 export { OpenRouterProvider } from './llm/openrouter.js';
 export { OpenAIEmbeddingProvider } from './llm/embeddings.js';
-export * from './generation/schema.js';
-export { parseMarkdownWithFrontmatter, type ParseResult, type ParseError } from './generation/parse.js';
+export {
+  runGeneration,
+  type RetrievedMaterial,
+  type GenerationContext,
+  type GenerationResult,
+  type GenerationProviders,
+  parseMarkdownWithFrontmatter,
+  type ParseResult,
+  type ParseError,
+  type FrontMatter,
+  type ParsedMarkdown,
+} from './generation/index.js';

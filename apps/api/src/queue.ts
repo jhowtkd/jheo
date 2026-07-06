@@ -1,7 +1,10 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import IORedis from 'ioredis';
+import type { PrismaClient } from '@prisma/client';
+import type { EmbeddingProvider, LLMProvider } from '@jheo/core';
 import { loadEnv } from './env.js';
 import { makeAuditHandler, type FetchText } from './jobs/audit-job.js';
+import { makeGenerateHandler } from './jobs/generate-job.js';
 
 const env = loadEnv();
 
@@ -22,5 +25,23 @@ export function startWorkers(fetchText: FetchText) {
     AUDIT_QUEUE,
     async (job) => makeAuditHandler({ fetchText })(job),
     { connection, concurrency: 2 },
+  );
+}
+
+export const GENERATE_QUEUE = 'generate';
+export const generateQueue = new Queue(GENERATE_QUEUE, { connection });
+
+export type GenerateJobData = { generationId: string };
+
+export function startGenerateWorkers(
+  fetchFn: typeof fetch,
+  embedProvider: EmbeddingProvider,
+  llmProviders: Record<string, LLMProvider>,
+  prisma: PrismaClient,
+) {
+  return new Worker<GenerateJobData>(
+    GENERATE_QUEUE,
+    async (job) => makeGenerateHandler({ prisma, fetchFn, embedProvider, llmProviders })(job),
+    { connection, concurrency: 3 },
   );
 }
