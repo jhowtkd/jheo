@@ -20,3 +20,6 @@ export {
 } from './generation/index.js';
 export * from './distribution/types.js';
 export { aggregateReviewState, type AggregatePublish } from './distribution/aggregate.js';
+export { WordPressPublisher, type WordPressConfig } from './distribution/wordpress.js';
+export { HttpPublisher, type HttpAuth, type HttpConfig } from './distribution/http.js';
+export { AgentPublisher, type AgentConfig } from './distribution/agent.js';

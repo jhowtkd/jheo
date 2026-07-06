@@ -1,7 +1,17 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { OpenAIEmbeddingProvider, OpenAIProvider, AnthropicProvider, OpenRouterProvider } from '@jheo/core';
+import {
+  OpenAIEmbeddingProvider,
+  OpenAIProvider,
+  AnthropicProvider,
+  OpenRouterProvider,
+  WordPressPublisher,
+  HttpPublisher,
+  AgentPublisher,
+  aggregateReviewState,
+} from '@jheo/core';
 import { loadEnv, ensureSecretKey } from './env.js';
+import { decrypt } from './crypto.js';
 import { healthRoutes } from './routes/health.js';
 import { projectRoutes } from './routes/projects.js';
 import { auditRoutes } from './routes/audits.js';
@@ -11,7 +21,7 @@ import { templateRoutes } from './routes/templates.js';
 import { generationRoutes } from './routes/generations.js';
 import { channelRoutes } from './routes/channels.js';
 import { publishRoutes } from './routes/publishes.js';
-import { startWorkers, startGenerateWorkers } from './queue.js';
+import { startWorkers, startGenerateWorkers, startPublishWorkers, publishQueue } from './queue.js';
 import { prisma as defaultPrisma } from './db.js';
 
 async function fetchText(url: string, init?: { headers?: Record<string, string> }) {
@@ -77,6 +87,18 @@ if (isMain) {
   // its HTML fetching path — keep that as-is. For the generate worker, pass the
   // global fetch directly.
   startGenerateWorkers(globalThis.fetch.bind(globalThis), embedProvider, llmProviders, defaultPrisma);
+
+  const wordpress = new WordPressPublisher();
+  const http = new HttpPublisher();
+  const agent = new AgentPublisher();
+  startPublishWorkers({
+    prisma: defaultPrisma,
+    fetchFn: globalThis.fetch.bind(globalThis),
+    publishers: { wordpress, http, agent },
+    decrypt,
+    aggregateState: aggregateReviewState,
+    publishQueueAdd: (data) => publishQueue.add('run', data, { delay: 0 }),
+  });
 
   const app = await buildServer();
   await app.listen({ host: '0.0.0.0', port: env.WEB_PORT });
