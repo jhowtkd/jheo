@@ -3,3 +3,8 @@ export { ALL_PLUGINS, runAudit } from './audit/orchestrator.js';
 export { scoreFindings, type ScoreBreakdown } from './audit/score.js';
 export * from './llm/types.js';
 export { OpenAIProvider } from './llm/openai.js';
+export { AnthropicProvider } from './llm/anthropic.js';
+export { OpenRouterProvider } from './llm/openrouter.js';
+export { OpenAIEmbeddingProvider } from './llm/embeddings.js';
+export * from './generation/schema.js';
+export { parseMarkdownWithFrontmatter, type ParseResult, type ParseError } from './generation/parse.js';
