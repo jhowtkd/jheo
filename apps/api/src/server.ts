@@ -9,6 +9,7 @@ import { materialRoutes } from './routes/materials.js';
 import { settingsRoutes } from './routes/settings.js';
 import { templateRoutes } from './routes/templates.js';
 import { generationRoutes } from './routes/generations.js';
+import { channelRoutes } from './routes/channels.js';
 import { startWorkers, startGenerateWorkers } from './queue.js';
 import { prisma as defaultPrisma } from './db.js';
 
@@ -36,6 +37,7 @@ export async function buildServer() {
   await app.register(settingsRoutes);
   await app.register(templateRoutes);
   await app.register(generationRoutes);
+  await app.register(channelRoutes);
   return app;
 }
 
