@@ -7,6 +7,7 @@ import { auditRoutes } from './routes/audits.js';
 import { materialRoutes } from './routes/materials.js';
 import { settingsRoutes } from './routes/settings.js';
 import { templateRoutes } from './routes/templates.js';
+import { generationRoutes } from './routes/generations.js';
 import { startWorkers } from './queue.js';
 
 async function fetchText(url: string, init?: { headers?: Record<string, string> }) {
@@ -32,6 +33,7 @@ export async function buildServer() {
   await app.register(materialRoutes);
   await app.register(settingsRoutes);
   await app.register(templateRoutes);
+  await app.register(generationRoutes);
   return app;
 }
 
