@@ -11,6 +11,8 @@ import { GenerationComposer } from './pages/GenerationComposer.js';
 import { GenerationReview } from './pages/GenerationReview.js';
 import { ChannelsList } from './pages/ChannelsList.js';
 import { ChannelEditor } from './pages/ChannelEditor.js';
+import { PublishDetail } from './pages/PublishDetail.js';
+import { AgentBundleView } from './pages/AgentBundleView.js';
 import { Settings } from './pages/Settings.js';
 
 export function AppRoutes() {
@@ -29,6 +31,8 @@ export function AppRoutes() {
         <Route path="/generations/:generationId" element={<GenerationReview />} />
         <Route path="/projects/:projectId/channels" element={<ChannelsList />} />
         <Route path="/channels/:channelId" element={<ChannelEditor />} />
+        <Route path="/publishes/:publishId" element={<PublishDetail />} />
+        <Route path="/publishes/:publishId/bundle" element={<AgentBundleView />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>

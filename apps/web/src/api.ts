@@ -265,6 +265,9 @@ export async function retryPublish(id: string): Promise<{ id: string }> {
 export async function cancelPublish(id: string): Promise<{ id: string }> {
   return (await fetch(`/api/publishes/${id}/cancel`, { method: 'POST' })).json();
 }
+export async function getPublish(id: string): Promise<Publish> {
+  return (await fetch(`/api/publishes/${id}`)).json();
+}
 export async function getPublishFiles(id: string): Promise<{ dir: string; files: { name: string; content: string }[] }> {
   return (await fetch(`/api/publishes/${id}/files`)).json();
 }
