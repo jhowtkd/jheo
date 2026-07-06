@@ -9,13 +9,14 @@ datasource db {
 }
 
 model Project {
-  id          String       @id @default(cuid())
-  name        String
-  rootUrl     String
-  createdAt   DateTime     @default(now())
-  audits      Audit[]
-  materials   Material[]
-  generations Generation[]
+  id                   String                @id @default(cuid())
+  name                 String
+  rootUrl              String
+  createdAt            DateTime              @default(now())
+  audits               Audit[]
+  materials            Material[]
+  generations          Generation[]
+  distributionChannels DistributionChannel[]
 }
 
 model Audit {
@@ -51,11 +52,41 @@ model Finding {
 }
 
 model DistributionChannel {
-  id               String   @id @default(cuid())
-  projectId        String
-  type             String   // 'wordpress' | 'http' | 'agent'
-  configEncrypted  String
-  createdAt        DateTime @default(now())
+  id              String   @id @default(cuid())
+  projectId       String
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type            String   // 'wordpress' | 'http' | 'agent'
+  name            String
+  configEncrypted String
+  configSchema    String
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  publishes       Publish[]
+
+  @@index([projectId])
+  @@index([type])
+}
+
+model Publish {
+  id           String              @id @default(cuid())
+  generationId String
+  generation   Generation          @relation(fields: [generationId], references: [id], onDelete: Cascade)
+  channelId    String
+  channel      DistributionChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  status       String              @default("queued")
+  attempts     Int                 @default(0)
+  externalId   String?
+  externalUrl  String?
+  response     Json?
+  lastError    String?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  createdAt    DateTime            @default(now())
+
+  @@unique([generationId, channelId])
+  @@index([generationId])
+  @@index([channelId])
+  @@index([status])
 }
 
 model Material {
@@ -113,6 +144,7 @@ model Generation {
   startedAt         DateTime?
   finishedAt        DateTime?
   createdAt         DateTime           @default(now())
+  publishes         Publish[]
 
   @@index([projectId])
   @@index([status])
