@@ -5,6 +5,7 @@ import { healthRoutes } from './routes/health.js';
 import { projectRoutes } from './routes/projects.js';
 import { auditRoutes } from './routes/audits.js';
 import { materialRoutes } from './routes/materials.js';
+import { settingsRoutes } from './routes/settings.js';
 import { startWorkers } from './queue.js';
 
 async function fetchText(url: string, init?: { headers?: Record<string, string> }) {
@@ -28,6 +29,7 @@ export async function buildServer() {
   await app.register(projectRoutes);
   await app.register(auditRoutes);
   await app.register(materialRoutes);
+  await app.register(settingsRoutes);
   return app;
 }
 
