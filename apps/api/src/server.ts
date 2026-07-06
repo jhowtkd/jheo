@@ -6,8 +6,12 @@ import { projectRoutes } from './routes/projects.js';
 import { auditRoutes } from './routes/audits.js';
 import { startWorkers } from './queue.js';
 
-async function fetchText(url: string) {
-  const res = await fetch(url, { headers: { 'User-Agent': 'JHEO/0.1 (+local)' } });
+async function fetchText(url: string, init?: { headers?: Record<string, string> }) {
+  const headers = {
+    'User-Agent': 'JHEO/0.1 (+local)',
+    ...(init?.headers ?? {}),
+  };
+  const res = await fetch(url, { headers });
   return {
     status: res.status,
     headers: Object.fromEntries(res.headers.entries()),

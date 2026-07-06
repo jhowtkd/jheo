@@ -32,15 +32,20 @@ function parseRobots(text: string): Parsed {
 }
 
 function effectiveFor(bot: string, parsed: Parsed): 'allowed' | 'blocked' | 'not-mentioned' {
+  // Per robots.txt spec, a Disallow directive blocks the root URL only when
+  // its value is exactly "/" (covers all paths) or empty (legacy "Disallow:"
+  // with no value, which by spec means everything is disallowed).
+  // A Disallow path like "/admin" intentionally blocks a subpath; we are
+  // auditing the root URL, so that does NOT count as blocking.
+  const blocksRoot = (rules: string[] | undefined): boolean =>
+    !!rules?.some((r) => r === '/' || r === '');
   const groupRules = parsed.raw.get(bot);
   if (groupRules) {
-    const blocked = groupRules.some((r) => r === '/' || r.startsWith('/'));
-    return blocked ? 'blocked' : 'allowed';
+    return blocksRoot(groupRules) ? 'blocked' : 'allowed';
   }
   const wildcard = parsed.raw.get('*');
   if (wildcard && wildcard.length > 0) {
-    const blocked = wildcard.some((r) => r === '/' || r.startsWith('/'));
-    return blocked ? 'blocked' : 'allowed';
+    return blocksRoot(wildcard) ? 'blocked' : 'allowed';
   }
   return 'not-mentioned';
 }

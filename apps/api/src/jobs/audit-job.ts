@@ -3,9 +3,12 @@ import { runAudit } from '@jheo/core';
 import type { AuditJobData } from '../queue.js';
 import { prisma } from '../db.js';
 
-export function makeAuditHandler(opts: {
-  fetchText: (url: string) => Promise<{ status: number; headers: Record<string, string>; text: string }>;
-}) {
+export type FetchText = (
+  url: string,
+  init?: { headers?: Record<string, string> },
+) => Promise<{ status: number; headers: Record<string, string>; text: string }>;
+
+export function makeAuditHandler(opts: { fetchText: FetchText }) {
   return async function handle(job: Job<AuditJobData>) {
     const audit = await prisma.audit.findUnique({ where: { id: job.data.auditId } });
     if (!audit) return;
@@ -23,8 +26,8 @@ export function makeAuditHandler(opts: {
       const ctx = {
         url: project.rootUrl,
         html: htmlRes.text,
-        async fetchText(url: string) {
-          return opts.fetchText(url);
+        async fetchText(url: string, init?: { headers?: Record<string, string> }) {
+          return opts.fetchText(url, init);
         },
         log() {},
       };

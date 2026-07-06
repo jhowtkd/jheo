@@ -28,4 +28,17 @@ describe('audit/geo/ai-crawler-access', () => {
     const f = await checkAiCrawlerAccess(ctx);
     expect(f.some((x) => x.rule.startsWith('geo.ai-crawler-not-mentioned.'))).toBe(true);
   });
+  it('does NOT flag a subpath Disallow (e.g. /admin) as blocking the root URL', async () => {
+    // Regression: a site that legitimately disallows /admin from indexing
+    // was reported as blocking GPTBot from everything because the old
+    // predicate treated any Disallow: starting with "/" as a full block.
+    const text = `User-agent: *\nDisallow: /admin\nDisallow: /private\nUser-agent: GPTBot\nAllow: /\n`;
+    const { ctx } = makeAuditHarness({
+      html: '',
+      url: 'https://example.com/',
+      fetches: [robotsFor(text)],
+    });
+    const f = await checkAiCrawlerAccess(ctx);
+    expect(f.some((x) => x.rule.startsWith('geo.ai-crawler-blocked.'))).toBe(false);
+  });
 });
