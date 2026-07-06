@@ -46,3 +46,11 @@ model Finding {
   @@index([category])
   @@index([severity])
 }
+
+model DistributionChannel {
+  id               String   @id @default(cuid())
+  projectId        String
+  type             String   // 'wordpress' | 'http' | 'agent'
+  configEncrypted  String
+  createdAt        DateTime @default(now())
+}

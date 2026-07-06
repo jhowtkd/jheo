@@ -1,6 +1,7 @@
 import { Queue, Worker, type Job } from 'bullmq';
 import IORedis from 'ioredis';
 import { loadEnv } from './env.js';
+import { makeAuditHandler } from './jobs/audit-job.js';
 
 const env = loadEnv();
 
@@ -16,9 +17,14 @@ export const auditQueue = new Queue(AUDIT_QUEUE, { connection });
 
 export type AuditJobData = { auditId: string };
 
-export function makeAuditWorker(processor: (job: Job<AuditJobData>) => Promise<void>) {
-  return new Worker<AuditJobData>(AUDIT_QUEUE, async (job) => processor(job), {
-    connection,
-    concurrency: 2,
-  });
+export function startWorkers(fetchText: (url: string) => Promise<{
+  status: number;
+  headers: Record<string, string>;
+  text: string;
+}>) {
+  return new Worker<AuditJobData>(
+    AUDIT_QUEUE,
+    async (job) => makeAuditHandler({ fetchText })(job),
+    { connection, concurrency: 2 },
+  );
 }
