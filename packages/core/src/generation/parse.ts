@@ -34,10 +34,6 @@ export function parseMarkdownWithFrontmatter(raw: string): ParseResult {
   }
   const yamlText = lines.slice(1, endIdx).join('\n');
   let body = lines.slice(endIdx + 1).join('\n').replace(/^\n+/, '');
-  if (body.length < 50) {
-    // Let schema validation surface this as the user-visible failure.
-    body = body.padEnd(50, '\n');
-  }
   let parsedYaml: unknown;
   try {
     parsedYaml = parseYaml(yamlText);

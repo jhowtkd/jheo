@@ -37,7 +37,7 @@ export function makeGenerateHandler(deps: {
 
     // 1. Embed any materials that lack an embedding.
     const materials = await prisma.material.findMany({
-      where: { id: { in: generation.materialIds } },
+      where: { id: { in: generation.materialIds }, projectId: project.id },
     });
     for (const m of materials) {
       // `embedding` is `Unsupported("vector(1536)")` in the schema but Prisma's
