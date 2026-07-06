@@ -15,16 +15,19 @@
     "prisma:migrate": "prisma migrate dev"
   },
   "dependencies": {
-    "@jheo/core": "workspace:*",
     "@fastify/cors": "9.0.1",
+    "@jheo/core": "workspace:*",
+    "@mozilla/readability": "0.6.0",
     "@prisma/client": "5.18.0",
     "bullmq": "5.12.0",
     "fastify": "4.28.1",
     "ioredis": "5.4.1",
+    "jsdom": "24.1.0",
     "pg": "8.12.0",
     "zod": "3.23.8"
   },
   "devDependencies": {
+    "@types/jsdom": "^28.0.3",
     "@types/node": "20.14.10",
     "@types/pg": "8.11.6",
     "dotenv": "16.4.5",
