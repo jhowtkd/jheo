@@ -9,11 +9,13 @@ datasource db {
 }
 
 model Project {
-  id        String   @id @default(cuid())
-  name      String
-  rootUrl   String
-  createdAt DateTime @default(now())
-  audits    Audit[]
+  id          String       @id @default(cuid())
+  name        String
+  rootUrl     String
+  createdAt   DateTime     @default(now())
+  audits      Audit[]
+  materials   Material[]
+  generations Generation[]
 }
 
 model Audit {
@@ -54,4 +56,65 @@ model DistributionChannel {
   type             String   // 'wordpress' | 'http' | 'agent'
   configEncrypted  String
   createdAt        DateTime @default(now())
+}
+
+model Material {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type        String
+  title       String
+  content     String
+  contentHash String
+  embedding   Unsupported("vector(1536)")?
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([projectId])
+  @@unique([projectId, contentHash])
+}
+
+model Setting {
+  key             String   @id
+  valueCiphertext String
+  updatedAt       DateTime @updatedAt
+}
+
+model GenerationTemplate {
+  id           String           @id @default(cuid())
+  name         String
+  version      Int              @default(1)
+  isActive     Boolean          @default(false)
+  prompt       String
+  outputSchema Json
+  createdAt    DateTime         @default(now())
+  generations  Generation[]
+
+  @@unique([name, version])
+  @@index([isActive])
+}
+
+model Generation {
+  id                String             @id @default(cuid())
+  projectId         String
+  project           Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  templateId        String
+  template          GenerationTemplate @relation(fields: [templateId], references: [id])
+  materialIds       String[]
+  prompt            String
+  status            String
+  llmConfig         Json
+  sources           Json
+  outputMarkdown    String?
+  outputFrontMatter Json?
+  reviewState       String             @default("draft")
+  reviewNotes       String?
+  usage             Json?
+  startedAt         DateTime?
+  finishedAt        DateTime?
+  createdAt         DateTime           @default(now())
+
+  @@index([projectId])
+  @@index([status])
+  @@index([reviewState])
 }
