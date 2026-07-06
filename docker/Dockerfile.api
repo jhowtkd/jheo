@@ -18,12 +18,15 @@ RUN pnpm --filter @jheo/api exec prisma generate
 RUN pnpm --filter @jheo/api build
 
 FROM node:20.11-bookworm-slim AS runner
-WORKDIR /app
+WORKDIR /repo
 ENV NODE_ENV=production
+ENV DATABASE_URL=postgres://jheo:jheo@postgres:5432/jheo
 RUN apt-get update && apt-get install -y --no-install-recommends chromium fonts-liberation \
+  openssl ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 COPY --from=build /repo /repo
 WORKDIR /repo/apps/api
+RUN pnpm --filter @jheo/api exec prisma db push --skip-generate || true
 EXPOSE 8080
 CMD ["node", "dist/server.js"]
