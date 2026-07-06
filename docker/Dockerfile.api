@@ -1,0 +1,29 @@
+FROM node:20.11-bookworm-slim AS deps
+WORKDIR /repo
+RUN corepack enable
+COPY package.json pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY packages/core/package.json packages/core/
+RUN pnpm install --frozen-lockfile --filter @jheo/api... --filter @jheo/core
+
+FROM node:20.11-bookworm-slim AS build
+WORKDIR /repo
+RUN corepack enable
+COPY --from=deps /repo /repo
+COPY tsconfig.base.json ./
+COPY packages packages
+COPY apps/api apps/api
+RUN pnpm --filter @jheo/core build
+RUN pnpm --filter @jheo/api exec prisma generate
+RUN pnpm --filter @jheo/api build
+
+FROM node:20.11-bookworm-slim AS runner
+WORKDIR /app
+ENV NODE_ENV=production
+RUN apt-get update && apt-get install -y --no-install-recommends chromium fonts-liberation \
+ && rm -rf /var/lib/apt/lists/*
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+COPY --from=build /repo /repo
+WORKDIR /repo/apps/api
+EXPOSE 8080
+CMD ["node", "dist/server.js"]

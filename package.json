@@ -10,7 +10,10 @@
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "typecheck": "pnpm -r run typecheck",
-    "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
+    "format": "prettier --write \"**/*.{ts,tsx,md,json}\"",
+    "compose:up": "docker compose -f docker/docker-compose.yml --env-file docker/.env up -d --build",
+    "compose:down": "docker compose -f docker/docker-compose.yml down",
+    "compose:logs": "docker compose -f docker/docker-compose.yml logs -f api"
   },
   "devDependencies": {
     "prettier": "3.3.3",
