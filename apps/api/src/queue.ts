@@ -45,3 +45,8 @@ export function startGenerateWorkers(
     { connection, concurrency: 3 },
   );
 }
+
+export const PUBLISH_QUEUE = 'publish';
+export const publishQueue = new Queue(PUBLISH_QUEUE, { connection });
+
+export type PublishJobData = { publishId: string };
