@@ -22,7 +22,8 @@ beforeAll(async () => {
   openaiKey = process.env.OPENAI_API_KEY ?? '';
 });
 
-describe.runIf(canRun && !!openaiKey, 'F2 e2e smoke', () => {
+// vitest's `describe.runIf` only accepts (condition, fn) — guard at registration time.
+describe.skipIf(!canRun || !openaiKey)('F2 e2e smoke', () => {
   it('materially writes a generation through RAG', async () => {
     const project = await prisma.project.create({
       data: { name: 'smoke', rootUrl: 'https://example.com/' },

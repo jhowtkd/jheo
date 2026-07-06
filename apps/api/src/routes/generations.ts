@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { prisma } from '../db.js';
-import { auditQueue } from '../queue.js';
+import { generateQueue } from '../queue.js';
 
 const LlmConfigSchema = z.object({
   provider: z.enum(['openai', 'anthropic', 'openrouter']),
@@ -50,7 +50,7 @@ export async function generationRoutes(app: FastifyInstance): Promise<void> {
           reviewState: 'draft',
         },
       });
-      await auditQueue.add('generate.run', { generationId: gen.id }).catch(() => {
+      await generateQueue.add('generate.run', { generationId: gen.id }).catch(() => {
         // If queueing fails (Redis down), mark failed.
         void prisma.generation.update({ where: { id: gen.id }, data: { status: 'failed' } });
       });
