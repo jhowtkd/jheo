@@ -133,3 +133,42 @@ process env for `pnpm --filter @jheo/api run dev`):
 | `WEB_PORT`        | `8080`                               | Fastify bind port                          |
 | `LOG_LEVEL`       | `info`                               | pino level                                 |
 | `JHEO_SECRET_KEY` | (auto-generated on first run)        | Used for channel-config encryption (F2)    |
+
+## F2 — Generation
+
+F2 enables GEO content generation. New routes:
+
+- `GET/POST/DELETE /api/projects/:id/materials` — list/add/delete materials (URL, file, or note).
+- `GET/POST/PUT/PATCH /api/templates` — CRUD versioned generation templates.
+- `POST /api/projects/:id/generations`, `GET /api/projects/:id/generations`, `GET /api/generations/:id`, `POST /api/generations/:id/review`, `PATCH /api/generations/:id` — generation lifecycle.
+- `GET/PUT/DELETE /api/settings/:key` — encrypted API keys.
+
+**Required env vars** (set via `Setting` rows in the UI, or fall back to env vars):
+
+- `OPENAI_API_KEY` (used by embeddings + completion; embeddings fixed at `text-embedding-3-small`).
+- `ANTHROPIC_API_KEY` (optional).
+- `OPENROUTER_API_KEY` (optional).
+
+**Bring-up curl smoke (after `docker compose up -d`):**
+
+```bash
+# add a material via UI or:
+curl -X POST http://127.0.0.1:8080/api/projects/<pid>/materials \
+  -H 'content-type: application/json' \
+  -d '{"type":"note","title":"Apple facts","source":"Apples are red and crisp."}'
+
+# create a template via UI or:
+curl -X POST http://127.0.0.1:8080/api/templates \
+  -H 'content-type: application/json' \
+  -d '{"name":"blog-post","prompt":"You are a writer. Goal: {{userPrompt}}. Sources: {{sources}}. Schema: {{outputSchemaDescription}}.","outputSchema":{"title":"string","slug":"string","description":"string","tags":["string"],"date":"2026-01-01","sources":[],"targetSites":["https://example.com"]}}'
+
+# activate it:
+curl -X PATCH http://127.0.0.1:8080/api/templates/<tid>/active
+
+# queue a generation:
+curl -X POST http://127.0.0.1:8080/api/projects/<pid>/generations \
+  -H 'content-type: application/json' \
+  -d '{"prompt":"Write about apples","templateId":"<tid>","materialIds":["<mid>"],"llmConfig":{"provider":"openai","model":"gpt-4o-mini"}}'
+```
+
+`GET /api/generations/<gid>` will return the output once the worker completes.
