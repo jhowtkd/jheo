@@ -1,6 +1,5 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import { join } from 'node:path';
 import { loadEnv, ensureSecretKey } from './env.js';
 import { healthRoutes } from './routes/health.js';
 
