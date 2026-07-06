@@ -17,6 +17,8 @@ export const FindingSchema = z.object({
 });
 export type Finding = z.infer<typeof FindingSchema>;
 
+export type ReviewState = 'draft' | 'in_review' | 'approved' | 'publishing' | 'published';
+
 export interface AuditContext {
   url: string;
   html: string;

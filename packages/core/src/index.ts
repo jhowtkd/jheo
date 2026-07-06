@@ -18,3 +18,5 @@ export {
   type FrontMatter,
   type ParsedMarkdown,
 } from './generation/index.js';
+export * from './distribution/types.js';
+export { aggregateReviewState, type AggregatePublish } from './distribution/aggregate.js';
