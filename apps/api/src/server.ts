@@ -31,5 +31,5 @@ if (isMain) {
   ensureSecretKey(process.cwd());
   startWorkers(fetchText);
   const app = await buildServer();
-  await app.listen({ host: '127.0.0.1', port: env.WEB_PORT });
+  await app.listen({ host: '0.0.0.0', port: env.WEB_PORT });
 }

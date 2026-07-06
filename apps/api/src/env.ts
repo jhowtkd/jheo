@@ -19,9 +19,9 @@ export function loadEnv(): Env {
 
 /**
  * Ensures a JHEO_SECRET_KEY exists by generating one and writing
- * .env.local if missing. The api binds 127.0.0.1, so the key only
- * protects against an accidental "publish the docker compose port"
- * scenario.
+ * .env.local if missing. The api binds 0.0.0.0 inside its container so
+ * docker compose port-mapping works; the key protects against an accidental
+ * "publish the docker compose port" scenario.
  */
 export function ensureSecretKey(dir: string): string {
   const envFile = join(dir, '.env.local');
