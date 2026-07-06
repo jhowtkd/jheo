@@ -47,7 +47,8 @@ export function ProjectDashboard() {
       </ul>
       <p>
         <a href={`/projects/${projectId}/materials`}>Materials</a> ·{' '}
-        <a href={`/projects/${projectId}/compose`}>Compose</a>
+        <a href={`/projects/${projectId}/compose`}>Compose</a>{' '}·{' '}
+        <a href={`/projects/${projectId}/channels`}>Channels</a>
       </p>
     </section>
   );

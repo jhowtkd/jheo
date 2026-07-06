@@ -9,6 +9,8 @@ import { TemplatesList } from './pages/TemplatesList.js';
 import { TemplateEditor } from './pages/TemplateEditor.js';
 import { GenerationComposer } from './pages/GenerationComposer.js';
 import { GenerationReview } from './pages/GenerationReview.js';
+import { ChannelsList } from './pages/ChannelsList.js';
+import { ChannelEditor } from './pages/ChannelEditor.js';
 import { Settings } from './pages/Settings.js';
 
 export function AppRoutes() {
@@ -25,6 +27,8 @@ export function AppRoutes() {
         <Route path="/templates" element={<TemplatesList />} />
         <Route path="/templates/:templateId" element={<TemplateEditor />} />
         <Route path="/generations/:generationId" element={<GenerationReview />} />
+        <Route path="/projects/:projectId/channels" element={<ChannelsList />} />
+        <Route path="/channels/:channelId" element={<ChannelEditor />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
