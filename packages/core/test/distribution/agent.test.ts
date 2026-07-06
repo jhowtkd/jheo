@@ -46,8 +46,7 @@ describe('distribution/agent', () => {
     const r = await new AgentPublisher().publish(
       {
         content: sampleMarkdown,
-        config: { siteName: 'Test Site X', themeColor: '#fff', assetFolder: 'assets' },
-        outputDir: tmp,
+        config: { siteName: 'Test Site X', themeColor: '#fff', assetFolder: 'assets', outputDir: tmp },
       },
       globalThis.fetch,
     );
@@ -59,8 +58,7 @@ describe('distribution/agent', () => {
     const r = await new AgentPublisher().publish(
       {
         content: sampleMarkdown,
-        config: { siteName: 'S', themeColor: '#fff', assetFolder: 'assets' },
-        outputDir: tmp,
+        config: { siteName: 'S', themeColor: '#fff', assetFolder: 'assets', outputDir: tmp },
       },
       globalThis.fetch,
     );
@@ -76,8 +74,7 @@ describe('distribution/agent', () => {
         {
           content: sampleMarkdown,
           // Intentionally path that cannot be created:
-          config: { siteName: 'S', themeColor: '#fff', assetFolder: 'assets' },
-          outputDir: '/dev/null/forbidden/x',
+          config: { siteName: 'S', themeColor: '#fff', assetFolder: 'assets', outputDir: '/dev/null/forbidden/x' },
         },
         globalThis.fetch,
       ),
