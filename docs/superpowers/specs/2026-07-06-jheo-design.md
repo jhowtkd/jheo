@@ -22,7 +22,7 @@ This design covers the **MVP** scope: a full stack runnable with `docker compose
 
 ### 3.1 Topology
 
-A single TypeScript pnpm monorepo with three packages, deployed via `docker compose`. The user accesses the SPA at `http://localhost:5173` (dev) or `http://localhost:8080/app` (compose), talks to a Fastify HTTP API at `/api`, and a BullMQ worker running in the **same process** as the API. Postgres 16 with pgvector stores all persistent state. No auth layer — single-user local use, bound to `127.0.0.1`.
+A single TypeScript pnpm monorepo with three packages, deployed via `docker compose`. The user accesses the SPA at `http://localhost:5173` (dev) or `http://localhost:8080/app` (compose), talks to a Fastify HTTP API at `/api`, and a BullMQ worker running in the **same process** as the API. Postgres 16 with pgvector stores all persistent state. No auth layer — single-user local use, bound to `127.0.0.1`. **Container-side binds**: api server binds to `0.0.0.0:8080` inside docker (required for port-mapping). Host-side port mapping (`127.0.0.1:8080 → container`) preserves loopback-only exposure on the host.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
