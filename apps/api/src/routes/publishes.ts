@@ -38,10 +38,23 @@ export async function publishRoutes(app: FastifyInstance): Promise<void> {
         where: { id: gen.id },
         data: { reviewState: 'publishing' },
       });
-      for (const pub of created) {
-        await publishQueue.add('run', { publishId: pub.id }).catch(() => {
-          void prisma.publish.update({ where: { id: pub.id }, data: { status: 'failed', lastError: 'queue enqueue failed' } });
-        });
+      try {
+        for (const pub of created) {
+          await publishQueue.add('run', { publishId: pub.id });
+        }
+      } catch (err) {
+        const e = err as Error;
+        await prisma.$transaction([
+          prisma.publish.updateMany({
+            where: { id: { in: created.map((c) => c.id) } },
+            data: { status: 'failed', lastError: `enqueue failed: ${e.message}` },
+          }),
+          prisma.generation.update({
+            where: { id: gen.id },
+            data: { reviewState: 'approved' },
+          }),
+        ]);
+        return reply.code(503).send({ error: `publish queue unavailable: ${e.message}` });
       }
       return { publishes: created.map((p) => p.id) };
     },

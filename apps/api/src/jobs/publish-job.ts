@@ -2,7 +2,7 @@ import type { Job } from 'bullmq';
 import { aggregateReviewState, type Publisher, type PublishStatus } from '@jheo/core';
 import type { PrismaClient } from '@prisma/client';
 
-const BACKOFF_MS = [0, 30_000, 300_000];
+const BACKOFF_MS: readonly number[] = [0, 30_000, 300_000];
 const MAX_ATTEMPTS_DEFAULT = 3;
 
 export type PublishJobData = { publishId: string };
@@ -13,7 +13,7 @@ export function makePublishHandler(deps: {
   publishers: { wordpress: Publisher; http: Publisher; agent: Publisher };
   decrypt: (ciphertext: string, secret: string) => string;
   aggregateState: (publishes: { status: PublishStatus }[]) => string;
-  publishQueueAdd?: (data: PublishJobData) => Promise<unknown>;
+  publishQueueAdd?: (data: PublishJobData, opts?: { delay?: number }) => Promise<unknown>;
 }) {
   return async function handle(job: Job<PublishJobData>): Promise<void> {
     const { prisma } = deps;
@@ -90,9 +90,10 @@ export function makePublishHandler(deps: {
           data: { status: 'queued', lastError: e.message ?? String(err) },
         });
         if (deps.publishQueueAdd) {
-          await deps.publishQueueAdd({
-            publishId: publish.id,
-          });
+          await deps.publishQueueAdd(
+            { publishId: publish.id },
+            { delay: BACKOFF_MS[Math.min(attempts, BACKOFF_MS.length - 1)] ?? 0 },
+          );
         }
       } else {
         await markFailed(prisma, publish.id, e.message ?? String(err));
