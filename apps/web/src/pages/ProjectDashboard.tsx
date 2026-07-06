@@ -45,6 +45,10 @@ export function ProjectDashboard() {
           </li>
         ))}
       </ul>
+      <p>
+        <a href={`/projects/${projectId}/materials`}>Materials</a> ·{' '}
+        <a href={`/projects/${projectId}/compose`}>Compose</a>
+      </p>
     </section>
   );
 }

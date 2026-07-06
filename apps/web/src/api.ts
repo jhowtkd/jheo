@@ -83,6 +83,9 @@ export type GenerationTemplate = {
 export async function listTemplates(): Promise<GenerationTemplate[]> {
   return (await fetch('/api/templates')).json();
 }
+export async function getTemplate(id: string): Promise<GenerationTemplate> {
+  return (await fetch(`/api/templates/${id}`)).json();
+}
 export async function createTemplate(input: {
   name: string;
   prompt: string;

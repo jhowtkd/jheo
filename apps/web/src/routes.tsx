@@ -6,6 +6,9 @@ import { AuditRunner } from './pages/AuditRunner.js';
 import { AuditResults } from './pages/AuditResults.js';
 import { MaterialsList } from './pages/MaterialsList.js';
 import { TemplatesList } from './pages/TemplatesList.js';
+import { TemplateEditor } from './pages/TemplateEditor.js';
+import { GenerationComposer } from './pages/GenerationComposer.js';
+import { GenerationReview } from './pages/GenerationReview.js';
 import { Settings } from './pages/Settings.js';
 
 export function AppRoutes() {
@@ -18,7 +21,10 @@ export function AppRoutes() {
         <Route path="/projects/:projectId/audit" element={<AuditRunner />} />
         <Route path="/audits/:auditId" element={<AuditResults />} />
         <Route path="/projects/:projectId/materials" element={<MaterialsList />} />
+        <Route path="/projects/:projectId/compose" element={<GenerationComposer />} />
         <Route path="/templates" element={<TemplatesList />} />
+        <Route path="/templates/:templateId" element={<TemplateEditor />} />
+        <Route path="/generations/:generationId" element={<GenerationReview />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
     </Routes>
