@@ -16,8 +16,8 @@ beforeAll(async () => {
   }
 });
 
-describe.runIf(canRun, 'F3 e2e smoke', () => {
-  it('writes a Channel and a Publish row through the public schema', async () => {
+describe('F3 e2e smoke', () => {
+  it.runIf(canRun)('writes a Channel and a Publish row through the public schema', async () => {
     const project = await prisma.project.create({
       data: { name: `f3-${Date.now()}`, rootUrl: 'https://example.com' },
     });
