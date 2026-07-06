@@ -172,3 +172,38 @@ curl -X POST http://127.0.0.1:8080/api/projects/<pid>/generations \
 ```
 
 `GET /api/generations/<gid>` will return the output once the worker completes.
+
+## F3 — Distribution
+
+F3 enables publishing approved generations to external destinations. New routes:
+
+- `GET/POST /api/projects/:id/channels`, `GET/PUT/DELETE /api/channels/:id` — channel CRUD with type-discriminated configs (wordpress, http, agent).
+- `POST /api/generations/:id/publish` with `{ channelIds: [...] }` — fans out one `Publish` row per channel; transitions Generation to `publishing`.
+- `GET /api/generations/:id/publishes`, `GET /api/publishes/:id`, `POST /api/publishes/:id/retry`, `POST /api/publishes/:id/cancel` — manage publishes.
+- `GET /api/publishes/:id/files` and `GET /api/publishes/:id/bundle` (agent only) — in-browser bundle view + zip download.
+
+**Publish state machine** (per-generation):
+
+```
+approved → publishing → published (all completed) | approved (some failed/cancelled; retry to recover)
+```
+
+**Retry policy:** 3 attempts with backoff 0s → 30s → 5m on retryable errors (5xx, 408, 429, network).
+
+**Smoke curl** (after a `generation.approved`):
+
+```bash
+curl -X POST http://127.0.0.1:8080/api/projects/<pid>/channels \
+  -H 'content-type: application/json' \
+  -d '{"name":"smoke","type":"http","config":{"endpointUrl":"http://127.0.0.1:9999/hook","method":"POST","headers":{}}}'
+# Returns { id: <cid> }
+
+curl -X POST http://127.0.0.1:8080/api/generations/<gid>/publish \
+  -H 'content-type: application/json' \
+  -d "{\"channelIds\":[\"<cid>\"]}"
+# Worker will fail with 5xx (unreachable). Inspect via:
+curl http://127.0.0.1:8080/api/generations/<gid>/publishes
+# Returns row with status='failed' (after 3 retries) or 'completed' if endpoint is reachable.
+```
+
+Agent bundles are written to `/data/agent-bundles/<publishId>/` inside the container. The `docker-compose.yml` from F1 already mounts `/data` as a volume; no further config needed.
