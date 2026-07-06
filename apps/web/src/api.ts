@@ -188,3 +188,83 @@ export async function upsertSetting(key: string, value: string): Promise<Setting
 export async function deleteSetting(key: string): Promise<{ key: string }> {
   return (await fetch(`/api/settings/${key}`, { method: 'DELETE' })).json();
 }
+
+// ---------- Channels ----------
+export type ChannelType = 'wordpress' | 'http' | 'agent';
+export type Channel = {
+  id: string;
+  projectId: string;
+  type: ChannelType;
+  name: string;
+  isActive: boolean;
+  createdAt: string;
+};
+export type ChannelDetail = Channel & { config: unknown };
+export async function listChannels(projectId: string): Promise<Channel[]> {
+  return (await fetch(`/api/projects/${projectId}/channels`)).json();
+}
+export async function createChannel(
+  projectId: string,
+  input: { name: string; type: ChannelType; config: unknown; isActive?: boolean },
+): Promise<{ id: string }> {
+  const r = await fetch(`/api/projects/${projectId}/channels`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  return r.json();
+}
+export async function getChannel(id: string): Promise<ChannelDetail> {
+  return (await fetch(`/api/channels/${id}`)).json();
+}
+export async function updateChannel(
+  id: string,
+  input: { name?: string; config?: unknown; isActive?: boolean },
+): Promise<Channel> {
+  const r = await fetch(`/api/channels/${id}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  return r.json();
+}
+export async function deleteChannel(id: string): Promise<{ id: string }> {
+  return (await fetch(`/api/channels/${id}`, { method: 'DELETE' })).json();
+}
+
+// ---------- Publishes ----------
+export type PublishStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type Publish = {
+  id: string;
+  generationId: string;
+  channelId: string;
+  status: PublishStatus;
+  attempts: number;
+  externalId: string | null;
+  externalUrl: string | null;
+  response: unknown;
+  lastError: string | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+};
+export async function listPublishes(generationId: string): Promise<Publish[]> {
+  return (await fetch(`/api/generations/${generationId}/publishes`)).json();
+}
+export async function createPublishes(generationId: string, channelIds: string[]): Promise<{ publishes: string[] }> {
+  const r = await fetch(`/api/generations/${generationId}/publish`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ channelIds }),
+  });
+  return r.json();
+}
+export async function retryPublish(id: string): Promise<{ id: string }> {
+  return (await fetch(`/api/publishes/${id}/retry`, { method: 'POST' })).json();
+}
+export async function cancelPublish(id: string): Promise<{ id: string }> {
+  return (await fetch(`/api/publishes/${id}/cancel`, { method: 'POST' })).json();
+}
+export async function getPublishFiles(id: string): Promise<{ dir: string; files: { name: string; content: string }[] }> {
+  return (await fetch(`/api/publishes/${id}/files`)).json();
+}
