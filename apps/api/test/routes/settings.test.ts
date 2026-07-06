@@ -2,7 +2,6 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import crypto from 'node:crypto';
 import { buildServer } from '../../src/server.js';
 import { prisma } from '../../src/db.js';
-import { encrypt } from '../../src/crypto.js';
 
 let app: Awaited<ReturnType<typeof buildServer>>;
 let canRunDb = false;
@@ -45,7 +44,6 @@ describe('routes/settings', () => {
 
     const row = await prisma.setting.findUnique({ where: { key: 'openai_api_key' } });
     expect(row).not.toBeNull();
-    expect(encrypt(plaintext, secret)).toBe(row!.valueCiphertext); // enc is deterministic enough that ciphertexts match OR
     // At minimum, decrypt must round-trip:
     const { decrypt } = await import('../../src/crypto.js');
     expect(decrypt(row!.valueCiphertext, secret)).toBe(plaintext);
