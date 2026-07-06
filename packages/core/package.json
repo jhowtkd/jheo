@@ -19,6 +19,7 @@
     "lint": "prettier --check \"src/**/*.{ts,tsx}\""
   },
   "dependencies": {
+    "jsonpath-plus": "10.2.0",
     "yaml": "2.5.1",
     "zod": "3.23.8"
   },
