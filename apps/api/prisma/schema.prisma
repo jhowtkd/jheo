@@ -1,0 +1,48 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  rootUrl   String
+  createdAt DateTime @default(now())
+  audits    Audit[]
+}
+
+model Audit {
+  id             String    @id @default(cuid())
+  projectId      String
+  project        Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status         String    // 'queued' | 'running' | 'completed' | 'failed'
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  configSnapshot Json
+  score          Json?
+  findings       Finding[]
+  createdAt      DateTime  @default(now())
+
+  @@index([projectId])
+}
+
+model Finding {
+  id        String  @id @default(cuid())
+  auditId   String
+  audit     Audit   @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  category  String
+  severity  String
+  rule      String
+  message   String
+  url       String
+  selector  String?
+  evidence  Json    @default("{}")
+
+  @@index([auditId])
+  @@index([category])
+  @@index([severity])
+}
