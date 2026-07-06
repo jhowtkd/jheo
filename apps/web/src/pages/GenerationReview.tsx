@@ -7,6 +7,7 @@ import {
   reviewGeneration,
   type Generation,
 } from '../api.js';
+import { PublishActions } from '../components/PublishActions.js';
 
 export function GenerationReview() {
   const { generationId } = useParams<{ generationId: string }>();
@@ -82,6 +83,11 @@ export function GenerationReview() {
           Reject
         </button>
       </div>
+      <PublishActions
+        generationId={generationId!}
+        projectId={g.projectId}
+        reviewState={g.reviewState}
+      />
     </section>
   );
 }
