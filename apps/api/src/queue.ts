@@ -169,7 +169,7 @@ export const AUDIT_PAGE_QUEUE = 'auditPage';
 
 export type PageAuditJobData = {
   pageAuditId: string;
-  auditId: string;
+  auditId: string | null;
   projectPageId: string;
   url: string;
 };

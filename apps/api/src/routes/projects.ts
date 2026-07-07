@@ -84,12 +84,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
         orderBy: { url: 'asc' },
         take: parsed.data.limit,
         skip: parsed.data.offset,
-        // TODO(F5.3-T2): pageAudits is added in F5.3; remove @ts-expect-error when relation is in schema.
-        // Phase 3 will add the `pageAudits` relation to `ProjectPage` and regenerate
-        // the Prisma client. The include below is correct forward-compatibly; in
-        // Phase 2 it always yields an empty array, so `lastScore` is always null.
         include: {
-          // @ts-expect-error -- `pageAudits` relation arrives in Phase 3 (F5 mapping UX).
           pageAudits: {
             where: { status: 'completed' },
             orderBy: { finishedAt: 'desc' },
@@ -110,7 +105,6 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
         url: p.url,
         discoveredVia: p.discoveredVia,
         lastAuditedAt: p.lastAuditedAt,
-        // @ts-expect-error -- `pageAudits` is added in Phase 3 (F5 mapping UX).
         lastScore: p.pageAudits[0]?.score ?? null,
       })),
     };
