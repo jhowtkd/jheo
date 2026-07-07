@@ -23,6 +23,16 @@ const FILTER_OPTIONS: FilterOption<FilterValue>[] = [
   { value: 'discovered_via:root', label: 'Root' },
 ];
 
+function formatDate(iso: string): string {
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
 export function ProjectDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
   const [filter, setFilter] = useState<FilterValue>('all');
@@ -83,6 +93,8 @@ export function ProjectDashboard() {
 
   const h = health.data;
   const inFlight = (h?.pagesTotal ?? 0) - (h?.pagesAudited ?? 0) > 0;
+  const p = project.data;
+  const latest = p.audits[0];
 
   return (
     <div className="page col" style={{ gap: 'var(--space-6)' }}>
@@ -92,10 +104,10 @@ export function ProjectDashboard() {
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
             <Link to="/projects" className="muted tiny">Projects</Link>
             <span className="muted tiny">/</span>
-            <span className="tiny">{project.data.name}</span>
+            <span className="tiny">{p.name}</span>
           </div>
-          <h1 className="page__title">{project.data.name}</h1>
-          <p className="page__subtitle mono">{project.data.rootUrl}</p>
+          <h1 className="page__title">{p.name}</h1>
+          <p className="page__subtitle mono">{p.rootUrl}</p>
         </div>
         <Link to={`/projects/${projectId}/audit`} className="btn btn--primary">
           Run audit
@@ -170,6 +182,109 @@ export function ProjectDashboard() {
         {inFlight && <span className="spinner" aria-label="In progress" />}
       </footer>
 
+      {/* Stat tiles — restored from F1 */}
+      <section>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+            gap: 'var(--space-3)',
+          }}
+        >
+          <StatTile
+            label="Audits"
+            value={p.audits.length}
+            {...(latest?.status === 'completed' ? { accent: 'success' as const } : {})}
+          />
+          <StatTile label="Materials" value={materials.data?.length ?? '—'} />
+          <StatTile label="Generations" value={generations.data?.length ?? '—'} />
+          <StatTile label="Channels" value={channels.data?.length ?? '—'} />
+        </div>
+      </section>
+
+      {/* Latest audit score — restored from F1 */}
+      {latest?.score && (
+        <section>
+          <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
+            <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>Latest audit</h2>
+            <Link to={`/audits/${latest.id}`} className="tiny">
+              Open full report →
+            </Link>
+          </div>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'minmax(200px, auto) 1fr',
+              gap: 'var(--space-3)',
+              alignItems: 'stretch',
+            }}
+          >
+            <div className="card" style={{ padding: 'var(--space-5)' }}>
+              <div
+                className="tiny"
+                style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 'var(--space-2)' }}
+              >
+                Overall
+              </div>
+              <div
+                className="tabular"
+                style={{
+                  fontSize: 'var(--fs-2xl)',
+                  fontWeight: 700,
+                  letterSpacing: '-0.025em',
+                }}
+              >
+                {latest.score.overall}
+              </div>
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                gap: 'var(--space-3)',
+              }}
+            >
+              {Object.entries(latest.score.byCategory).map(([k, v]) => (
+                <CategoryScoreCard key={k} label={k} value={v} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Audit history — restored from F1 */}
+      {p.audits.length > 0 && (
+        <section>
+          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>Audit history</h2>
+          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Status</th>
+                  <th>Started</th>
+                  <th style={{ textAlign: 'right' }}>Overall</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.audits.map((a) => (
+                  <tr key={a.id}>
+                    <td><span className={`badge badge--${a.status}`}>{a.status}</span></td>
+                    <td className="tiny tabular muted">{a.startedAt ? formatDate(a.startedAt) : '—'}</td>
+                    <td className="tabular" style={{ textAlign: 'right', fontWeight: 600 }}>
+                      {a.score?.overall ?? '—'}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <Link to={`/audits/${a.id}`} className="tiny">View →</Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       {/* Workspace quick links — preserved from F2/F3 (materials, channels, generations) */}
       <section>
         <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>Workspace</h2>
@@ -200,6 +315,74 @@ export function ProjectDashboard() {
           />
         </div>
       </section>
+    </div>
+  );
+}
+
+function StatTile({
+  label,
+  value,
+  accent,
+}: {
+  label: string;
+  value: number | string;
+  accent?: 'success';
+}) {
+  return (
+    <div
+      className="card"
+      style={{
+        padding: 'var(--space-4) var(--space-5)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-1)',
+      }}
+    >
+      <span className="tiny" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+        {label}
+      </span>
+      <span
+        className="tabular"
+        style={{
+          fontSize: 'var(--fs-2xl)',
+          fontWeight: 700,
+          letterSpacing: '-0.025em',
+          color: accent === 'success' ? 'var(--accent-bright)' : 'var(--text)',
+        }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function CategoryScoreCard({ label, value }: { label: string; value: number | null }) {
+  return (
+    <div
+      className="card"
+      style={{
+        padding: 'var(--space-4)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-1)',
+      }}
+    >
+      <span
+        className="tiny"
+        style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}
+      >
+        {label}
+      </span>
+      <span
+        className="tabular"
+        style={{
+          fontSize: 'var(--fs-xl)',
+          fontWeight: 700,
+          letterSpacing: '-0.025em',
+        }}
+      >
+        {value ?? '—'}
+      </span>
     </div>
   );
 }
