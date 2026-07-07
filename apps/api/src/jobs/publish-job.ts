@@ -1,11 +1,49 @@
 import type { Job } from 'bullmq';
 import { aggregateReviewState, type Publisher, type PublishStatus } from '@jheo/core';
-import type { PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import { fetchWithGuard } from '../security/url-guard.js';
 import { withGenerationLock } from '../db.js';
 
 const BACKOFF_MS: readonly number[] = [0, 30_000, 300_000];
 const MAX_ATTEMPTS_DEFAULT = 3;
+
+/**
+ * Append-only audit row for a Publish status transition (H-11 part 2).
+ *
+ * Reads the current `status`, inserts a `PublishEvent` row capturing the
+ * `fromStatus -> toStatus` tuple (plus an optional human-readable message),
+ * then applies the status update. The event write happens BEFORE the status
+ * flip so the row records the OLD state — if the status update fails, no
+ * event is left behind.
+ *
+ * Accepts either a bare `PrismaClient` or a `Prisma.TransactionClient`
+ * (the `tx` passed to a `prisma.$transaction` callback). When atomicity
+ * with other writes is required, callers should open a transaction and
+ * pass `tx` — this helper does NOT open one itself.
+ */
+export async function recordPublishTransition(
+  prisma: PrismaClient | Prisma.TransactionClient,
+  publishId: string,
+  toStatus: string,
+  message?: string,
+): Promise<void> {
+  const current = await prisma.publish.findUniqueOrThrow({
+    where: { id: publishId },
+    select: { status: true },
+  });
+  await prisma.publishEvent.create({
+    data: {
+      publishId,
+      fromStatus: current.status,
+      toStatus,
+      message: message ?? null,
+    },
+  });
+  await prisma.publish.update({
+    where: { id: publishId },
+    data: { status: toStatus },
+  });
+}
 
 export type PublishJobData = { publishId: string };
 
@@ -28,8 +66,9 @@ export function makePublishHandler(deps: {
 
     await prisma.publish.update({
       where: { id: publish.id },
-      data: { status: 'running', startedAt: new Date(), attempts: { increment: 1 } },
+      data: { startedAt: new Date(), attempts: { increment: 1 } },
     });
+    await recordPublishTransition(prisma, publish.id, 'running', 'worker picked up job');
 
     const secret = process.env.JHEO_SECRET_KEY ?? '';
     if (!secret) {
@@ -88,13 +127,13 @@ export function makePublishHandler(deps: {
       await prisma.publish.update({
         where: { id: publish.id },
         data: {
-          status: 'completed',
           finishedAt: new Date(),
           ...(result.externalId !== undefined ? { externalId: result.externalId } : { externalId: null }),
           ...(result.externalUrl !== undefined ? { externalUrl: result.externalUrl } : { externalUrl: null }),
           response: { status: result.raw.status, body: result.raw.body.slice(0, 1024) },
         },
       });
+      await recordPublishTransition(prisma, publish.id, 'completed', 'publisher succeeded');
     } catch (err: unknown) {
       const e = err as { status?: number; message?: string };
       const retryable = !e.status || e.status >= 500 || e.status === 408 || e.status === 429;
@@ -102,8 +141,9 @@ export function makePublishHandler(deps: {
       if (retryable && attempts < MAX_ATTEMPTS_DEFAULT) {
         await prisma.publish.update({
           where: { id: publish.id },
-          data: { status: 'queued', lastError: e.message ?? String(err) },
+          data: { lastError: e.message ?? String(err) },
         });
+        await recordPublishTransition(prisma, publish.id, 'queued', `retry attempt ${attempts}`);
         if (deps.publishQueueAdd) {
           await deps.publishQueueAdd(
             { publishId: publish.id },
@@ -122,8 +162,9 @@ export function makePublishHandler(deps: {
 async function markFailed(prisma: PrismaClient, id: string, lastError: string) {
   await prisma.publish.update({
     where: { id },
-    data: { status: 'failed', finishedAt: new Date(), lastError },
+    data: { finishedAt: new Date(), lastError },
   });
+  await recordPublishTransition(prisma, id, 'failed', lastError);
 }
 
 /**

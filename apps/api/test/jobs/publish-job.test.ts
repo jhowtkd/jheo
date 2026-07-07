@@ -1,5 +1,9 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest';
-import { makePublishHandler, recomputeGenerationState } from '../../src/jobs/publish-job.js';
+import {
+  makePublishHandler,
+  recomputeGenerationState,
+  recordPublishTransition,
+} from '../../src/jobs/publish-job.js';
 import { aggregateReviewState } from '@jheo/core';
 import { prisma } from '../../src/db.js';
 
@@ -52,7 +56,13 @@ body body body body body body body body.`,
 describe('jobs/publish-job', () => {
   it('runs an http publish to completion and recomputes the generation state to published', async () => {
     const fakePrisma: any = {
-      publish: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+      publish: {
+        findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+        update: vi.fn(),
+        findMany: vi.fn(),
+      },
+      publishEvent: { create: vi.fn().mockResolvedValue({}) },
       generation: { findUnique: vi.fn(), update: vi.fn() },
     };
     // `recomputeGenerationState` now opens a transaction (advisory-lock body),
@@ -64,11 +74,13 @@ describe('jobs/publish-job', () => {
       const tx: any = {
         $executeRaw: fakePrisma.$executeRaw,
         publish: fakePrisma.publish,
+        publishEvent: fakePrisma.publishEvent,
         generation: fakePrisma.generation,
       };
       return body(tx);
     });
     fakePrisma.publish.findUnique.mockResolvedValue({ ...basePublish });
+    fakePrisma.publish.findUniqueOrThrow.mockResolvedValue({ status: 'running' });
     fakePrisma.publish.update.mockResolvedValue({});
     fakePrisma.publish.findMany.mockResolvedValue([{ status: 'completed' }]);
     fakePrisma.generation.findUnique.mockResolvedValue({ id: 'g1', reviewState: 'publishing' });
@@ -106,7 +118,13 @@ describe('jobs/publish-job', () => {
 
   it('marks the publish failed on retryable error when maxAttempts reached', async () => {
     const fakePrisma: any = {
-      publish: { findUnique: vi.fn(), update: vi.fn(), findMany: vi.fn() },
+      publish: {
+        findUnique: vi.fn(),
+        findUniqueOrThrow: vi.fn(),
+        update: vi.fn(),
+        findMany: vi.fn(),
+      },
+      publishEvent: { create: vi.fn().mockResolvedValue({}) },
       generation: { findUnique: vi.fn(), update: vi.fn() },
     };
     fakePrisma.$executeRaw = vi.fn().mockResolvedValue(undefined);
@@ -114,11 +132,13 @@ describe('jobs/publish-job', () => {
       const tx: any = {
         $executeRaw: fakePrisma.$executeRaw,
         publish: fakePrisma.publish,
+        publishEvent: fakePrisma.publishEvent,
         generation: fakePrisma.generation,
       };
       return body(tx);
     });
     fakePrisma.publish.findUnique.mockResolvedValue({ ...basePublish, attempts: 3 });
+    fakePrisma.publish.findUniqueOrThrow.mockResolvedValue({ status: 'running' });
     fakePrisma.publish.update.mockResolvedValue({});
     fakePrisma.publish.findMany.mockResolvedValue([{ status: 'failed' }]);
     fakePrisma.generation.findUnique.mockResolvedValue({ id: 'g1', reviewState: 'publishing' });
@@ -205,6 +225,60 @@ describe.skipIf(!canRunDb)('publish-job advisory lock', () => {
       ),
     );
     expect(depth.max).toBe(1);
+    await prisma.generation.delete({ where: { id: gen.id } });
+  });
+});
+
+// H-11 part 2: every Publish status transition must persist an immutable
+// `PublishEvent` row recording the `fromStatus` -> `toStatus` tuple. This
+// describe exercises the shared `recordPublishTransition` helper directly:
+// queued -> running, running -> completed, completed -> running (a retry).
+describe.skipIf(!canRunDb)('PublishEvent writes on transitions', () => {
+  it('writes one PublishEvent per status change', async () => {
+    const owner = await prisma.project.findFirstOrThrow({ select: { id: true } });
+    const gen = await prisma.generation.create({
+      data: {
+        projectId: owner.id,
+        prompt: 'ev',
+        modelOutput: 'x',
+        reviewState: 'approved',
+      },
+    });
+    const ch = await prisma.distributionChannel.create({
+      data: {
+        projectId: owner.id,
+        type: 'http',
+        name: 't',
+        configEncrypted: 'x',
+        configSchema: 'http',
+        isActive: true,
+      },
+    });
+    const pub = await prisma.publish.create({
+      data: { generationId: gen.id, channelId: ch.id, status: 'queued' },
+    });
+
+    // Three transitions: queued -> running, running -> completed, completed -> running (retry).
+    // Signature: recordPublishTransition(prisma, publishId, toStatus, message?).
+    await recordPublishTransition(prisma, pub.id, 'running');
+    await recordPublishTransition(prisma, pub.id, 'completed');
+    await recordPublishTransition(prisma, pub.id, 'running');
+
+    const events = await prisma.publishEvent.findMany({
+      where: { publishId: pub.id },
+      orderBy: { createdAt: 'asc' },
+    });
+    expect(events).toHaveLength(3);
+    expect(events.map((e) => [e.fromStatus, e.toStatus])).toEqual([
+      ['queued', 'running'],
+      ['running', 'completed'],
+      ['completed', 'running'],
+    ]);
+
+    // cleanup (cascade would handle PublishEvent + Publish, but be explicit)
+    await prisma.publishEvent.deleteMany({ where: { publishId: pub.id } });
+    await prisma.publish.delete({ where: { id: pub.id } });
+    await prisma.distributionChannel.delete({ where: { id: ch.id } });
     await prisma.generation.delete({ where: { id: gen.id } });
   });
 });

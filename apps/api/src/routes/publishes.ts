@@ -6,6 +6,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { prisma } from '../db.js';
 import { publishQueue } from '../queue.js';
+import { recordPublishTransition } from '../jobs/publish-job.js';
 
 const PublishBodySchema = z.object({
   channelIds: z.array(z.string().min(1)).min(1),
@@ -87,8 +88,9 @@ export async function publishRoutes(app: FastifyInstance): Promise<void> {
     }
     await prisma.publish.update({
       where: { id: pub.id },
-      data: { status: 'queued', lastError: null },
+      data: { lastError: null },
     });
+    await recordPublishTransition(prisma, pub.id, 'queued', 'user retry');
     await publishQueue.add('run', { publishId: pub.id });
     return { id: pub.id };
   });
@@ -101,7 +103,7 @@ export async function publishRoutes(app: FastifyInstance): Promise<void> {
     }
     if (pub.status === 'queued' || pub.status === 'running') {
       // Worker polls between adapter calls; mark cancelled so next poll aborts.
-      await prisma.publish.update({ where: { id: pub.id }, data: { status: 'cancelled' } });
+      await recordPublishTransition(prisma, pub.id, 'cancelled', 'user cancelled');
     }
     return { id: pub.id };
   });
