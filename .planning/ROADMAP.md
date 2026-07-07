@@ -29,7 +29,10 @@ F4 enriches JHEO's audit → generate → publish loop with Google Search Consol
   3. Connection save tests GSC access via sites.get and surfaces actionable 403/404 errors with client_email hint
   4. User can view connection status (siteUrl, lastSyncAt, syncStatus, syncError) and disconnect without losing snapshots
   5. Decrypt failures show decrypt_error status and prompt re-upload instead of crashing
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] `01-01-PLAN.md` — Schema, gsc-config/auth, connection CRUD routes, tests (T1–T5)
 
 ### Phase 2: GSC Core + Snapshots
 **Goal**: System pulls and stores daily GSC search analytics snapshots for connected projects
