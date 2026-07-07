@@ -82,6 +82,7 @@ model Publish {
   startedAt    DateTime?
   finishedAt   DateTime?
   createdAt    DateTime            @default(now())
+  events       PublishEvent[]
 
   @@unique([generationId, channelId])
   @@index([generationId])
@@ -149,4 +150,17 @@ model Generation {
   @@index([projectId])
   @@index([status])
   @@index([reviewState])
+}
+
+model PublishEvent {
+  id         String   @id @default(cuid())
+  publishId  String
+  publish    Publish  @relation(fields: [publishId], references: [id], onDelete: Cascade)
+  fromStatus String?
+  toStatus   String
+  message    String?
+  createdAt  DateTime @default(now())
+
+  @@index([publishId])
+  @@index([createdAt])
 }
