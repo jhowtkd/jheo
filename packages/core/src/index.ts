@@ -48,3 +48,22 @@ export {
 export {
   AgentPublisher,
 } from './distribution/agent.js';
+export {
+  createGscClient,
+  fetchSearchAnalyticsDay,
+  fetchSearchAnalyticsRange,
+  formatGscDate,
+  inspectUrl,
+  parseSnapshotRow,
+  GSC_SNAPSHOT,
+  lookupGscPageMetrics,
+  normalizeGscPageUrl,
+  type GscPageMetrics,
+  type GscSnapshotContext,
+  type GscClient,
+  type GscClientDeps,
+  type GscSnapshotRow,
+  type SearchAnalyticsRequest,
+  type UrlInspectionRequest,
+  type UrlInspectionResult,
+} from './gsc/index.js';

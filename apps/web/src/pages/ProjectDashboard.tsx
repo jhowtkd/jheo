@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import { ScoreCard } from '../components/ScoreCard.js';
+import { GscPanel } from '../components/GscPanel.js';
 import { getProject, listMaterials, listChannels, listGenerations } from '../api.js';
 
 function formatDate(iso: string): string {
@@ -88,6 +89,8 @@ export function ProjectDashboard() {
         <StatTile label="Generations" value={generations.data?.length ?? '—'} />
         <StatTile label="Channels" value={channels.data?.length ?? '—'} />
       </div>
+
+      {projectId && <GscPanel projectId={projectId} />}
 
       {/* Latest audit score */}
       {latest?.score && (

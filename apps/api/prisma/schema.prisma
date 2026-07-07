@@ -18,6 +18,36 @@ model Project {
   generations          Generation[]
   distributionChannels DistributionChannel[]
   pages                ProjectPage[]
+  gscConnection        GscConnection?
+  gscSnapshots         GscSnapshot[]
+}
+
+model GscConnection {
+  projectId                String   @id
+  project                  Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  siteUrl                  String
+  serviceAccountCiphertext String
+  lastSyncAt               DateTime?
+  syncStatus               String   @default("idle")
+  syncError                String?
+  updatedAt                DateTime @updatedAt
+}
+
+model GscSnapshot {
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  date        DateTime @db.Date
+  query       String
+  page        String
+  device      String   @default("DESKTOP")
+  country     String   @default("usa")
+  clicks      Int
+  impressions Int
+  ctr         Float
+  position    Float
+
+  @@id([projectId, date, query, page, device, country])
+  @@index([projectId, date])
 }
 
 model ProjectPage {

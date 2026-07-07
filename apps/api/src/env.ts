@@ -22,6 +22,7 @@ const EnvSchema = z.object({
   // completion provider is routed to an OpenAI-compatible third party.
   // Falls back to `openai_api_key` Setting if unset.
   OPENAI_EMBEDDING_API_KEY: z.string().optional(),
+  GSC_ENABLED: z.coerce.boolean().default(true),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

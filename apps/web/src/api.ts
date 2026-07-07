@@ -294,3 +294,90 @@ export async function getPublish(id: string): Promise<Publish> {
 export async function getPublishFiles(id: string): Promise<{ dir: string; files: { name: string; content: string }[] }> {
   return (await fetch(`/api/publishes/${id}/files`)).json();
 }
+
+// ---------- Google Search Console ----------
+export type GscConnection = {
+  projectId: string;
+  siteUrl: string;
+  lastSyncAt: string | null;
+  syncStatus: string;
+  syncError: string | null;
+  clientEmail: string | null;
+};
+
+export type GscFreshness = {
+  lastSyncedAt: string | null;
+  syncStatus: string;
+  syncError: string | null;
+  dataThrough: string;
+  days: number;
+};
+
+export type GscOverview = {
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+  rowCount: number;
+  freshness: GscFreshness;
+};
+
+export type GscMetricRow = {
+  query?: string;
+  page?: string;
+  clicks: number;
+  impressions: number;
+  ctr: number;
+  position: number;
+};
+
+async function readJsonOrThrow<T>(r: Response): Promise<T> {
+  const body = await r.json();
+  if (!r.ok) {
+    throw new Error(typeof body?.error === 'string' ? body.error : JSON.stringify(body));
+  }
+  return body as T;
+}
+
+export async function getGscConnection(projectId: string): Promise<GscConnection | null> {
+  const r = await fetch(`/api/projects/${projectId}/gsc/connection`);
+  if (r.status === 404) return null;
+  return readJsonOrThrow<GscConnection>(r);
+}
+
+export async function putGscConnection(
+  projectId: string,
+  input: { siteUrl: string; serviceAccountJson: unknown },
+): Promise<GscConnection> {
+  const r = await fetch(`/api/projects/${projectId}/gsc/connection`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  return readJsonOrThrow<GscConnection>(r);
+}
+
+export async function deleteGscConnection(projectId: string): Promise<{ projectId: string }> {
+  const r = await fetch(`/api/projects/${projectId}/gsc/connection`, { method: 'DELETE' });
+  return readJsonOrThrow(r);
+}
+
+export async function syncGsc(projectId: string): Promise<{ status: string; freshness: GscFreshness }> {
+  const r = await fetch(`/api/projects/${projectId}/gsc/sync`, { method: 'POST' });
+  return readJsonOrThrow(r);
+}
+
+export async function getGscOverview(projectId: string, days = 28): Promise<GscOverview> {
+  const r = await fetch(`/api/projects/${projectId}/gsc/overview?days=${days}`);
+  return readJsonOrThrow<GscOverview>(r);
+}
+
+export async function getGscQueries(projectId: string, days = 28, limit = 10): Promise<{ rows: GscMetricRow[]; freshness: GscFreshness }> {
+  const r = await fetch(`/api/projects/${projectId}/gsc/queries?days=${days}&limit=${limit}`);
+  return readJsonOrThrow(r);
+}
+
+export async function getGscPages(projectId: string, days = 28, limit = 10): Promise<{ rows: GscMetricRow[]; freshness: GscFreshness }> {
+  const r = await fetch(`/api/projects/${projectId}/gsc/pages?days=${days}&limit=${limit}`);
+  return readJsonOrThrow(r);
+}

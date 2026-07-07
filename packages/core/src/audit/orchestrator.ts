@@ -7,6 +7,7 @@ import { checkLinks } from './seo/links.js';
 import { checkImages } from './seo/images.js';
 import { checkOpenGraph } from './seo/open-graph.js';
 import { checkJsonLd } from './seo/json-ld.js';
+import { checkGscLowCtr } from './seo/gsc-low-ctr.js';
 import { checkLlmsTxt } from './geo/llms-txt.js';
 import { checkAiCrawlerAccess } from './geo/ai-crawler-access.js';
 import { checkCitability } from './geo/citability.js';
@@ -39,6 +40,7 @@ export const ALL_PLUGINS: AuditPlugin[] = [
   checkImages,
   checkOpenGraph,
   checkJsonLd,
+  checkGscLowCtr,
   checkLlmsTxt,
   checkAiCrawlerAccess,
   checkCitability,
@@ -61,7 +63,7 @@ export const ALL_PLUGINS: AuditPlugin[] = [
 ];
 
 // Captured eagerly so a plugin failure can be attributed even if its
-// implementation throws synchronously. All 27 plugins are named function
+// implementation throws synchronously. All 28 plugins are named function
 // declarations (export async function checkX...), so `.name` is reliable.
 const PLUGIN_NAMES = ALL_PLUGINS.map((p) => p.name);
 

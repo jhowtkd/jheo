@@ -67,6 +67,11 @@ export function makePublishHandler(deps: {
   decrypt: (ciphertext: string, secret: string) => string;
   aggregateState: (publishes: { status: PublishStatus }[]) => string;
   publishQueueAdd?: (data: PublishJobData, opts?: { delay?: number }) => Promise<unknown>;
+  gscInspectEnqueue?: (input: {
+    projectId: string;
+    inspectionUrl: string;
+    publishId: string;
+  }) => Promise<void>;
 }) {
   return async function handle(job: Job<PublishJobData>): Promise<void> {
     const { prisma } = deps;
@@ -147,6 +152,26 @@ export function makePublishHandler(deps: {
         },
       });
       await recordPublishTransition(prisma, publish.id, 'completed', 'publisher succeeded');
+
+      const channelType = publish.channel.type;
+      const externalUrl = result.externalUrl;
+      if (
+        deps.gscInspectEnqueue
+        && externalUrl
+        && (channelType === 'wordpress' || channelType === 'http')
+      ) {
+        try {
+          await deps.gscInspectEnqueue({
+            projectId: publish.generation.projectId,
+            inspectionUrl: externalUrl,
+            publishId: publish.id,
+          });
+        } catch (hookErr) {
+          await job.log(
+            `GSC inspect enqueue failed (non-fatal): ${hookErr instanceof Error ? hookErr.message : String(hookErr)}`,
+          );
+        }
+      }
     } catch (err: unknown) {
       const e = err as { status?: number; message?: string };
       const retryable = !e.status || e.status >= 500 || e.status === 408 || e.status === 429;

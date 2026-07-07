@@ -1,8 +1,9 @@
 import type { Job } from 'bullmq';
-import { runAudit, type Finding } from '@jheo/core';
+import { GSC_SNAPSHOT, runAudit, type Finding } from '@jheo/core';
 import type { AuditJobData } from '../queue.js';
 import { prisma } from '../db.js';
 import { discoverSite } from '../site-discovery.js';
+import { buildGscSnapshotContext } from '../gsc-snapshot-context.js';
 
 export type FetchText = (
   url: string,
@@ -59,6 +60,13 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
         skipDuplicates: true,
       });
 
+      let gscSnapshot: Awaited<ReturnType<typeof buildGscSnapshotContext>>;
+      try {
+        gscSnapshot = await buildGscSnapshotContext(prisma, project.id);
+      } catch {
+        gscSnapshot = undefined;
+      }
+
       const findings: Finding[] = [];
       const scores: Array<{ overall: number; byCategory?: Record<string, number | null> }> = [];
 
@@ -75,6 +83,7 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
             [JSONLD_BLOCKS]: Array.from(htmlRes.text.matchAll(
               /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
             )),
+            ...(gscSnapshot ? { [GSC_SNAPSHOT]: gscSnapshot } : {}),
           };
           const result = await runAudit(ctx);
           findings.push(...result.findings);

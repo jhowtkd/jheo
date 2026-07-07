@@ -23,17 +23,21 @@ import { settingsRoutes } from './routes/settings.js';
 import { templateRoutes } from './routes/templates.js';
 import { generationRoutes } from './routes/generations.js';
 import { channelRoutes } from './routes/channels.js';
+import { gscRoutes } from './routes/gsc.js';
 import { publishRoutes } from './routes/publishes.js';
 import {
   startWorkers,
   startGenerateWorkers,
   startPublishWorkers,
+  startGscWorkers,
   publishQueue,
   auditQueue,
   generateQueue,
+  gscQueue,
 } from './queue.js';
 import { prisma as defaultPrisma } from './db.js';
 import { httpAccessLogHook, requestIdHook } from './log.js';
+import { startGscCron } from './gsc-cron.js';
 
 /**
  * Server-side HTML fetcher used by the audit pipeline. Routes every URL
@@ -139,6 +143,7 @@ export async function buildServer() {
   await app.register(templateRoutes);
   await app.register(generationRoutes);
   await app.register(channelRoutes);
+  await app.register(gscRoutes);
   await app.register(publishRoutes);
   return app;
 }
@@ -200,9 +205,46 @@ if (isMain) {
     decrypt,
     aggregateState: aggregateReviewState,
     publishQueueAdd: (data) => publishQueue.add('run', data, { delay: 0 }),
+    ...(env.GSC_ENABLED
+      ? {
+          gscInspectEnqueue: async ({
+            projectId,
+            inspectionUrl,
+            publishId,
+          }: {
+            projectId: string;
+            inspectionUrl: string;
+            publishId: string;
+          }) => {
+            const connection = await defaultPrisma.gscConnection.findUnique({ where: { projectId } });
+            if (!connection) return;
+            await gscQueue.add(
+              `gsc-inspect:${publishId}`,
+              { action: 'inspect', projectId, inspectionUrl, publishId },
+            );
+          },
+        }
+      : {}),
   });
 
+  const gscWorker = env.GSC_ENABLED
+    ? startGscWorkers({
+        prisma: defaultPrisma,
+        decrypt,
+        fetchFn: globalThis.fetch.bind(globalThis),
+        secretKey: env.JHEO_SECRET_KEY,
+      })
+    : null;
+
   const app = await buildServer();
+
+  const gscCron = env.GSC_ENABLED
+    ? startGscCron({
+        prisma: defaultPrisma,
+        gscQueue,
+        log: (message, detail) => app.log.info(detail ?? {}, message),
+      })
+    : null;
 
   // Idempotent schema bootstrap: ensure pgvector + the HNSW index on
   // Material.embedding exist before the first audit or generation runs.
@@ -226,9 +268,12 @@ if (isMain) {
         auditWorker.close(),
         generateWorker.close(),
         publishWorker.close(),
+        gscWorker?.close(),
+        gscCron?.stop(),
         auditQueue.close(),
         generateQueue.close(),
         publishQueue.close(),
+        gscQueue.close(),
         defaultPrisma.$disconnect(),
       ]);
     } finally {

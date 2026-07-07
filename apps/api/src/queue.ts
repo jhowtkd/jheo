@@ -6,6 +6,7 @@ import { loadEnv } from './env.js';
 import { makeAuditHandler, type FetchText } from './jobs/audit-job.js';
 import { makeGenerateHandler } from './jobs/generate-job.js';
 import { makePublishHandler, type PublishJobData } from './jobs/publish-job.js';
+import { makeGscHandler } from './jobs/gsc-job.js';
 
 const env = loadEnv();
 
@@ -123,6 +124,39 @@ export function startPublishWorkers(deps: PublishHandlerDeps) {
       concurrency: readInt('PUBLISH_CONCURRENCY', 3),
       limiter: readLimiter('PUBLISH_LIMITER', { max: 120, ms: 60_000 }),
       ...RETRY_POLICY,
+    },
+  );
+}
+
+export const GSC_QUEUE = 'gsc';
+
+const GSC_RETRY_POLICY = {
+  attempts: 3,
+  backoff: { type: 'exponential' as const, delay: 30_000 },
+  removeOnComplete: { age: 24 * 3600, count: 1000 },
+  removeOnFail: { age: 7 * 24 * 3600, count: 1000 },
+};
+
+export const gscQueue = new Queue(GSC_QUEUE, {
+  connection,
+  defaultJobOptions: GSC_RETRY_POLICY,
+});
+
+export type GscJobData =
+  | { action: 'snapshot'; projectId: string }
+  | { action: 'inspect'; projectId: string; inspectionUrl: string; publishId?: string };
+
+type GscHandlerDeps = Parameters<typeof makeGscHandler>[0];
+
+export function startGscWorkers(deps: GscHandlerDeps) {
+  return new Worker<GscJobData>(
+    GSC_QUEUE,
+    async (job) => makeGscHandler(deps)(job),
+    {
+      connection,
+      concurrency: readInt('GSC_CONCURRENCY', 1),
+      limiter: readLimiter('GSC_LIMITER', { max: 5, ms: 60_000 }),
+      ...GSC_RETRY_POLICY,
     },
   );
 }
