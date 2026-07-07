@@ -236,3 +236,16 @@ curl http://127.0.0.1:8080/api/generations/<gid>/publishes
 ```
 
 Agent bundles are written to `/data/agent-bundles/<publishId>/` inside the container. The `docker-compose.yml` from F1 already mounts `/data` as a volume; no further config needed.
+
+### Re-audit + delta (F5.4)
+
+```bash
+PID=<project-id>
+PAGEID=$(curl -s http://127.0.0.1:8080/api/projects/$PID | jq -r '.pages[0].id')
+RA=$(curl -s -X POST http://127.0.0.1:8080/api/pages/$PAGEID/audit)
+PAID=$(echo "$RA" | jq -r .pageAuditId)
+sleep 5
+curl -s http://127.0.0.1:8080/api/page-audits/$PAID | jq '{findings: [.findings[] | {rule, diff}], fixed}'
+```
+
+Expected: findings have `diff: NEW|UNCHANGED|IMPROVEMENT|REGRESSION`; `fixed` lists findings from the prior audit that no longer appear.
