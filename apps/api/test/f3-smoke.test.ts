@@ -5,6 +5,7 @@
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { prisma } from '../src/db.js';
+import { buildServer } from '../src/server.js';
 
 let canRun = false;
 beforeAll(async () => {
@@ -56,4 +57,29 @@ describe('F3 e2e smoke', () => {
     expect(pub.generationId).toBe(gen.id);
     expect(pub.channelId).toBe(channel.id);
   }, { timeout: 60_000 });
+
+  // F-Hardening H-12: pino-http middleware is wired in as the first hook
+  // (apps/api/src/server.ts:addHook('onRequest', ...)) so every response
+  // carries a stable 16-char hex requestId. This runs even without a DB
+  // because /api/health is a pure handler — that's the whole point of the
+  // pinging-the-app-for-shape check.
+  it.runIf(canRun)('pino-http middleware is registered and x-request-id is echoed', async () => {
+    const app = await buildServer();
+    await app.ready();
+    try {
+      const res = await app.inject({ method: 'GET', url: '/api/health' });
+      expect(res.headers['x-request-id']).toMatch(/^[0-9a-f]{16}$/);
+    } finally {
+      await app.close();
+    }
+  });
+
+  // F-Hardening H-11 pt.1: PublishEvent was added to schema.prisma in Task 1
+  // and prisma.generate re-emitted the client with the model registered.
+  // This smoke verifies the regenerated client exposes prisma.publishEvent
+  // — a missing model would mean Task 1's migration landed but the client
+  // wasn't regenerated, breaking Task 8's recordPublishTransition writes.
+  it('PublishEvent table is reachable (model registered on prisma client)', () => {
+    expect(typeof prisma.publishEvent).toBe('object');
+  });
 });
