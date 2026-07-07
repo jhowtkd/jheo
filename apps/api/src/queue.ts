@@ -128,6 +128,7 @@ export function startPublishWorkers(deps: PublishHandlerDeps) {
   );
 }
 
+<<<<<<< HEAD
 export const GSC_QUEUE = 'gsc';
 
 const GSC_RETRY_POLICY = {
@@ -160,3 +161,33 @@ export function startGscWorkers(deps: GscHandlerDeps) {
     },
   );
 }
+
+// Phase 3: per-page audit worker. audit-job.ts fans pages out onto this queue
+// so each page runs in its own BullMQ job (cancel + progress + parallelism),
+// rather than as an inline loop inside one audit handler (Phase 1/2).
+export const AUDIT_PAGE_QUEUE = 'auditPage';
+
+export type PageAuditJobData = {
+  pageAuditId: string;
+  auditId: string;
+  projectPageId: string;
+  url: string;
+};
+
+export const auditPageQueue = new Queue<PageAuditJobData>(AUDIT_PAGE_QUEUE, {
+  connection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: { type: 'exponential', delay: 30_000 },
+    removeOnComplete: { count: 500 },
+    removeOnFail: { count: 200 },
+  },
+});
+
+/** Concurrency cap read by server.ts when creating the Worker. */
+export const auditPageConcurrency = readInt('JHEO_AUDIT_PAGE_CONCURRENCY', 5);
+
+/** Orchestrator selection: 'flow' (default, BullMQ flow producer) or 'polling'. */
+export const auditOrchestrator = (
+  process.env.JHEO_AUDIT_ORCHESTRATOR ?? 'flow'
+) as 'flow' | 'polling';
