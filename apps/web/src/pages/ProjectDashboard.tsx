@@ -158,7 +158,7 @@ export function ProjectDashboard() {
       </header>
 
       {/* Health card */}
-      <ScoreCard label="Health overall" value={h?.overall ?? null} />
+      <ScoreCard health={h} />
 
       {/* Phase 3 T7: Last audit progress + cancel */}
       {lastAudit && (

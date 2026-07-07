@@ -41,6 +41,20 @@ function getAuditPageQueueEvents(): QueueEvents {
 }
 
 /**
+ * Close the lazily-created FlowProducer (and clear the singleton) so
+ * the SIGTERM shutdown path can drain its Redis connection without
+ * trying to use a module-internal handle. No-op if the producer was
+ * never instantiated in this process (e.g. unit tests, or `polling`
+ * orchestrator only).
+ */
+export async function closeFlowProducer(): Promise<void> {
+  if (!_flowProducer) return;
+  const fp = _flowProducer;
+  _flowProducer = undefined;
+  await fp.close();
+}
+
+/**
  * Flow Producer orchestrator — fans out one `auditPage` child job per page,
  * then blocks on the parent group's `waitUntilFinished` so the audit handler
  * only resolves once every child has completed (or the 30-minute deadline
