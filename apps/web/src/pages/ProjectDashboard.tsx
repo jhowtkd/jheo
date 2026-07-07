@@ -212,6 +212,58 @@ export function ProjectDashboard() {
         </div>
       )}
 
+      {/* Phase 3 T7: Last audit progress + cancel */}
+      {lastAudit && (
+        <div className="card">
+          <h3>Last audit</h3>
+          <p>
+            Status: <strong>{lastAudit.status}</strong>
+          </p>
+          {progress.data && (
+            <>
+              <p>
+                {progress.data.pagesCompleted} / {progress.data.pagesTotal} pages completed (
+                {progress.data.pagesFailed} failed, {progress.data.pagesSkipped} skipped)
+              </p>
+              {progress.data.currentPages.length > 0 && (
+                <p>In progress: {progress.data.currentPages.join(', ')}</p>
+              )}
+              <div
+                style={{
+                  height: '8px',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: 'var(--radius-pill)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${
+                      progress.data.pagesTotal
+                        ? (progress.data.pagesCompleted / progress.data.pagesTotal) * 100
+                        : 0
+                    }%`,
+                    height: '100%',
+                    background: 'var(--accent)',
+                    transition: 'width 200ms ease',
+                  }}
+                />
+              </div>
+            </>
+          )}
+          {(lastAudit.status === 'queued' || lastAudit.status === 'running') && (
+            <button
+              type="button"
+              onClick={() => cancel.mutate(lastAudit.id)}
+              disabled={cancel.isPending}
+              style={{ marginTop: 'var(--space-3)' }}
+            >
+              {cancel.isPending ? 'Cancelling…' : 'Cancel audit'}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Filter bar */}
       <FilterBar value={filter} onChange={setFilter} options={FILTER_OPTIONS} />
 
