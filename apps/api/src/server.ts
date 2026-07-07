@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { Worker } from 'bullmq';
 import {
   OpenAIEmbeddingProvider,
   OpenAIProvider,
@@ -33,8 +34,13 @@ import {
   publishQueue,
   auditQueue,
   generateQueue,
+<<<<<<< HEAD
   gscQueue,
+  auditPageQueue,
+  auditPageConcurrency,
+  type PageAuditJobData,
 } from './queue.js';
+import { makePageAuditHandler } from './jobs/page-audit-job.js';
 import { prisma as defaultPrisma } from './db.js';
 import { httpAccessLogHook, requestIdHook } from './log.js';
 import { startGscCron } from './gsc-cron.js';
@@ -153,6 +159,17 @@ if (isMain) {
   const env = loadEnv();
   ensureSecretKey(process.cwd());
   const auditWorker = startWorkers(fetchText);
+  const pageAuditWorker = new Worker<PageAuditJobData>(
+    'auditPage',
+    makePageAuditHandler({ fetchText }),
+    {
+      connection: {
+        host: process.env.REDIS_HOST ?? '127.0.0.1',
+        port: Number(process.env.REDIS_PORT ?? 6379),
+      },
+      concurrency: auditPageConcurrency,
+    },
+  );
 
   // Resolve API keys: prefer encrypted Setting rows, fall back to env vars.
   async function resolveKey(providerEnv: string, settingKey: string): Promise<string | undefined> {
@@ -266,6 +283,7 @@ if (isMain) {
       await Promise.allSettled([
         app.close(),
         auditWorker.close(),
+        pageAuditWorker.close(),
         generateWorker.close(),
         publishWorker.close(),
         gscWorker?.close(),
@@ -273,7 +291,9 @@ if (isMain) {
         auditQueue.close(),
         generateQueue.close(),
         publishQueue.close(),
+<<<<<<< HEAD
         gscQueue.close(),
+        auditPageQueue.close(),
         defaultPrisma.$disconnect(),
       ]);
     } finally {
