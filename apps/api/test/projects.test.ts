@@ -55,4 +55,45 @@ describe('routes/projects', () => {
     expect(body.rootUrl).toBe('https://example.com/');
     expect(body.name).toBe('example');
   });
+
+  it.runIf(canRunDb)('GET /:id/pages returns paginated list', async () => {
+    const created = await app!.inject({
+      method: 'POST',
+      url: '/api/projects',
+      payload: { name: 'pages-list', domain: 'example.com' },
+    });
+    const { id } = created.json();
+
+    const res = await app!.inject({
+      method: 'GET',
+      url: `/api/projects/${id}/pages?limit=10&offset=0`,
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body).toMatchObject({ total: expect.any(Number), limit: 10, offset: 0 });
+    expect(Array.isArray(body.items)).toBe(true);
+  });
+
+  it.runIf(canRunDb)('GET /:id/pages?filter=not_audited returns only un-audited pages', async () => {
+    const created = await app!.inject({
+      method: 'POST',
+      url: '/api/projects',
+      payload: { name: 'pages-filter', domain: 'example.com' },
+    });
+    const { id } = created.json();
+
+    const res = await app!.inject({
+      method: 'GET',
+      url: `/api/projects/${id}/pages?filter=not_audited`,
+    });
+    expect(res.statusCode).toBe(200);
+    for (const item of res.json().items) {
+      expect(item.lastAuditedAt).toBeNull();
+    }
+  });
+
+  it.runIf(canRunDb)('GET /:id/pages returns 404 for unknown project', async () => {
+    const res = await app!.inject({ method: 'GET', url: '/api/projects/does-not-exist/pages' });
+    expect(res.statusCode).toBe(404);
+  });
 });
