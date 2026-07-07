@@ -20,11 +20,19 @@ const MAX_ATTEMPTS_DEFAULT = 3;
  * (the `tx` passed to a `prisma.$transaction` callback). When atomicity
  * with other writes is required, callers should open a transaction and
  * pass `tx` — this helper does NOT open one itself.
+ *
+ * `toStatus` is typed as `PublishStatus` from `@jheo/core` rather than
+ * `string`. The Prisma `Publish.status` column is `String` (not a database
+ * enum) so the schema stays forward-compat with ad-hoc statuses, but the
+ * application boundary uses the strict union — this helper is the single
+ * chokepoint for all `Publish.status` writes from the publish pipeline, so
+ * the union is enforced at every in-tree call site. A `CHECK` constraint
+ * is a future milestone.
  */
 export async function recordPublishTransition(
   prisma: PrismaClient | Prisma.TransactionClient,
   publishId: string,
-  toStatus: string,
+  toStatus: PublishStatus,
   message?: string,
 ): Promise<void> {
   const current = await prisma.publish.findUniqueOrThrow({
