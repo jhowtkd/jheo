@@ -115,4 +115,40 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       })),
     };
   });
+
+  app.get<{ Params: { id: string } }>('/api/projects/:id/health', async (req, reply) => {
+    reply.header('cache-control', 'private, max-age=5');
+    const project = await prisma.project.findUnique({ where: { id: req.params.id } });
+    if (!project) return reply.code(404).send({ error: 'not found' });
+
+    const lastAudit = await prisma.audit.findFirst({
+      where: { projectId: project.id, status: 'completed' },
+      orderBy: { finishedAt: 'desc' },
+    });
+
+    const [pagesTotal, pagesWithError] = await Promise.all([
+      prisma.projectPage.count({ where: { projectId: project.id } }),
+      prisma.projectPage.count({
+        where: {
+          projectId: project.id,
+          lastAuditedAt: { not: null },
+          // @ts-expect-error -- `pageAudits` relation arrives in Phase 3 (F5 mapping UX).
+          pageAudits: { some: { status: 'failed' } },
+        },
+      }),
+    ]);
+
+    const score = (lastAudit?.score ?? null) as
+      | { overall: number; byCategory: Record<string, number | null>; pagesAudited: number }
+      | null;
+
+    return {
+      overall: score?.overall ?? null,
+      byCategory: score?.byCategory ?? { seo: null, cwv: null, geo: null, a11y: null, content: null },
+      pagesAudited: score?.pagesAudited ?? 0,
+      pagesTotal,
+      pagesWithError,
+      lastAuditAt: lastAudit?.finishedAt ?? null,
+    };
+  });
 }

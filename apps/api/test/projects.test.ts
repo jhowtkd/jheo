@@ -96,4 +96,27 @@ describe('routes/projects', () => {
     const res = await app!.inject({ method: 'GET', url: '/api/projects/does-not-exist/pages' });
     expect(res.statusCode).toBe(404);
   });
+
+  it.runIf(canRunDb)('GET /:id/health returns null scores when no audit has run', async () => {
+    const created = await app!.inject({
+      method: 'POST',
+      url: '/api/projects',
+      payload: { name: 'health-empty', domain: 'example.com' },
+    });
+    const { id } = created.json();
+
+    const res = await app!.inject({ method: 'GET', url: `/api/projects/${id}/health` });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.overall).toBeNull();
+    expect(body.byCategory).toEqual({ seo: null, cwv: null, geo: null, a11y: null, content: null });
+    expect(body.pagesAudited).toBe(0);
+    expect(body.pagesTotal).toBeGreaterThanOrEqual(0);
+    expect(body.lastAuditAt).toBeNull();
+  });
+
+  it.runIf(canRunDb)('GET /:id/health returns 404 for unknown project', async () => {
+    const res = await app!.inject({ method: 'GET', url: '/api/projects/does-not-exist/health' });
+    expect(res.statusCode).toBe(404);
+  });
 });
