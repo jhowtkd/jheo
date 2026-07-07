@@ -1,34 +1,57 @@
+import type { ProjectHealth } from '../api.js';
+
 interface Props {
-  label: string;
-  value: number | null;
-  hero?: boolean;
+  health: ProjectHealth | null | undefined;
 }
 
-/** Map a 0..100 score to a status color. */
-function severity(value: number | null): 'good' | 'warn' | 'bad' {
-  if (value === null) return 'warn';
-  if (value >= 80) return 'good';
-  if (value >= 60) return 'warn';
-  return 'bad';
-}
+const CATEGORIES = ['seo', 'cwv', 'geo', 'a11y', 'content'] as const;
 
-export function ScoreCard({ label, value, hero = false }: Props) {
-  const display = value === null ? '—' : Math.round(value);
-  const sev = severity(value);
-  const fillClass = sev === 'good' ? '' : sev === 'warn' ? ' score__bar-fill--warn' : ' score__bar-fill--bad';
-  const pct = value === null ? 0 : Math.max(0, Math.min(100, value));
+export function ScoreCard({ health }: Props) {
+  if (!health) {
+    return (
+      <div className="card">
+        <p style={{ color: 'var(--text-muted)', margin: 0 }}>No health data yet.</p>
+      </div>
+    );
+  }
   return (
-    <div className={'score' + (hero ? ' score--hero' : '')}>
-      <div className="score__label">{label}</div>
-      <div className="score__value">{display}</div>
-      {value !== null && (
-        <div className="score__bar" aria-label={`${display} of 100`}>
-          <div
-            className={'score__bar-fill' + fillClass}
-            style={{ transform: `scaleX(${pct / 100})` }}
-          />
-        </div>
-      )}
+    <div className="card col" style={{ gap: 'var(--space-3)' }}>
+      <div>
+        <h2 style={{ margin: 0 }}>Overall</h2>
+        <p style={{ fontSize: 'var(--fs-2xl)', margin: 0 }}>{health.overall ?? '—'}</p>
+      </div>
+      <div className="col" style={{ gap: 'var(--space-2)' }}>
+        {CATEGORIES.map((cat) => {
+          const value = health.byCategory[cat];
+          return (
+            <div key={cat} className="row" style={{ gap: 'var(--space-2)' }}>
+              <span style={{ width: '5rem', textTransform: 'uppercase', fontSize: 'var(--fs-sm)' }}>
+                {cat}
+              </span>
+              <div
+                style={{
+                  flex: 1,
+                  height: '8px',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: 'var(--radius-pill)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${value ?? 0}%`,
+                    height: '100%',
+                    background: value == null ? 'var(--border)' : 'var(--accent)',
+                  }}
+                />
+              </div>
+              <span className="mono" style={{ width: '3rem', textAlign: 'right' }}>
+                {value ?? '—'}
+              </span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
