@@ -37,10 +37,53 @@ export async function createProject(input: { domain: string }): Promise<Project>
   });
   return r.json();
 }
-export type ProjectPage = { id: string; url: string; discoveredVia: 'root' | 'sitemap' | 'crawl'; lastAuditedAt: string | null };
+export type PageScore = { overall: number; byCategory: Record<string, number | null> };
+
+export type ProjectPage = {
+  id: string;
+  url: string;
+  discoveredVia: 'root' | 'sitemap' | 'crawl';
+  lastAuditedAt: string | null;
+  lastScore?: PageScore | null; // populated by /pages route; not by /:id
+};
+
+export type PagesResponse = {
+  total: number;
+  limit: number;
+  offset: number;
+  items: ProjectPage[];
+};
+
+export type ProjectHealth = {
+  overall: number | null;
+  byCategory: Record<'seo' | 'cwv' | 'geo' | 'a11y' | 'content', number | null>;
+  pagesAudited: number;
+  pagesTotal: number;
+  pagesWithError: number;
+  lastAuditAt: string | null;
+};
+
 export type ProjectDetail = Project & { audits: Audit[]; pages: ProjectPage[] };
 export async function getProject(id: string): Promise<ProjectDetail> {
   return (await fetch(`${API}/projects/${id}`)).json();
+}
+export async function getProjectPages(
+  id: string,
+  opts: { limit?: number; offset?: number; filter?: string } = {},
+): Promise<PagesResponse> {
+  const params = new URLSearchParams();
+  if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+  if (opts.offset !== undefined) params.set('offset', String(opts.offset));
+  if (opts.filter) params.set('filter', opts.filter);
+  const qs = params.toString();
+  const res = await fetch(`${API}/projects/${id}/pages${qs ? `?${qs}` : ''}`);
+  if (!res.ok) throw new Error(`Failed to load pages: ${res.status}`);
+  return res.json();
+}
+export async function getProjectHealth(id: string): Promise<ProjectHealth> {
+  const res = await fetch(`${API}/projects/${id}/health`);
+  if (!res.ok) throw new Error(`Failed to load health: ${res.status}`);
+  return res.json();
 }
 export async function runAudit(projectId: string): Promise<Audit> {
   const r = await fetch(`${API}/audits`, {
