@@ -11,6 +11,20 @@ if (globalThis.__jheoPrisma === undefined) {
   globalThis.__jheoPrisma = prisma;
 }
 
+/**
+ * True when `e` is a Prisma unique-constraint violation (P2002).
+ * Used by `createPublishWithRotation` to detect cuid collisions so the
+ * publish id can be regenerated once.
+ */
+export function isPrismaUniqueViolation(e: unknown): boolean {
+  return (
+    typeof e === 'object' &&
+    e !== null &&
+    'code' in e &&
+    (e as { code: unknown }).code === 'P2002'
+  );
+}
+
 function hashGenerationId(generationId: string): bigint {
   // Take the first 8 bytes of the cuid as a bigint, modulo 2^63 - 1 to fit in a Postgres bigint.
   const buf = Buffer.from(generationId);

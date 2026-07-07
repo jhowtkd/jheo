@@ -4,13 +4,48 @@ import { stat } from 'node:fs/promises';
 import { readdir, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
-import { prisma } from '../db.js';
+import { Prisma } from '@prisma/client';
+import { prisma, isPrismaUniqueViolation } from '../db.js';
+import { createCuid } from '../crypto.js';
 import { publishQueue } from '../queue.js';
 import { recordPublishTransition } from '../jobs/publish-job.js';
 
 const PublishBodySchema = z.object({
   channelIds: z.array(z.string().min(1)).min(1),
 });
+
+/**
+ * Create a Publish row, rotating to a freshly-generated cuid on a unique
+ * constraint collision (P2002). cuid collisions are vanishingly rare with
+ * the schema's `@default(cuid())` but defense-in-depth: if it ever
+ * happens, retry exactly once before propagating the error.
+ *
+ * `input` is the flat-ish shape used by the create flow
+ * (`{ generationId, channelId, status, attempts }`). This is converted to
+ * `Prisma.PublishCreateInput` internally so the route file does not need
+ * to spell out the nested `connect` shape.
+ */
+export async function createPublishWithRotation(input: {
+  generationId: string;
+  channelId: string;
+  status?: string;
+  attempts?: number;
+}) {
+  const data: Prisma.PublishCreateInput = {
+    generation: { connect: { id: input.generationId } },
+    channel: { connect: { id: input.channelId } },
+    status: input.status ?? 'queued',
+    ...(input.attempts !== undefined ? { attempts: input.attempts } : {}),
+  };
+  try {
+    return await prisma.publish.create({ data });
+  } catch (e) {
+    if (isPrismaUniqueViolation(e)) {
+      return prisma.publish.create({ data: { ...data, id: createCuid() } });
+    }
+    throw e;
+  }
+}
 
 export async function publishRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { id: string } }>(
@@ -29,13 +64,27 @@ export async function publishRoutes(app: FastifyInstance): Promise<void> {
       if (channels.length !== parsed.data.channelIds.length) {
         return reply.code(400).send({ error: 'one or more channels are invalid or inactive' });
       }
-      const created = await prisma.$transaction(
-        channels.map((ch) =>
-          prisma.publish.create({
-            data: { generationId: gen.id, channelId: ch.id, status: 'queued', attempts: 0 },
-          }),
-        ),
-      );
+      const created = await prisma.$transaction(async (tx) => {
+        const out = [];
+        for (const ch of channels) {
+          const data: Prisma.PublishCreateInput = {
+            generation: { connect: { id: gen.id } },
+            channel: { connect: { id: ch.id } },
+            status: 'queued',
+            attempts: 0,
+          };
+          try {
+            out.push(await tx.publish.create({ data }));
+          } catch (e) {
+            if (isPrismaUniqueViolation(e)) {
+              out.push(await tx.publish.create({ data: { ...data, id: createCuid() } }));
+            } else {
+              throw e;
+            }
+          }
+        }
+        return out;
+      });
       await prisma.generation.update({
         where: { id: gen.id },
         data: { reviewState: 'publishing' },
@@ -77,6 +126,20 @@ export async function publishRoutes(app: FastifyInstance): Promise<void> {
       include: { channel: true },
     });
     if (!pub) return reply.code(404).send({ error: 'not found' });
+    // MVP has no auth — the caller's project is identified via the
+    // `x-project-id` request header. Cross-project access is masked as 404
+    // to avoid leaking the existence of other projects' publishes.
+    const headerVal = req.headers['x-project-id'];
+    const callerProjectId = typeof headerVal === 'string' ? headerVal : undefined;
+    if (callerProjectId && callerProjectId !== pub.channel.projectId) {
+      return reply.code(404).send({
+        error: {
+          code: 'not_found',
+          message: 'publish not found',
+          requestId: req.id,
+        },
+      });
+    }
     return pub;
   });
 

@@ -1,4 +1,4 @@
-import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto';
+import { createCipheriv, createDecipheriv, randomBytes, createHash, createHmac } from 'node:crypto';
 
 // Per-process cache for the derived AES key. The secret never changes during
 // a process's lifetime so re-hashing it on every encrypt/decrypt was pure
@@ -11,6 +11,26 @@ function key(raw: string): Buffer {
     keyCache.set(raw, k);
   }
   return k;
+}
+
+/**
+ * Generate a Prisma-compatible cuid-shaped id (`c` prefix + 20+ chars).
+ *
+ * Uses HMAC-SHA256(counter || timestamp || random) with a process-local
+ * fingerprint as the key — sufficient for collision-rotation in
+ * `createPublishWithRotation`. Does NOT aim to be wire-compatible with the
+ * cuid npm package; the schema's `@default(cuid())` still generates primary
+ * cuid-style ids, and this is the fallback we rotate to when a collision
+ * occurs.
+ */
+let cuidCounter = 0;
+export function createCuid(): string {
+  const key = createHash('sha256').update(`jheo:${process.pid}`).digest();
+  const ts = Date.now().toString(36);
+  const rand = randomBytes(8).toString('hex');
+  const input = `${(cuidCounter = (cuidCounter + 1) | 0).toString(36)}:${ts}:${rand}`;
+  const h = createHmac('sha256', key).update(input).digest('base64').replace(/[+/=]/g, '').toLowerCase();
+  return `c${h.slice(0, 24)}`;
 }
 
 export function encrypt(plaintext: string, secret: string): string {
