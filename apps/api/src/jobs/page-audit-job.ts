@@ -7,6 +7,36 @@ import type { FetchText } from './audit-job.js';
 const PLAIN_TEXT = Symbol('jheo.audit.plainText');
 const JSONLD_BLOCKS = Symbol('jheo.audit.jsonLdBlocks');
 
+/**
+ * For each new finding, attach the id of the most recent prior "head" finding
+ * (one with `previousFindingId IS NULL`) sharing the same `(url, category, rule)`
+ * scoped to the same `projectPageId`. Forms the head→next chain used by the
+ * re-audit diff to label findings as NEW, UNCHANGED, IMPROVEMENT, REGRESSION,
+ * or FIXED. Lineage is computed outside the createMany transaction per F5.4-T2
+ * brief; races are acceptable for now (re-audits are user-initiated, low volume).
+ */
+export async function attachLineage(
+  findings: Finding[],
+  pageAuditId: string,
+  projectPageId: string,
+): Promise<Array<Omit<Finding, 'previousFindingId'> & { previousFindingId: string | null }>> {
+  const result: Array<Omit<Finding, 'previousFindingId'> & { previousFindingId: string | null }> = [];
+  for (const f of findings) {
+    const prior = await prisma.finding.findFirst({
+      where: {
+        url: f.url,
+        category: f.category,
+        rule: f.rule,
+        pageAudit: { projectPageId },
+        previousFindingId: null,
+      },
+      orderBy: { id: 'desc' },
+    });
+    result.push({ ...f, previousFindingId: prior?.id ?? null });
+  }
+  return result;
+}
+
 export function makePageAuditHandler(opts: { fetchText: FetchText }) {
   return async function handle(job: Job<PageAuditJobData>) {
     const { pageAuditId, auditId, projectPageId, url } = job.data;
@@ -57,10 +87,12 @@ export function makePageAuditHandler(opts: { fetchText: FetchText }) {
       const result = await runAudit(ctx);
       const pageScore = result.score as { overall: number; byCategory?: Record<string, number | null> };
       const finishedAt = new Date();
+      const newFindings = result.findings;
+      const findingsData = await attachLineage(newFindings, pageAuditId, projectPageId);
       await prisma.$transaction([
         prisma.finding.createMany({
-          data: result.findings.map((f: Finding) => ({
-            auditId: auditId!,
+          data: findingsData.map((f) => ({
+            auditId, // string in parented path; null in standalone path (destructured from job.data; nullable per F5.4-T1)
             pageAuditId,
             category: f.category,
             severity: f.severity,
@@ -69,6 +101,7 @@ export function makePageAuditHandler(opts: { fetchText: FetchText }) {
             url: f.url,
             selector: f.selector ?? null,
             evidence: f.evidence as object,
+            previousFindingId: f.previousFindingId,
           })),
         }),
         prisma.pageAudit.update({
