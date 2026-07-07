@@ -1,7 +1,9 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import {
+  cancelAudit,
+  getAuditProgress,
   getProject,
   getProjectHealth,
   getProjectPages,
@@ -79,6 +81,23 @@ export function ProjectDashboard() {
     refetchInterval: 5000,
   });
 
+  // Phase 3 T7: live audit progress + cancel
+  const lastAudit = project.data?.audits[0];
+  const progress = useQuery({
+    queryKey: ['audit-progress', lastAudit?.id],
+    queryFn: () => getAuditProgress(lastAudit!.id),
+    enabled: Boolean(lastAudit) && (lastAudit?.status === 'queued' || lastAudit?.status === 'running'),
+    refetchInterval: 2_000,
+  });
+
+  const cancel = useMutation({
+    mutationFn: (auditId: string) => cancelAudit(auditId),
+    onSuccess: () => {
+      project.refetch();
+      progress.refetch();
+    },
+  });
+
   if (project.isPending) {
     return (
       <div className="page">
@@ -116,6 +135,58 @@ export function ProjectDashboard() {
 
       {/* Health card */}
       <ScoreCard health={h} />
+
+      {/* Phase 3 T7: Last audit progress + cancel */}
+      {lastAudit && (
+        <div className="card">
+          <h3>Last audit</h3>
+          <p>
+            Status: <strong>{lastAudit.status}</strong>
+          </p>
+          {progress.data && (
+            <>
+              <p>
+                {progress.data.pagesCompleted} / {progress.data.pagesTotal} pages completed (
+                {progress.data.pagesFailed} failed, {progress.data.pagesSkipped} skipped)
+              </p>
+              {progress.data.currentPages.length > 0 && (
+                <p>In progress: {progress.data.currentPages.join(', ')}</p>
+              )}
+              <div
+                style={{
+                  height: '8px',
+                  background: 'var(--bg-elevated)',
+                  borderRadius: 'var(--radius-pill)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${
+                      progress.data.pagesTotal
+                        ? (progress.data.pagesCompleted / progress.data.pagesTotal) * 100
+                        : 0
+                    }%`,
+                    height: '100%',
+                    background: 'var(--accent)',
+                    transition: 'width 200ms ease',
+                  }}
+                />
+              </div>
+            </>
+          )}
+          {(lastAudit.status === 'queued' || lastAudit.status === 'running') && (
+            <button
+              type="button"
+              onClick={() => cancel.mutate(lastAudit.id)}
+              disabled={cancel.isPending}
+              style={{ marginTop: 'var(--space-3)' }}
+            >
+              {cancel.isPending ? 'Cancelling…' : 'Cancel audit'}
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Filter bar */}
       <FilterBar value={filter} onChange={setFilter} options={FILTER_OPTIONS} />

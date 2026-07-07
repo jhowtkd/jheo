@@ -4,7 +4,7 @@ export type Project = { id: string; name: string; rootUrl: string; createdAt: st
 export type Audit = {
   id: string;
   projectId: string;
-  status: 'queued' | 'running' | 'completed' | 'failed';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
   startedAt: string | null;
   finishedAt: string | null;
   score?: {
@@ -96,6 +96,27 @@ export async function runAudit(projectId: string): Promise<Audit> {
 export async function getAudit(id: string): Promise<Audit & { findings: Finding[] }> {
   const r = await fetch(`${API}/audits/${id}`);
   return r.json();
+}
+
+export type AuditProgress = {
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  pagesTotal: number;
+  pagesCompleted: number;
+  pagesFailed: number;
+  pagesSkipped: number;
+  currentPages: string[];
+};
+
+export async function getAuditProgress(auditId: string): Promise<AuditProgress> {
+  const res = await fetch(`${API}/audits/${auditId}/progress`);
+  if (!res.ok) throw new Error(`Failed to load progress: ${res.status}`);
+  return res.json();
+}
+
+export async function cancelAudit(auditId: string): Promise<{ id: string; status: string }> {
+  const res = await fetch(`${API}/audits/${auditId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Failed to cancel: ${res.status}`);
+  return res.json();
 }
 
 // ---------- Materials ----------
