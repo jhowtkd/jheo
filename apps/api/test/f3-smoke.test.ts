@@ -74,6 +74,48 @@ describe('F3 e2e smoke', () => {
     }
   });
 
+  // F-Hardening I-2 round-trip (Case 1 — honored): a valid 16-char hex
+  // x-request-id sent by the caller is echoed verbatim on the response.
+  // Confirms `requestIdHook` (apps/api/src/log.ts) consults the incoming
+  // header before generating, so the access log `requestId` field,
+  // `req.id`, and `res.headers['x-request-id']` all agree.
+  it.runIf(canRun)('x-request-id: honored when incoming header is 16-char hex', async () => {
+    const app = await buildServer();
+    await app.ready();
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/health',
+        headers: { 'x-request-id': '0123456789abcdef' },
+      });
+      expect(res.headers['x-request-id']).toBe('0123456789abcdef');
+    } finally {
+      await app.close();
+    }
+  });
+
+  // F-Hardening I-2 round-trip (Case 3 — malformed rejected): a non-hex
+  // / wrong-length incoming header must NOT be echoed; the server must
+  // fall back to generating a fresh 16-char hex id. Catches a class of
+  // bugs where a future hook might blindly `req.id = incoming`, which
+  // would let a caller poison the access log with arbitrary strings.
+  it.runIf(canRun)('x-request-id: malformed incoming header is rejected, fresh id generated', async () => {
+    const app = await buildServer();
+    await app.ready();
+    try {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/health',
+        headers: { 'x-request-id': 'not-hex-garbage' },
+      });
+      const echoed = res.headers['x-request-id'];
+      expect(echoed).not.toBe('not-hex-garbage');
+      expect(echoed).toMatch(/^[0-9a-f]{16}$/);
+    } finally {
+      await app.close();
+    }
+  });
+
   // F-Hardening H-11 pt.1: PublishEvent was added to schema.prisma in Task 1
   // and prisma.generate re-emitted the client with the model registered.
   // This smoke verifies the regenerated client exposes prisma.publishEvent
