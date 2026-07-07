@@ -11,7 +11,16 @@ vi.mock('../src/db.js', () => {
     prisma: {
       audit: { findUnique: auditFindUnique, update: auditUpdate },
       project: { findUnique: projectFindUnique },
-      projectPage: { createMany: vi.fn(), updateMany: vi.fn() },
+      projectPage: {
+        createMany: vi.fn(),
+        updateMany: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([{ id: 'pp1', url: 'https://example.com/' }]),
+      },
+      pageAudit: {
+        create: vi.fn().mockResolvedValue({ id: 'pa1' }),
+        update: vi.fn(),
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
       finding: { create: findingCreate, createMany: vi.fn() },
       $transaction: transaction,
     },

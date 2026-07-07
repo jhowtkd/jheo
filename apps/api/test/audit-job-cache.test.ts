@@ -6,7 +6,16 @@ vi.mock('../src/db.js', () => {
     prisma: {
       audit: { findUnique: vi.fn(), update: vi.fn() },
       project: { findUnique: vi.fn() },
-      projectPage: { createMany: vi.fn(), updateMany: vi.fn() },
+      projectPage: {
+        createMany: vi.fn(),
+        updateMany: vi.fn(),
+        findMany: vi.fn().mockResolvedValue([{ id: 'pp1', url: 'https://example.com/' }]),
+      },
+      pageAudit: {
+        create: vi.fn().mockResolvedValue({ id: 'pa1' }),
+        update: vi.fn(),
+        findFirst: vi.fn().mockResolvedValue(null),
+      },
       finding: { createMany: vi.fn().mockResolvedValue({ count: 0 }) },
       $transaction: transaction,
     },
@@ -86,5 +95,69 @@ describe('audit-job inflight dedupe', () => {
     expect(fetchSpy.mock.calls.length).toBe(5);
     const robotsCalls = fetchSpy.mock.calls.filter((c) => (c[0] as string).endsWith('/robots.txt'));
     expect(robotsCalls.length).toBe(1);
+  });
+
+  it('marks the PageAudit failed with errorMessage when runAudit throws', async () => {
+    const { prisma } = await import('../src/db.js');
+    const { makeAuditHandler } = await import('../src/jobs/audit-job.js');
+
+    const { runAudit } = await import('@jheo/core');
+
+    (prisma.audit.findUnique as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'a1',
+      projectId: 'p1',
+      status: 'queued',
+    });
+    (prisma.project.findUnique as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      id: 'p1',
+      rootUrl: 'https://example.com/',
+    });
+    (prisma.audit.update as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
+    (prisma.pageAudit.update as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({});
+
+    // Force the per-page try/catch in runPageAuditJob into its failure branch.
+    // The previous tests in this file kept runAudit on the success path, so a
+    // regression that silently dropped errorMessage or skipped the update
+    // would have slipped through.
+    (runAudit as unknown as ReturnType<typeof vi.fn>).mockImplementationOnce(async () => {
+      throw new Error('boom');
+    });
+
+    // fetchText just needs to succeed so the handler reaches runAudit.
+    globalThis.fetch = vi.fn(async () =>
+      new Response('<html></html>', {
+        status: 200,
+        headers: { 'content-type': 'text/html' },
+      }),
+    ) as unknown as typeof fetch;
+
+    const fetchText = async (
+      url: string,
+      init?: { headers?: Record<string, string>; signal?: AbortSignal },
+    ) => {
+      const headers = { 'User-Agent': 'JHEO/0.1 (+local)', ...(init?.headers ?? {}) };
+      const res = await fetch(url, { headers, signal: init?.signal });
+      return {
+        status: res.status,
+        headers: Object.fromEntries(res.headers.entries()),
+        text: await res.text(),
+      };
+    };
+
+    const handler = makeAuditHandler({ fetchText });
+    await handler({ data: { auditId: 'a1' } } as never);
+
+    // The catch branch MUST update the per-page PageAudit row with the failure
+    // shape. If a regression silently dropped errorMessage or skipped the
+    // update entirely, this assertion fires.
+    expect(prisma.pageAudit.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: 'failed',
+          errorMessage: expect.stringContaining('boom'),
+          score: { overall: 0, byCategory: { content: 0 } },
+        }),
+      }),
+    );
   });
 });
