@@ -12,7 +12,7 @@ import {
 } from '@jheo/core';
 import { loadEnv, ensureSecretKey } from './env.js';
 import { decrypt } from './crypto.js';
-import { safeFetch } from './safe-fetch.js';
+import { guardedFetch } from './security/url-guard.js';
 import { ensureDatabaseReady } from './db-bootstrap.js';
 import { responseCompressionPlugin } from './compress.js';
 import { healthRoutes } from './routes/health.js';
@@ -37,7 +37,7 @@ import { httpAccessLogHook, requestIdHook } from './log.js';
 
 /**
  * Server-side HTML fetcher used by the audit pipeline. Routes every URL
- * through safeFetch so the same SSRF / size-cap / timeout guarantees apply
+ * through guardedFetch so the same SSRF / size-cap / timeout guarantees apply
  * across the entire attack surface (route handlers + workers).
  */
 export async function fetchText(
@@ -50,7 +50,7 @@ export async function fetchText(
   };
   // 5 MB cap and 15s default timeout — plugins only need a few hundred KB
   // of markup; anything bigger is almost certainly an attack.
-  const res = await safeFetch(url, {
+  const res = await guardedFetch(url, {
     headers,
     ...(init?.signal ? { signal: init.signal } : {}),
     maxBytes: 5 * 1024 * 1024,

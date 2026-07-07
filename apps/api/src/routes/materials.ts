@@ -2,7 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'node:crypto';
 import { prisma } from '../db.js';
-import { safeFetch, UnsafeUrlError } from '../safe-fetch.js';
+import { guardedFetch, UnsafeUrlError } from '../security/url-guard.js';
 import { httpUrl, isHttpUrlProtocolError } from '../validation/http-url.js';
 import { isSafeOutboundUrl } from '../security/url-guard.js';
 
@@ -46,9 +46,10 @@ function contentHash(content: string): string {
 }
 
 async function extractUrlContent(url: string): Promise<{ title: string; content: string }> {
-  // safeFetch blocks RFC1918 / loopback / link-local IPs and enforces a body
-  // size cap + timeout, closing the SSRF + slow-loris attack surface.
-  const res = await safeFetch(url, {
+  // guardedFetch blocks RFC1918 / loopback / link-local IPs (via DNS
+  // resolution, catching TOCTOU) and enforces a body size cap + timeout,
+  // closing the SSRF + slow-loris attack surface.
+  const res = await guardedFetch(url, {
     headers: { 'user-agent': 'JHEO/0.1 (+local)' },
     maxBytes: 5 * 1024 * 1024,
     timeoutMs: 10_000,
@@ -131,8 +132,9 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       if (parsed.data.type === 'url') {
         // SSRF guard (H-08): reject loopback / private / link-local targets
         // with the spec's `unsafe_url` 422 contract before any network call.
-        // safeFetch below also blocks these, but a 422 here is clearer for
-        // API consumers than the 400/502 wrapper currently maps them to.
+        // guardedFetch below also blocks these (defence-in-depth), but a 422
+        // here is clearer for API consumers than the 400/502 wrapper that
+        // the underlying fetch would otherwise map rejection to.
         if (!(await isSafeOutboundUrl(parsed.data.source))) {
           return reply.code(422).send({
             error: {

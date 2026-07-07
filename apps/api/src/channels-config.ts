@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { UnsafeUrlError, assertSafeUrl } from './safe-fetch.js';
+import { UnsafeUrlError, assertSafeUrl } from './security/url-guard.js';
 import { httpUrl } from './validation/http-url.js';
 
-// Re-export for callers that don't want to import from safe-fetch directly.
+// Re-export for callers that don't want to import from url-guard directly.
 export { UnsafeUrlError };
 
 const ChannelTypeSchema = z.enum(['wordpress', 'http', 'agent']);
