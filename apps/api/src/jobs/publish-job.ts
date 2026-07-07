@@ -1,6 +1,6 @@
 import type { Job } from 'bullmq';
 import { aggregateReviewState, type Publisher, type PublishStatus } from '@jheo/core';
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { type PrismaClient } from '@prisma/client';
 import { fetchWithGuard } from '../security/url-guard.js';
 import { withGenerationLock } from '../db.js';
 
@@ -16,10 +16,13 @@ const MAX_ATTEMPTS_DEFAULT = 3;
  * flip so the row records the OLD state — if the status update fails, no
  * event is left behind.
  *
- * Accepts either a bare `PrismaClient` or a `Prisma.TransactionClient`
- * (the `tx` passed to a `prisma.$transaction` callback). When atomicity
- * with other writes is required, callers should open a transaction and
- * pass `tx` — this helper does NOT open one itself.
+ * This helper is ATOMIC: it opens its own `prisma.$transaction` internally
+ * so the read-then-writes are isolated from concurrent transitions on the
+ * same `publishId`. Two concurrent callers could otherwise interleave their
+ * findUnique + create + update sequences and produce torn audit rows
+ * (PublishEvent stamped with a `fromStatus` that no longer matches the
+ * observed state, or worse, two events recorded against the same target
+ * state).
  *
  * `toStatus` is typed as `PublishStatus` from `@jheo/core` rather than
  * `string`. The Prisma `Publish.status` column is `String` (not a database
@@ -30,26 +33,28 @@ const MAX_ATTEMPTS_DEFAULT = 3;
  * is a future milestone.
  */
 export async function recordPublishTransition(
-  prisma: PrismaClient | Prisma.TransactionClient,
+  prisma: PrismaClient,
   publishId: string,
   toStatus: PublishStatus,
   message?: string,
 ): Promise<void> {
-  const current = await prisma.publish.findUniqueOrThrow({
-    where: { id: publishId },
-    select: { status: true },
-  });
-  await prisma.publishEvent.create({
-    data: {
-      publishId,
-      fromStatus: current.status,
-      toStatus,
-      message: message ?? null,
-    },
-  });
-  await prisma.publish.update({
-    where: { id: publishId },
-    data: { status: toStatus },
+  await prisma.$transaction(async (tx) => {
+    const current = await tx.publish.findUniqueOrThrow({
+      where: { id: publishId },
+      select: { status: true },
+    });
+    await tx.publishEvent.create({
+      data: {
+        publishId,
+        fromStatus: current.status,
+        toStatus,
+        message: message ?? null,
+      },
+    });
+    await tx.publish.update({
+      where: { id: publishId },
+      data: { status: toStatus },
+    });
   });
 }
 
