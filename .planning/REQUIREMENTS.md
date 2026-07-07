@@ -93,13 +93,40 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (pending roadmap) | — | Pending |
+| GSC-01 | Phase 1 | Pending |
+| GSC-02 | Phase 1 | Pending |
+| GSC-03 | Phase 1 | Pending |
+| GSC-04 | Phase 1 | Pending |
+| GSC-05 | Phase 1 | Pending |
+| GSC-06 | Phase 1 | Pending |
+| GSC-07 | Phase 2 | Pending |
+| GSC-08 | Phase 2 | Pending |
+| GSC-09 | Phase 2 | Pending |
+| GSC-12 | Phase 2 | Pending |
+| GSC-24 | Phase 2 | Pending |
+| GSC-25 | Phase 2 | Pending |
+| GSC-10 | Phase 3 | Pending |
+| GSC-13 | Phase 3 | Pending |
+| GSC-14 | Phase 3 | Pending |
+| GSC-15 | Phase 3 | Pending |
+| GSC-16 | Phase 3 | Pending |
+| GSC-17 | Phase 3 | Pending |
+| GSC-18 | Phase 4 | Pending |
+| GSC-19 | Phase 4 | Pending |
+| GSC-20 | Phase 4 | Pending |
+| GSC-21 | Phase 4 | Pending |
+| GSC-22 | Phase 4 | Pending |
+| GSC-23 | Phase 4 | Pending |
+| GSC-11 | Phase 5 | Pending |
+| GSC-26 | Phase 6 | Pending |
+| GSC-27 | Phase 6 | Pending |
+| GSC-28 | Phase 6 | Pending |
 
 **Coverage:**
 - F4 requirements: 28 total
-- Mapped to phases: 0
-- Unmapped: 28 ⚠️
+- Mapped to phases: 28
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-07-07*
-*Last updated: 2026-07-07 after F4 research synthesis*
+*Last updated: 2026-07-07 after F4 roadmap creation*
