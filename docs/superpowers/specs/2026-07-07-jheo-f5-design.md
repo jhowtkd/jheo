@@ -298,10 +298,11 @@ Goal: dashboard shows aggregate health + per-page table with filters.
   completed `PageAudit` for that page, joined via Prisma
   `include: { pageAudits: {orderBy: {finishedAt: 'desc'}, take: 1} }`.
 - `GET /api/projects/:id/health` returns aggregate computed from the most
-  recent `Audit` row for the project. If no audit has run, returns
-  `{overall: null, byCategory: null, pagesAudited: 0, pagesTotal: 0, pagesWithError: 0, lastAuditAt: null}`.
+  recent completed `Audit` row for the project (`orderBy: { finishedAt: 'desc' }, where: { status: 'completed' }`). If no audit has run, returns
+  `{overall: null, byCategory: {seo: null, cwv: null, geo: null, a11y: null, content: null}, pagesAudited: 0, pagesTotal: 0, pagesWithError: 0, lastAuditAt: null}`.
 - `ProjectDashboard.tsx` redesign:
-  - Top: aggregate card (overall + 5 categories as bars).
+  - Top: aggregate card with overall score plus 5 category bars
+    (seo, cwv, geo, a11y, content), each rendered as a 0–100 bar.
   - Filters bar: `All | Not audited | With error | By source`.
   - Table: URL, source, last audited (relative), last score, "Re-audit" button (placeholder for Phase 4 — disabled with title "Coming in F5.4").
   - Sticky footer: `pagesAudited / pagesTotal` + spinner while in flight.
@@ -322,10 +323,8 @@ Goal: large audits are parallel, observable, and cancellable.
   `makePageAuditHandler({fetchText})` — same `runAudit` invocation pattern
   as the current `audit-job.ts` per-page loop, but factored out.
 - `audit-job.ts` rewritten:
-  - Phase 1 fallback: if `JHEO_AUDIT_LEGACY=1`, run sequentially (the
-    Phase 1 code path, kept for tests that mock the loop). Default: off.
-  - New path: `discoverSite` → `ProjectPage.upsert` → `FlowProducer.add`
-    with children → `waitUntilFinished` → aggregate `PageAudit`s → close
+  - `discoverSite` → `ProjectPage.upsert` → `FlowProducer.add` with
+    children → `waitUntilFinished` → aggregate `PageAudit`s → close
     `Audit` with `{overall, byCategory, pagesAudited, pagesTotal}`.
 - `routes/audits.ts`:
   - `GET /api/audits/:id/progress` — counts `PageAudit` rows by status for
@@ -369,7 +368,7 @@ Goal: user can re-audit a single page and see what changed.
   - `NEW` — `previousFindingId IS NULL`
   - `UNCHANGED` — `previousFindingId` set, `severity` and `message` match
   - `IMPROVEMENT` — `previousFindingId` set, `severity` decreased
-    (error→warning, warning→info)
+    (where severity ∈ {info, warning, error}, error > warning > info)
   - `REGRESSION` — `previousFindingId` set, `severity` increased
     (info→warning, warning→error) or `message` changed at the same severity
   - `FIXED` — *not stored on a finding*; computed in the response as the

@@ -13,4 +13,10 @@
 
 | Milestone | Name | Status | Started |
 |-----------|------|--------|---------|
-| F4 | Search Console Integration | Planning | 2026-07-07 |
+| F5 | Site Mapping & Multi-Page Audit | Planning | 2026-07-07 |
+
+## Cancelled
+
+| Milestone | Name | Status | Notes |
+|-----------|------|--------|-------|
+| F4 | Search Console Integration | Cancelled 2026-07-07 | Never advanced past planning. F5 prioritised. No spec file written. |

@@ -1,12 +1,12 @@
 ---
 gsd_state_version: 1.0
-milestone: F4
-milestone_name: Search Console Integration
-status: ready_to_plan
-last_updated: "2026-07-07T19:10:00.000Z"
+milestone: F5
+milestone_name: Site Mapping & Multi-Page Audit
+status: planning
+last_updated: "2026-07-07T19:30:00.000Z"
 last_activity: 2026-07-07
 progress:
-  total_phases: 6
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -19,15 +19,15 @@ progress:
 
 See: .planning/PROJECT.md (updated 2026-07-07)
 
-**Core value:** Users can audit a site, generate content grounded in real findings, approve it, and publish — enriched with real Google Search Console data.
-**Current focus:** Phase 1 — GSC Connection
+**Core value:** Users can audit a site, generate content grounded in real findings, approve it, and publish — with a per-domain site map and multi-page audit.
+**Current focus:** F5 spec review (Phase 1 of 4 — Land WIP)
 
 ## Current Position
 
-Phase: 1 of 6 (GSC Connection)
+Phase: 1 of 4 (Land WIP)
 Plan: —
-Status: Ready to plan
-Last activity: 2026-07-07 — F4 roadmap created (6 phases, 28 requirements mapped)
+Status: Awaiting user approval of F5 spec
+Last activity: 2026-07-07 — F5 spec drafted; F4 cancelled
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -55,9 +55,11 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
-- F4: Service Account per project (not OAuth)
-- F4: setInterval cron (Option A MVP), BullMQ repeat deferred to F5
-- F4: Core purity — fetchFn REST in packages/core, google-auth-library in apps/api
+- F5: PageAudit table (not diff-in-query) for lineage
+- F5: BullMQ Flow Producer for orchestrator with polling fallback
+- F5: maxPages=0 (no cap) by default
+- F5: HTTP polling for progress (not SSE/WS)
+- F5: Cancel F4 — product gap (page-by-page entry) is more urgent
 
 ### Pending Todos
 
@@ -73,10 +75,10 @@ Items acknowledged and carried forward from previous milestone close:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| *(none)* | | | |
+| (none) | | | |
 
 ## Session Continuity
 
 Last session: 2026-07-07
-Stopped at: F4 roadmap created — ready for `/gsd-plan-phase 1`
+Stopped at: F5 spec drafted at `docs/superpowers/specs/2026-07-07-jheo-f5-design.md` — awaiting user review before invoking writing-plans
 Resume file: None

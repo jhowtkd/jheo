@@ -19,72 +19,77 @@ Users can audit a site, generate content grounded in real findings, approve it, 
 
 ### Active
 
-- [ ] **F4 — GSC Connection**: Per-project Service Account (encrypted JSON), siteUrl 1:1 with Project
-- [ ] **F4 — GSC Snapshots**: Daily search analytics pull (28-day window), idempotent upsert into GscSnapshot
-- [ ] **F4 — GSC API**: Overview/queries/pages read endpoints from stored snapshots
-- [ ] **F4 — URL Inspection**: Post-publish best-effort inspect for wordpress/http channels
-- [ ] **F4 — Audit enrichment**: Optional gsc-low-ctr plugin via Symbol-injected snapshot context
-- [ ] **F4 — Cron sync**: setInterval daily snapshot enqueue (Option A MVP)
+- [ ] **F5 — Site Discovery**: Map a domain via sitemap + crawl, persist `ProjectPage` rows
+- [ ] **F5 — Multi-Page Audit**: One Audit covers all pages of a project; per-page `PageAudit`; aggregated score
+- [ ] **F5 — Mapping UX**: Project dashboard with aggregate health card + filterable page table
+- [ ] **F5 — Parallel & Cancellable Audit**: `auditPageQueue` (BullMQ Flow) with progress polling and `DELETE /api/audits/:id`
+- [ ] **F5 — Re-Audit & Delta**: `POST /api/pages/:id/audit` + `Finding.previousFindingId` lineage + NEW/FIXED/REGRESSION/IMPROVEMENT/UNCHANGED diff
+
+### Cancelled
+
+- ✗ **F4 — Search Console Integration** (started 2026-07-07, cancelled same day). F4 was never advanced past planning. With F5 prioritising domain mapping, GSC features are deferred indefinitely. F4 artifacts: design draft in commit `5849c08`; no spec file. Cancellation reason: F5 is more aligned with the immediate product gap ("user must enter pages one by one").
 
 ### Out of Scope
 
-- OAuth user-flow for GSC — Service Account only (official, robust path)
-- Multiple GSC properties per project — 1:1 with Project
-- Real-time GSC streaming via SSE/WebSocket
-- Inspection history persisted — log only, no InspectionRecord table
-- BullMQ repeat jobs for cron — setInterval sufficient for F4 MVP (F5 candidate)
-- Auto-discovery of verified GSC properties — user supplies siteUrl manually
-- Batch indexing requests — single-URL inspect per publish
+- OAuth user-flow for GSC — Service Account only (F4 was the only path; cancelled)
+- Multiple GSC properties per project — 1:1 with Project (F4 invariant; moot after cancellation)
+- Hard cap on `maxPages` — F5 default is `0` (no cap); user-controlled via `Project.maxPages`
+- Schedule / cron for periodic audits — F5 is run-on-demand
+- Synthetic-page clean-up — synthetic `ProjectPage`s from the F5 §4.2 backfill are kept indefinitely
+- Cross-project `Finding` aggregation — scope is per-project
+- WebSocket / SSE push of audit progress — HTTP polling only
+- Auto-discovery of verified GSC properties — user supplies siteUrl manually (F4; moot)
+- Batch indexing requests — single-URL inspect per publish (F4; moot)
 - Multi-tenant SaaS, team accounts, auth layer — single-user local tool (F1 invariant)
 
-## Current Milestone: F4 Search Console Integration
+## Current Milestone: F5 Site Mapping & Multi-Page Audit
 
-**Goal:** Enrich SEO audits with real Google Search Console data and trigger URL Inspection after publish.
+**Goal:** A project becomes a *domain* (a set of pages), not a *URL*. The user enters a domain, JHEO maps every discoverable page, audits them, and shows aggregate health with per-page detail.
 
-**Target features:**
-- Pure `@jheo/core/gsc` client (searchanalytics + URL Inspection) with injected auth/fetchFn
-- GscConnection + GscSnapshot tables with encrypted Service Account credentials
-- BullMQ gscQueue with snapshot + inspect actions; daily cron via setInterval
-- 8 REST endpoints for connection CRUD, sync trigger, overview/queries/pages
-- Best-effort publish hook (wordpress/http only, non-fatal on failure)
-- Optional audit plugin `gsc-low-ctr` (impressions > 100 && ctr < 2%)
+**Target features (4 phases):**
+- Phase 1 — Land WIP (`site-discovery.ts`, `ProjectPage`, `audit-job` refactor, `domain` field) as one squashed commit.
+- Phase 2 — `GET /api/projects/:id/pages` (filters), `GET /:id/health` (aggregate), dashboard redesign with cards + table.
+- Phase 3 — `auditPageQueue` (BullMQ Flow) with concurrency 5; `GET /api/audits/:id/progress`; `DELETE /api/audits/:id` cancellation; `PageAudit` table.
+- Phase 4 — `POST /api/pages/:id/audit`; `Finding.previousFindingId` lineage; `GET /api/page-audits/:id` with diff labels (NEW/FIXED/REGRESSION/IMPROVEMENT/UNCHANGED).
 
 **Confirmed decisions:**
 | Decision | Value |
 |----------|-------|
-| Auth | Service Account per project (JSON encrypted at rest) |
-| Granularity | Daily snapshot per project |
-| Properties | 1:1 GSC property ↔ Project |
-| Audit enrichment | Plugin via Symbol `jheo.gsc.snapshot` |
-| Publish hook | Best-effort URL Inspection after completed publish |
-| Approach | Option A — setInterval cron + single gscQueue |
-| Snapshot retention | 28 days default |
-| Sync rate limit | 5 requests/minute per project |
+| Discovery | sitemap.xml (with sitemapindex) + internal-link BFS fallback |
+| `maxPages` default | 0 (no cap) — configurable per project |
+| Queue model | `auditQueue` (project orchestrator) + `auditPageQueue` (per-page workers) |
+| Orchestration | BullMQ Flow Producer (`group.waitUntilFinished`); polling fallback documented |
+| Concurrency | `auditPageQueue` = `JHEO_AUDIT_PAGE_CONCURRENCY` env, default 5 |
+| Cancellation | `DELETE /api/audits/:id` → status `cancelled`; per-page job checks on start |
+| Diff storage | `Finding.previousFindingId` self-FK; diff labels computed in API response |
+| Diff labels | NEW, UNCHANGED, IMPROVEMENT, REGRESSION, FIXED (FIXED computed from prior head not in current) |
+| Synthetic backfill | F5 §4.2: 1 synthetic `ProjectPage` + 1 `PageAudit` per pre-F5 `Audit` so `Finding.pageAuditId` becomes NOT NULL |
 
 ## Context
 
 - Monorepo: `apps/api` (Fastify + worker), `apps/web` (Vite SPA), `packages/core` (pure logic)
 - Existing patterns: AES-256-GCM encryption (`crypto.ts`), BullMQ queues (`queue.ts`), pure core with injected deps
 - Prior specs: `docs/superpowers/specs/2026-07-06-jheo-design.md` (F1), F2, F3, F-Hardening
-- F4 design draft planned at `docs/superpowers/specs/2026-07-07-jheo-f4-search-console-design.md`
+- F5 spec: `docs/superpowers/specs/2026-07-07-jheo-f5-design.md`
 
 ## Constraints
 
 - **Tech stack**: TypeScript strict, pnpm monorepo, Prisma + Postgres, BullMQ + Redis
 - **Core purity**: `packages/core` cannot import Fastify/BullMQ/Prisma — inject fetchFn + auth
-- **Security**: Service Account JSON encrypted with `JHEO_SECRET_KEY`; never expose ciphertext in API responses
+- **Migration safety**: `Finding.pageAuditId` becomes NOT NULL only after the F5 §4.2 backfill
 - **Deployment**: Render/Linux — bind `0.0.0.0:$PORT`, ephemeral filesystem (DB for persistence)
-- **Dependencies**: `googleapis` (official) + `google-auth-library` JWT — JS pure, no Dockerfile changes
+- **Single-tenant invariant**: pageId in routes is unique enough; no per-tenant scoping needed
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Service Account over OAuth | Official path, no user consent flow needed for local tool | — Pending |
-| Option A (setInterval cron) | Simplest MVP; BullMQ repeat deferred to F5 | — Pending |
-| 28-day snapshot window | Matches API query default; sufficient for audit enrichment | — Pending |
-| Symbol injection for audit plugin | Keeps core pure; optional enrichment without coupling | — Pending |
-| Compound PK on GscSnapshot | Idempotent daily upsert by (projectId, date, query, page, device, country) | — Pending |
+| PageAudit table over findings diff-in-query | Idiomatic with project pattern (one table per aggregate); lineage FK cheaper than query-time diff | — Pending |
+| BullMQ Flow Producer for orchestrator | Native, restart-safe, fewer moving parts than custom polling | — Pending |
+| `maxPages = 0` (no cap) by default | User explicitly chose this in brainstorm; accepted risk of very large sites | — Pending |
+| HTTP polling for progress | Simpler than SSE/WebSocket; matches F3 publish polling pattern | — Pending |
+| Diff labels in API, not in DB | Avoids denormalization; labels are derivable from lineage + severity | — Pending |
+| Cancel F4 | F5 product gap (page-by-page entry) is more urgent than GSC | Decided 2026-07-07 |
 
 ## Evolution
 
