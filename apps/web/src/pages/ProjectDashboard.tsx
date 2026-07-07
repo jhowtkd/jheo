@@ -4,15 +4,18 @@ import { Link, useParams } from 'react-router-dom';
 import {
   cancelAudit,
   getAuditProgress,
+  getPageAuditDetail,
   getProject,
   getProjectHealth,
   getProjectPages,
   listMaterials,
   listChannels,
   listGenerations,
+  reAuditPage,
 } from '../api.js';
 import { ScoreCard } from '../components/ScoreCard.js';
 import { FilterBar, type FilterOption } from '../components/FilterBar.js';
+import { FindingList } from '../components/FindingList.js';
 
 type FilterValue = 'all' | 'not_audited' | 'with_error' | 'discovered_via:sitemap' | 'discovered_via:crawl' | 'discovered_via:root';
 
@@ -39,6 +42,7 @@ export function ProjectDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
   const [filter, setFilter] = useState<FilterValue>('all');
   const apiFilter = filter === 'all' ? undefined : filter;
+  const [openPageAuditId, setOpenPageAuditId] = useState<string | null>(null);
 
   const project = useQuery({
     queryKey: ['project', projectId],
@@ -95,6 +99,26 @@ export function ProjectDashboard() {
     onSuccess: () => {
       project.refetch();
       progress.refetch();
+    },
+  });
+
+  // F5.4 T4: re-audit button + diff modal
+  const detail = useQuery({
+    queryKey: ['page-audit-detail', openPageAuditId],
+    queryFn: () => getPageAuditDetail(openPageAuditId!),
+    enabled: Boolean(openPageAuditId),
+    refetchInterval: (query) =>
+      query.state.data?.status === 'queued' || query.state.data?.status === 'running' ? 1_000 : false,
+  });
+
+  const reAudit = useMutation({
+    mutationFn: (pageId: string) => reAuditPage(pageId),
+    onSuccess: (data) => {
+      setOpenPageAuditId(data.pageAuditId);
+    },
+    onError: (err: Error) => {
+      // eslint-disable-next-line no-alert
+      window.alert(err.message);
     },
   });
 
@@ -217,8 +241,13 @@ export function ProjectDashboard() {
                 <td>{page.lastAuditedAt ? new Date(page.lastAuditedAt).toLocaleString() : '—'}</td>
                 <td>{page.lastScore ? Math.round(page.lastScore.overall) : '—'}</td>
                 <td>
-                  <button type="button" className="btn btn--secondary btn--sm" disabled title="Coming in F5.4">
-                    Re-audit
+                  <button
+                    type="button"
+                    className="btn btn--secondary btn--sm"
+                    onClick={() => reAudit.mutate(page.id)}
+                    disabled={reAudit.isPending}
+                  >
+                    {reAudit.isPending ? 'Queuing…' : 'Re-audit'}
                   </button>
                 </td>
               </tr>
@@ -233,6 +262,36 @@ export function ProjectDashboard() {
           </tbody>
         </table>
       </div>
+
+      {/* F5.4 T4: re-audit diff modal */}
+      {openPageAuditId && detail.data && (
+        <div
+          className="modal"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setOpenPageAuditId(null)}
+        >
+          <div className="modal__panel" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="modal__close"
+              onClick={() => setOpenPageAuditId(null)}
+              aria-label="Close"
+            >
+              ×
+            </button>
+            <h2 style={{ margin: 0, marginBottom: 'var(--space-2)', fontSize: 'var(--fs-lg)' }}>
+              Re-audit: {detail.data.url}
+            </h2>
+            <p style={{ color: 'var(--text-muted)', margin: 0, marginBottom: 'var(--space-4)' }}>
+              Status: <strong style={{ color: 'var(--text)' }}>{detail.data.status}</strong>
+              {detail.data.score && (
+                <> · Score: <strong style={{ color: 'var(--text)' }}>{detail.data.score.overall}</strong></>
+              )}
+            </p>
+            <FindingList findings={detail.data.findings as unknown as Parameters<typeof FindingList>[0]["findings"]} fixed={detail.data.fixed} />
+          </div>
+        </div>
+      )}
 
       {/* Sticky footer with audited progress */}
       <footer

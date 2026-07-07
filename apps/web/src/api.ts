@@ -54,6 +54,50 @@ export type PagesResponse = {
   items: ProjectPage[];
 };
 
+// ---------- Re-audit + diff (F5.4) ----------
+export type FindingDiff = 'NEW' | 'UNCHANGED' | 'IMPROVEMENT' | 'REGRESSION';
+
+export type FindingWithDiff = {
+  id: string;
+  category: string;
+  severity: 'info' | 'warning' | 'error';
+  rule: string;
+  message: string;
+  url: string;
+  selector: string | null;
+  evidence: Record<string, unknown>;
+  previousFindingId: string | null;
+  diff: FindingDiff;
+};
+
+export type PageAuditDetail = {
+  id: string;
+  projectPageId: string;
+  url: string;
+  status: string;
+  score: { overall: number; byCategory: Record<string, number | null> } | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  findings: FindingWithDiff[];
+  fixed: Array<{ id: string; category: string; severity: string; rule: string; message: string; url: string }>;
+};
+
+export async function reAuditPage(pageId: string): Promise<{ pageAuditId: string }> {
+  const res = await fetch(`${API}/pages/${pageId}/audit`, { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? `Re-audit failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function getPageAuditDetail(pageAuditId: string): Promise<PageAuditDetail> {
+  const res = await fetch(`${API}/page-audits/${pageAuditId}`);
+  if (!res.ok) throw new Error(`Failed to load page audit: ${res.status}`);
+  return res.json();
+}
+
 export type ProjectHealth = {
   overall: number | null;
   byCategory: Record<'seo' | 'cwv' | 'geo' | 'a11y' | 'content', number | null>;
@@ -306,7 +350,7 @@ export async function updateChannel(
   });
   return r.json();
 }
-export async function deleteChannel(id: string): Promise<{ id: string }> {
+export async function deleteChannel(id: string): Promise<Channel> {
   return (await fetch(`/api/channels/${id}`, { method: 'DELETE' })).json();
 }
 
