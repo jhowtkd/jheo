@@ -1,6 +1,11 @@
 import type { Job } from 'bullmq';
-import { runAudit, type Finding } from '@jheo/core';
-import type { AuditJobData } from '../queue.js';
+import { FlowProducer, QueueEvents } from 'bullmq';
+import {
+  auditOrchestrator,
+  auditPageQueue,
+  type AuditJobData,
+  type PageAuditJobData,
+} from '../queue.js';
 import { prisma } from '../db.js';
 import { discoverSite } from '../site-discovery.js';
 
@@ -9,10 +14,116 @@ export type FetchText = (
   init?: { headers?: Record<string, string>; signal?: AbortSignal },
 ) => Promise<{ status: number; headers: Record<string, string>; text: string }>;
 
-// Symbols so we can stash derived view state on the AuditContext without
-// polluting its public shape (which the @jheo/core plugins read).
-const PLAIN_TEXT = Symbol('jheo.audit.plainText');
-const JSONLD_BLOCKS = Symbol('jheo.audit.jsonLdBlocks');
+// Lazy-initialised FlowProducer + QueueEvents. Reusing a single instance
+// across audits keeps the Redis connection count constant in the server
+// process; lazy init means module load (e.g. unit tests that don't exercise
+// the flow path) does not eagerly open Redis connections.
+const REDIS_HOST = process.env.REDIS_HOST ?? '127.0.0.1';
+const REDIS_PORT = Number(process.env.REDIS_PORT ?? 6379);
+let _flowProducer: FlowProducer | undefined;
+let _auditPageQueueEvents: QueueEvents | undefined;
+function getFlowProducer(): FlowProducer {
+  if (!_flowProducer) {
+    _flowProducer = new FlowProducer({
+      connection: { host: REDIS_HOST, port: REDIS_PORT },
+    });
+  }
+  return _flowProducer;
+}
+function getAuditPageQueueEvents(): QueueEvents {
+  if (!_auditPageQueueEvents) {
+    _auditPageQueueEvents = new QueueEvents('auditPage', {
+      connection: { host: REDIS_HOST, port: REDIS_PORT },
+    });
+  }
+  return _auditPageQueueEvents;
+}
+
+/**
+ * Flow Producer orchestrator — fans out one `auditPage` child job per page,
+ * then blocks on the parent group's `waitUntilFinished` so the audit handler
+ * only resolves once every child has completed (or the 30-minute deadline
+ * elapses).
+ */
+async function runFlowOrchestrator(
+  auditId: string,
+  pages: Array<{ id: string; url: string }>,
+): Promise<void> {
+  // Look up the PageAudit rows we just created (status='queued') to get
+  // their IDs. The children need `pageAuditId` so the worker can stamp
+  // findings and update the row when it finishes.
+  const pageAudits = await prisma.pageAudit.findMany({
+    where: { auditId, status: 'queued' },
+    orderBy: { id: 'asc' },
+  });
+  const pageAuditIdByProjectPageId = new Map(
+    pageAudits.map((pa) => [pa.projectPageId, pa.id]),
+  );
+
+  const children = pages.map((page) => {
+    const pageAuditId = pageAuditIdByProjectPageId.get(page.id);
+    if (!pageAuditId) {
+      throw new Error(
+        `PageAudit not found for projectPageId ${page.id}`,
+      );
+    }
+    return {
+      name: 'page',
+      queueName: 'auditPage',
+      data: {
+        pageAuditId,
+        auditId,
+        projectPageId: page.id,
+        url: page.url,
+      } satisfies PageAuditJobData,
+    };
+  });
+
+  const group = await getFlowProducer().add({
+    name: 'audit-group',
+    queueName: 'auditPage',
+    data: { auditId },
+    children,
+  });
+  await group.job.waitUntilFinished(getAuditPageQueueEvents(), 30 * 60 * 1000);
+}
+
+/**
+ * Polling orchestrator — manually enqueues one `auditPage` job per page,
+ * then polls the `PageAudit` table until every page is terminal or the
+ * 30-minute deadline elapses. Used when the runtime is configured with
+ * `JHEO_AUDIT_ORCHESTRATOR=polling`.
+ */
+async function runPollingOrchestrator(
+  auditId: string,
+  pages: Array<{ id: string; url: string }>,
+): Promise<void> {
+  for (const page of pages) {
+    const pa = await prisma.pageAudit.findFirst({
+      where: { auditId, projectPageId: page.id },
+    });
+    if (!pa) continue;
+    await auditPageQueue.add('page', {
+      pageAuditId: pa.id,
+      auditId,
+      projectPageId: page.id,
+      url: page.url,
+    } satisfies PageAuditJobData);
+  }
+  // Poll until all PageAudits are terminal or 30 min
+  const deadline = Date.now() + 30 * 60 * 1000;
+  const total = pages.length;
+  while (Date.now() < deadline) {
+    const done = await prisma.pageAudit.count({
+      where: {
+        auditId,
+        status: { in: ['completed', 'failed', 'skipped'] },
+      },
+    });
+    if (done >= total) return;
+    await new Promise((r) => setTimeout(r, 2_000));
+  }
+}
 
 export function makeAuditHandler(opts: { fetchText: FetchText }) {
   return async function handle(job: Job<AuditJobData>) {
@@ -52,7 +163,7 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
       const configuredMax = Number((audit.configSnapshot as { maxPages?: unknown } | undefined)?.maxPages);
       const maxPages = Number.isInteger(configuredMax) && configuredMax > 0
         ? Math.min(configuredMax, 5_000)
-        : 500;
+        : (project.maxPages > 0 ? project.maxPages : 0);
       const pages = await discoverSite(project.rootUrl, fetchTextDedup, maxPages);
       await prisma.projectPage.createMany({
         data: pages.map((page) => ({ projectId: project.id, ...page })),
@@ -69,102 +180,61 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
       });
       const projectPageIdByUrl = new Map(persistedPages.map((p) => [p.url, p.id]));
 
-      const findings: Finding[] = [];
-      const scores: Array<{ overall: number; byCategory?: Record<string, number | null> }> = [];
+      const pagesToRun = maxPages > 0 ? pages.slice(0, maxPages) : pages;
+      const pagesWithIds = pagesToRun
+        .map((page) => {
+          const projectPageId = projectPageIdByUrl.get(page.url);
+          return projectPageId ? { id: projectPageId, url: page.url } : null;
+        })
+        .filter((p): p is { id: string; url: string } => p !== null);
 
-      for (const page of pages) {
-        const projectPageId = projectPageIdByUrl.get(page.url);
-        if (!projectPageId) {
-          // Shouldn't happen — createMany above guarantees insertion — but
-          // skip cleanly so a missing row doesn't poison the whole audit.
-          continue;
-        }
-        const pageAudit = await prisma.pageAudit.create({
-          data: {
-            auditId: audit.id,
-            projectPageId,
-            status: 'running',
-            startedAt: new Date(),
-          },
-        });
-        try {
-          const htmlRes = await fetchTextDedup(page.url);
-          if (htmlRes.status < 200 || htmlRes.status >= 400) throw new Error(`HTTP ${htmlRes.status}`);
-          const ctx = {
-            url: page.url,
-            html: htmlRes.text,
-            fetchText: fetchTextDedup,
-            log() {},
-            [PLAIN_TEXT]: htmlRes.text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean),
-            [JSONLD_BLOCKS]: Array.from(htmlRes.text.matchAll(
-              /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
-            )),
-          };
-          const result = await runAudit(ctx);
-          const pageScore = result.score as { overall: number; byCategory?: Record<string, number | null> };
-          findings.push(...result.findings);
-          scores.push(pageScore);
-          const finishedAt = new Date();
-          await prisma.$transaction([
-            prisma.finding.createMany({
-              data: result.findings.map((f) => ({
-                auditId: audit.id,
-                pageAuditId: pageAudit.id,
-                category: f.category,
-                severity: f.severity,
-                rule: f.rule,
-                message: f.message,
-                url: f.url,
-                selector: f.selector ?? null,
-                evidence: f.evidence as object,
-              })),
-            }),
-            prisma.pageAudit.update({
-              where: { id: pageAudit.id },
-              data: { status: 'completed', finishedAt, score: pageScore },
-            }),
-            prisma.projectPage.update({
-              where: { id: projectPageId },
-              data: { lastAuditedAt: finishedAt },
-            }),
-          ]);
-        } catch (error) {
-          findings.push({
-            category: 'content',
-            severity: 'error',
-            rule: 'page.unreachable',
-            message: `Page could not be audited: ${error instanceof Error ? error.message : String(error)}`,
-            url: page.url,
-            evidence: {},
-          });
-          scores.push({ overall: 0, byCategory: { content: 0 } });
-          await prisma.pageAudit.update({
-            where: { id: pageAudit.id },
-            data: {
-              status: 'failed',
-              finishedAt: new Date(),
-              errorMessage: error instanceof Error ? error.message : String(error),
-              score: { overall: 0, byCategory: { content: 0 } },
-            },
-          });
-        }
+      // Create the PageAudit rows (one per page, status='queued').
+      // The pages were already inserted by projectPage.createMany above
+      // and each has an id we can reference.
+      await prisma.pageAudit.createMany({
+        data: pagesWithIds.map((page) => ({
+          auditId: audit.id,
+          projectPageId: page.id,
+          status: 'queued',
+        })),
+        skipDuplicates: true,
+      });
+
+      if (auditOrchestrator === 'polling') {
+        await runPollingOrchestrator(audit.id, pagesWithIds);
+      } else {
+        await runFlowOrchestrator(audit.id, pagesWithIds);
       }
 
-      const categories = ['seo', 'cwv', 'geo', 'a11y', 'content'];
-      const byCategory = Object.fromEntries(categories.map((category) => {
-        const values = scores.map((score) => score.byCategory?.[category]).filter((value): value is number => value !== null && value !== undefined);
-        return [category, values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null];
-      }));
+      // Aggregate score from PageAudits.
+      const pageAudits = await prisma.pageAudit.findMany({
+        where: { auditId: audit.id, status: 'completed' },
+        select: { score: true },
+      });
+      const pageScores = pageAudits
+        .map((p) => p.score as { overall: number; byCategory?: Record<string, number | null> } | null)
+        .filter((s): s is { overall: number; byCategory?: Record<string, number | null> } => s !== null);
+
+      const categories = ['seo', 'cwv', 'geo', 'a11y', 'content'] as const;
+      const byCategory = Object.fromEntries(
+        categories.map((category) => {
+          const values = pageScores
+            .map((s) => s.byCategory?.[category])
+            .filter((v): v is number => v !== null && v !== undefined);
+          return [category, values.length ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : null];
+        }),
+      );
       const score = {
-        overall: scores.length ? Math.round(scores.reduce((sum, value) => sum + value.overall, 0) / scores.length) : 0,
+        overall: pageScores.length
+          ? Math.round(pageScores.reduce((sum, s) => sum + s.overall, 0) / pageScores.length)
+          : 0,
         byCategory,
-        pagesAudited: pages.length,
-        discoveryLimitReached: pages.length === maxPages,
+        pagesAudited: pageAudits.length,
+        pagesTotal: pagesWithIds.length,
+        discoveryLimitReached: pagesWithIds.length === pages.length, // approximation; can be refined
       };
       const finishedAt = new Date();
 
-      // Per-page transactions above already write findings + lastAuditedAt.
-      // All that's left is to flip the parent Audit row to 'completed'.
       await prisma.audit.update({
         where: { id: audit.id },
         data: { status: 'completed', finishedAt, score },
@@ -178,3 +248,4 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
     }
   };
 }
+
