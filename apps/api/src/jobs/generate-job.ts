@@ -8,6 +8,22 @@ const TOP_K = 5;
 
 export type GenerateJobData = { generationId: string };
 
+/**
+ * Project-scoped material loader for a generation. The generation's
+ * `projectId` is the trust boundary — a worker serving project A must never
+ * surface project B's materials, even if `materialIds` is empty or wrong
+ * (H-03 — cross-project isolation). This helper is exported separately from
+ * the in-handler call so it can be reused by future workers (e.g. an
+ * out-of-band re-embed tool) without re-implementing the project-scoped query.
+ */
+export async function loadMaterialsForGeneration(prisma: PrismaClient, generationId: string) {
+  const gen = await prisma.generation.findUniqueOrThrow({
+    where: { id: generationId },
+    select: { projectId: true },
+  });
+  return prisma.material.findMany({ where: { projectId: gen.projectId } });
+}
+
 export function makeGenerateHandler(deps: {
   prisma: PrismaClient;
   fetchFn: typeof fetch;

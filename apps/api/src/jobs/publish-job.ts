@@ -2,6 +2,7 @@ import type { Job } from 'bullmq';
 import { aggregateReviewState, type Publisher, type PublishStatus } from '@jheo/core';
 import type { PrismaClient } from '@prisma/client';
 import { fetchWithGuard } from '../security/url-guard.js';
+import { withGenerationLock } from '../db.js';
 
 const BACKOFF_MS: readonly number[] = [0, 30_000, 300_000];
 const MAX_ATTEMPTS_DEFAULT = 3;
@@ -33,7 +34,7 @@ export function makePublishHandler(deps: {
     const secret = process.env.JHEO_SECRET_KEY ?? '';
     if (!secret) {
       await markFailed(prisma, publish.id, 'JHEO_SECRET_KEY missing');
-      await recompute(prisma, publish.generationId, deps.aggregateState);
+      await recomputeGenerationState(prisma, publish.generationId, deps.aggregateState);
       return;
     }
 
@@ -114,7 +115,7 @@ export function makePublishHandler(deps: {
       }
     }
 
-    await recompute(prisma, publish.generationId, deps.aggregateState);
+    await recomputeGenerationState(prisma, publish.generationId, deps.aggregateState);
   };
 }
 
@@ -125,21 +126,36 @@ async function markFailed(prisma: PrismaClient, id: string, lastError: string) {
   });
 }
 
-type RecomputeDeps = { aggregateState: (publishes: { status: PublishStatus }[]) => string };
-
-async function recompute(
+/**
+ * Re-aggregate the per-channel Publish rows for a generation and update the
+ * generation's `reviewState` to match. Wrapped in `pg_advisory_xact_lock` so
+ * concurrent workers (publish retries, manual recompute API, the after-failure
+ * call path) can never interleave their findMany+update sequences and flip the
+ * reviewState off a torn aggregation (H-01).
+ *
+ * `probe` is an optional test-only injection point; it runs inside the same
+ * transaction body so the lock test can observe concurrency.
+ */
+export async function recomputeGenerationState(
   prisma: PrismaClient,
   generationId: string,
-  aggregateState: RecomputeDeps['aggregateState'],
+  aggregateState: (publishes: { status: PublishStatus }[]) => string = aggregateReviewState,
+  probe?: () => Promise<void>,
 ): Promise<void> {
-  const publishes = await prisma.publish.findMany({
-    where: { generationId },
-    select: { status: true },
+  await withGenerationLock(prisma, generationId, async (tx) => {
+    const publishes = await tx.publish.findMany({
+      where: { generationId },
+      select: { status: true },
+    });
+    const typedStatuses = publishes.map((p) => ({ status: p.status as PublishStatus }));
+    const next = aggregateState(typedStatuses);
+    const gen = await tx.generation.findUnique({ where: { id: generationId } });
+    if (gen && gen.reviewState !== next) {
+      await tx.generation.update({
+        where: { id: generationId },
+        data: { reviewState: next as typeof gen.reviewState },
+      });
+    }
+    if (probe) await probe();
   });
-  const typedStatuses = publishes.map((p) => ({ status: p.status as PublishStatus }));
-  const next = aggregateState(typedStatuses);
-  const gen = await prisma.generation.findUnique({ where: { id: generationId } });
-  if (gen && gen.reviewState !== next) {
-    await prisma.generation.update({ where: { id: generationId }, data: { reviewState: next as typeof gen.reviewState } });
-  }
 }

@@ -1,5 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { makeGenerateHandler } from '../../src/jobs/generate-job.js';
+import { loadMaterialsForGeneration } from '../../src/jobs/generate-job.js';
+import { prisma } from '../../src/db.js';
 
 const sampleParsedOutput = `---
 title: Hello
@@ -108,5 +110,66 @@ describe('jobs/generate-job', () => {
     expect(
       calls.some((c: any[]) => c[0]?.data?.status === 'completed' && c[0]?.data?.outputMarkdown === sampleParsedOutput),
     ).toBe(true);
+  });
+});
+
+// DB-gated integration test: a helper used to load materials for a generation
+// must filter by `projectId` so that workers serving project A can never
+// surface project B's content (H-03 — cross-project isolation).
+let canRunDb = false;
+beforeAll(async () => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    canRunDb = true;
+  } catch {
+    canRunDb = false;
+  }
+});
+
+describe.skipIf(!canRunDb)('generate-job cross-project material scope', () => {
+  it('only loads materials belonging to the generation project (H-03)', async () => {
+    const stamp = Date.now();
+    const projectA = await prisma.project.create({
+      data: { name: `h03-A-${stamp}`, rootUrl: 'https://example-a.test' },
+    });
+    const projectB = await prisma.project.create({
+      data: { name: `h03-B-${stamp}`, rootUrl: 'https://example-b.test' },
+    });
+    const matA = await prisma.material.create({
+      data: {
+        projectId: projectA.id,
+        type: 'url',
+        title: 'A',
+        content: 'A content',
+        contentHash: `h03-a-${stamp}`,
+      },
+    });
+    const matB = await prisma.material.create({
+      data: {
+        projectId: projectB.id,
+        type: 'url',
+        title: 'B',
+        content: 'B content',
+        contentHash: `h03-b-${stamp}`,
+      },
+    });
+    const gen = await prisma.generation.create({
+      data: {
+        projectId: projectA.id,
+        templateId: (await prisma.generationTemplate.findFirstOrThrow({ select: { id: true } })).id,
+        materialIds: [],
+        prompt: 'g',
+        status: 'completed',
+        llmConfig: { provider: 'openai', model: 'gpt-4o-mini' },
+        sources: [],
+        reviewState: 'draft',
+      },
+    });
+    const loaded = await loadMaterialsForGeneration(prisma, gen.id);
+    expect(loaded.map((m) => m.id)).toEqual([matA.id]);
+    // cleanup
+    await prisma.material.deleteMany({ where: { id: { in: [matA.id, matB.id] } } });
+    await prisma.generation.delete({ where: { id: gen.id } });
+    await prisma.project.deleteMany({ where: { id: { in: [projectA.id, projectB.id] } } });
   });
 });
