@@ -73,6 +73,17 @@ Expected: `status: "completed"`, `score.overall` plus `score.byCategory` populat
 `seo`, `cwv`, `geo`, `a11y`, `content`, `findingsCount > 0`, `pagesAudited ≥ 1`,
 and the project detail returns `pages.length ≥ 1`.
 
+### Mapping UX (F5.2)
+
+```bash
+# After creating a project (see Smoke test above):
+PID=<project-id>
+curl -s "http://127.0.0.1:8080/api/projects/$PID/health" | jq
+curl -s "http://127.0.0.1:8080/api/projects/$PID/pages?filter=not_audited" | jq '.total'
+```
+
+Expected: `/health` returns `{overall: null|number, byCategory: {...}, pagesAudited, pagesTotal, pagesWithError, lastAuditAt}`; `/pages?filter=not_audited` returns the count of pages that have never been audited.
+
 ### Tearing down
 
 ```bash
