@@ -84,6 +84,22 @@ curl -s "http://127.0.0.1:8080/api/projects/$PID/pages?filter=not_audited" | jq 
 
 Expected: `/health` returns `{overall: null|number, byCategory: {...}, pagesAudited, pagesTotal, pagesWithError, lastAuditAt}`; `/pages?filter=not_audited` returns the count of pages that have never been audited.
 
+### Parallel audit + cancel (F5.3)
+
+```bash
+PID=<project-id>
+AUDIT=$(curl -s -X POST http://127.0.0.1:8080/api/audits \
+  -H 'content-type: application/json' \
+  -d "{\"projectId\":\"$PID\"}")
+AID=$(echo "$AUDIT" | jq -r .id)
+# Poll progress
+for i in 1 2 3 4 5; do curl -s http://127.0.0.1:8080/api/audits/$AID/progress | jq .; sleep 2; done
+# Cancel
+curl -s -X DELETE http://127.0.0.1:8080/api/audits/$AID | jq .
+```
+
+Expected: `pagesCompleted` advances; `DELETE` returns `status: "cancelled"`; the audit halts within ≤ 5s.
+
 ### Tearing down
 
 ```bash
