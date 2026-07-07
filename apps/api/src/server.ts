@@ -25,6 +25,7 @@ import { templateRoutes } from './routes/templates.js';
 import { generationRoutes } from './routes/generations.js';
 import { channelRoutes } from './routes/channels.js';
 import { publishRoutes } from './routes/publishes.js';
+import { pageRoutes } from './routes/pages.js';
 import {
   startWorkers,
   startGenerateWorkers,
@@ -145,6 +146,7 @@ export async function buildServer() {
   await app.register(generationRoutes);
   await app.register(channelRoutes);
   await app.register(publishRoutes);
+  await app.register(pageRoutes);
   return app;
 }
 

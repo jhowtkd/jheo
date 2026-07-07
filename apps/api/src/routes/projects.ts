@@ -126,7 +126,6 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
         where: {
           projectId: project.id,
           lastAuditedAt: { not: null },
-          // @ts-expect-error -- `pageAudits` relation arrives in Phase 3 (F5 mapping UX).
           pageAudits: { some: { status: 'failed' } },
         },
       }),
