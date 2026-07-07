@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { auditQueue } from '../queue.js';
@@ -19,7 +20,7 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
       data: {
         projectId: parsed.data.projectId,
         status: 'queued',
-        configSnapshot: parsed.data.config as object,
+        configSnapshot: parsed.data.config as Prisma.InputJsonValue,
       },
     });
     await auditQueue.add('run', { auditId: audit.id });

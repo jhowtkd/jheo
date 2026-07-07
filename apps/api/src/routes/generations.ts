@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { generateQueue } from '../queue.js';
@@ -53,7 +54,7 @@ export async function generationRoutes(app: FastifyInstance): Promise<void> {
           materialIds: parsed.data.materialIds,
           prompt: parsed.data.prompt,
           status: 'queued',
-          llmConfig: parsed.data.llmConfig as object,
+          llmConfig: parsed.data.llmConfig as Prisma.InputJsonValue,
           sources: [],
           reviewState: 'draft',
         },

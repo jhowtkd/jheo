@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 
 const CreateBody = z.object({
@@ -39,7 +40,7 @@ export async function templateRoutes(app: FastifyInstance): Promise<void> {
         name: parsed.data.name,
         version: 1,
         prompt: parsed.data.prompt,
-        outputSchema: parsed.data.outputSchema as object,
+        outputSchema: parsed.data.outputSchema as Prisma.InputJsonValue,
         isActive: false,
       },
     });
@@ -63,7 +64,7 @@ export async function templateRoutes(app: FastifyInstance): Promise<void> {
         name: src.name,
         version: (stats._max.version ?? 0) + 1,
         prompt: parsed.data.prompt,
-        outputSchema: parsed.data.outputSchema as object,
+        outputSchema: parsed.data.outputSchema as Prisma.InputJsonValue,
         isActive: false,
       },
     });
