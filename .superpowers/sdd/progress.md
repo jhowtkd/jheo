@@ -62,3 +62,42 @@ Opus reviewer found: 0 Critical, 5 Important, 12 Minor. Approved merge-ready. Si
 | Task 12: Publish.id scoping + cuid rotation (H-10) | DONE | 0756103 | clean — Spec ✅ + Approved. GET 404 on cross-project mismatch (via `x-project-id` header); cuid rotation on P2002. 6 concerns adjudicated correctly: brief assumed `createCuid` + `isPrismaUniqueViolation` existed (they didn't — added); `$transaction` array-form restriction forced callback-form + inline rotation (duplication minor); `vi.spyOn` correctly restored; `modelOutput` → `outputMarkdown` real field. Optional follow-ups noted (refactor helper for tx client; narrow GET include). |
 | Task 13: console.error -> pino (H-12 pt.2) | DONE | a6c7130 | clean — Spec ✅ + Approved. No-op commit per brief escape hatch: zero `console.error` sites in 3 target files (verified by grep) because Task 2's pino-http integration already covered them. Commit body cites exact grep, names Task 2 as cause, recommends follow-up (mark DONE/N/A or convert to CI lint guard). Important (plan-level): Task 13 now redundant with Task 2. Minor (doc): brief title conflates `pino-http` with `pino`'s `log.error`. |
 | Task 14: f3-smoke pino-http + PublishEvent; log-shape test (H-12 pt.3 + CI bar final guard) | DONE | 66d3b71 (test) + docs SHA (this commit) | clean — Spec ✅ + Approved. 2 implementer deviations from brief adjudicated: (1) `buildApp` → `buildServer` (actual codebase factory); (2) `Capture.write` 3-arg brief signature required `cb` but pino calls `stream.write(s)` with single arg → `cb is not a function` runtime error. Fixed by making `cb` optional + adding inline rationale comment. ci is unchanged; existing `it.runIf(canRun)` pattern kept for new pino-http test (DB conditional). 2/2 log-shape tests pass; f3-smoke now registers 3 tests (1 unconditional `prisma.publishEvent` smoke + 2 `.runIf(canRun)` DB-gated); all previously-passing tests still pass: apps/api 38 passed / 19 skipped (was 35/18 — arithmetic: +3 logged-shape+f3smoke-new, +1 f3smoke-skipped), packages/core 104/104, apps/web 2/2; full typecheck clean across 3 workspaces. **This is the final observation step before whole-branch review; the H-12 pt.3 + log-shape + final-guard CI bar is in place.** |
+| Task 14: f3-smoke extended + log-shape test (H-12 pt.3) | DONE | 66d3b71 (test) + 66eabab (docs) | clean — Spec ✅ + Approved. 2/2 log-shape + 3 f3-smoke (1 unconditional prisma.publishEvent pass + 2 DB-skipped). Full suite 0 failures: core 104/104, api 38/19-skipped, web 2/2. 2 brief deviations adjudicated: `buildApp`→`buildServer` (factory name error in brief); `Capture.write` `cb?` optional (pino 9.14.0 single-arg call, brief's 3-arg signature was runtime-broken). `progress.md` `git add -f` artifact (file is gitignored; Tasks 1-13 wrote filesystem-only, Task 14 made first git-tracked commit). |
+
+## F4 Final Whole-Branch Review Fixes (post-Task 14)
+
+Final reviewer found 2 Critical + 4 Important + 7 Minor. User approved fixing C-1..C-2, I-1..I-4. Minor issues recorded in M-001..M-007 ledger (out of scope this milestone).
+
+| Fix | H-Item / Finding | Commit | Verdict |
+|---|---|---|---|
+| Fix 1: single source of truth for x-request-id (I-2) | H-12 | e510c14 | clean — requestIdHook sole generator; pino-http's genReqId mirrors it. |
+| Fix 2: tighten recordPublishTransition to PublishStatus (I-3) | H-08/H-11 | bb290eb | clean — TS boundary enforced; CHECK constraint deferred to future milestone. |
+| Fix 3: atomic recordPublishTransition (I-1 + I-4) | H-11 | 239f12e | clean — internal $transaction; JSDoc rewritten to match reality. |
+| Fix 4: consolidate SSRF guard — delete safe-fetch.ts (C-1) | H-08 | ac63ca6 | clean — `isSafeOutboundUrl` + `fetchWithGuard` + `guardedFetch` are the single policy; 3 test files consolidated to `ssrf-guard.test.ts` (19 cases, +3 from IPv6 coverage). **Bonus fix:** IPv6 bracket-stripping caught during consolidation (`URL.hostname` keeps brackets on `[::1]`, made `isIP` silently let loopback through). |
+| Fix 5: server-derived cross-project check on GET /api/publishes/:id (C-2) | H-10 | 4aa1952 | clean — `prisma.project.findFirst({ orderBy: createdAt })`; honest JSDoc about MVP single-user. |
+
+**Final state:** typecheck clean (3/3), apps/api 41/19, packages/core 104/104, apps/web 2/2, **0 failures**.
+
+## Whole-branch Minor ledger (carryover, NOT addressed this milestone)
+
+- **M-001** `apps/api/prisma/schema.prisma` trailing newline dropped on append (Task 1). [deferred to next touch of schema]
+- **M-002** `WordPressPublishError` not re-exported from `packages/core/src/distribution/index.ts`. Latent; no current `instanceof` check in `apps/api`.
+- **M-003** `PublishEvent` audit-row ordering on retry is non-deterministic without `attempts` join. Future audit-log reader should denormalize `attempts` into `PublishEvent.message` or a dedicated column.
+- **M-004** Pre-F4 comments in `materials.ts` (line 49) and elsewhere referenced `safeFetch`; replaced in Fix 4. [resolved]
+- **M-005** Test naming inconsistency (`f3-suffix` markers). Future cleanup.
+- **M-006** `log-shape.test.ts` `Capture.write` `cb?` optionality could use a one-line comment explaining pino's single-arg call.
+- **M-007** `withGenerationLock` hash collision risk (theoretical, 2^63-1 space). Could add a unit test in `db/lock.test.ts` asserting two arbitrary generationIds don't collide on the seeded distribution.
+
+## F4 Final Closure (post-whole-branch-review)
+
+After the final whole-branch review (2 Critical + 4 Important + 7 Minor), the 2 Criticals and 4 Importants were fixed in 5 commits (see "F4 Final Whole-Branch Review Fixes" section above). The re-reviewer flagged one residual Important: the I-2 round-trip contract (request-id, response header, access log) was not covered by an end-to-end test. Closed in:
+
+| Fix | Commit | Verdict |
+|---|---|---|
+| Final: I-2 round-trip test in f3-smoke | ff71342 | clean — 3 cases (honored / generated / malformed-rejected) added to f3-smoke; typecheck clean; f3-smoke now 5 tests (1 unconditional + 4 DB-gated). |
+
+**Final state (HEAD = ff71342):**
+- 25 F4 commits on main, all Approved or Approved-after-fix
+- typecheck clean across 3 workspaces
+- apps/api 41/19, packages/core 104/104, apps/web 2/2, **0 failures**
+- 7 Minors (M-001..M-007) recorded in the carryover ledger (not addressed this milestone)
