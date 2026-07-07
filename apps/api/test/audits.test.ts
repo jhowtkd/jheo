@@ -38,4 +38,46 @@ describe('routes/audits', () => {
     const res = await app!.inject({ method: 'GET', url: '/api/audits/does-not-exist' });
     expect(res.statusCode).toBe(404);
   });
+
+  it.runIf(canRunDb)('GET /:id/progress returns 404 for unknown audit', async () => {
+    const res = await app!.inject({ method: 'GET', url: '/api/audits/does-not-exist/progress' });
+    expect(res.statusCode).toBe(404);
+  });
+
+  it.runIf(canRunDb)('DELETE /:id returns 409 for already-completed audit', async () => {
+    // Create a project, an audit, mark it completed
+    const proj = await app!.inject({
+      method: 'POST', url: '/api/projects',
+      payload: { name: 'cancel-test', domain: 'example.com' },
+    });
+    const { id: pid } = proj.json();
+    const auditRes = await app!.inject({
+      method: 'POST', url: '/api/audits',
+      payload: { projectId: pid },
+    });
+    const { id: aid } = auditRes.json();
+    // Mark it completed via prisma (test-only shortcut)
+    const { prisma } = await import('../src/db.js');
+    await prisma.audit.update({ where: { id: aid }, data: { status: 'completed' } });
+
+    const res = await app!.inject({ method: 'DELETE', url: `/api/audits/${aid}` });
+    expect(res.statusCode).toBe(409);
+  });
+
+  it.runIf(canRunDb)('DELETE /:id sets status=cancelled for a running audit', async () => {
+    const proj = await app!.inject({
+      method: 'POST', url: '/api/projects',
+      payload: { name: 'cancel-running', domain: 'example.com' },
+    });
+    const { id: pid } = proj.json();
+    const auditRes = await app!.inject({
+      method: 'POST', url: '/api/audits',
+      payload: { projectId: pid },
+    });
+    const { id: aid } = auditRes.json();
+
+    const res = await app!.inject({ method: 'DELETE', url: `/api/audits/${aid}` });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toMatchObject({ id: aid, status: 'cancelled' });
+  });
 });
