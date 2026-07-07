@@ -126,11 +126,17 @@ export async function publishRoutes(app: FastifyInstance): Promise<void> {
       include: { channel: true },
     });
     if (!pub) return reply.code(404).send({ error: 'not found' });
-    // MVP has no auth — the caller's project is identified via the
-    // `x-project-id` request header. Cross-project access is masked as 404
+    // MVP single-user: there is no auth, so we can't trust a client-supplied
+    // header to identify the caller. We derive the "current" project from
+    // the database — the first Project row ordered by createdAt. If a
+    // future auth layer is added, this lookup should be replaced by the
+    // authenticated user's project. Cross-project access is masked as 404
     // to avoid leaking the existence of other projects' publishes.
-    const headerVal = req.headers['x-project-id'];
-    const callerProjectId = typeof headerVal === 'string' ? headerVal : undefined;
+    const owner = await prisma.project.findFirst({
+      select: { id: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    const callerProjectId = owner?.id;
     if (callerProjectId && callerProjectId !== pub.channel.projectId) {
       return reply.code(404).send({
         error: {

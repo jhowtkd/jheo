@@ -82,10 +82,11 @@ describe.runIf(canRunDb, 'routes/publishes publish flow', () => {
 // `describe.skipIf(c, n, fn)` (3-arg direct) silently registers an empty
 // suite and exits non-zero in vitest 2.0.5.
 //
-// MVP has no auth, so "the caller's project" is identified via the
-// `x-project-id` request header. The cross-project mismatch is injected
-// by sending a header value that differs from the publish's owning
-// project's id.
+// MVP single-user: there is no auth, so the route derives the "current"
+// project as the first Project row ordered by createdAt. To exercise the
+// cross-project 404 path, the publish must belong to a SECOND project
+// (the server picks projectA as the caller, so a publish under
+// projectB is the mismatch).
 describe.skipIf(!canRunDb)('GET /api/publishes/:id scoping', () => {
   it('returns 404 when the publish belongs to a different project', async () => {
     const { prisma } = await import('../../src/db.js');
@@ -102,7 +103,7 @@ describe.skipIf(!canRunDb)('GET /api/publishes/:id scoping', () => {
     });
     const gen = await prisma.generation.create({
       data: {
-        projectId: projectA.id,
+        projectId: projectB.id,
         templateId: tmpl.id,
         materialIds: [],
         prompt: 'g',
@@ -115,7 +116,7 @@ describe.skipIf(!canRunDb)('GET /api/publishes/:id scoping', () => {
     });
     const ch = await prisma.distributionChannel.create({
       data: {
-        projectId: projectA.id,
+        projectId: projectB.id,
         type: 'http',
         name: 'c',
         configEncrypted: 'x',
@@ -124,11 +125,11 @@ describe.skipIf(!canRunDb)('GET /api/publishes/:id scoping', () => {
     const pub = await prisma.publish.create({
       data: { generationId: gen.id, channelId: ch.id, status: 'queued' },
     });
-    // Call as if the caller's project is projectB — header mismatch triggers 404.
+    // Server-derived caller is projectA (first by createdAt); publish lives
+    // under projectB → 404. The previous x-project-id header is ignored.
     const res = await app.inject({
       method: 'GET',
       url: `/api/publishes/${pub.id}`,
-      headers: { 'x-project-id': projectB.id },
     });
     expect([403, 404]).toContain(res.statusCode);
     // cleanup
