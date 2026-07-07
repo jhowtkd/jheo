@@ -153,24 +153,32 @@ if (isMain) {
   async function resolveKey(providerEnv: string, settingKey: string): Promise<string | undefined> {
     const row = await defaultPrisma.setting.findUnique({ where: { key: settingKey } });
     if (row) {
-      const env = loadEnv();
       if (!env.JHEO_SECRET_KEY) return undefined;
       return decrypt(row.valueCiphertext, env.JHEO_SECRET_KEY);
     }
     return process.env[providerEnv];
   }
 
-  const [openaiKey, anthropicKey, openrouterKey] = await Promise.all([
+  const [openaiKey, anthropicKey, openrouterKey, embeddingKey] = await Promise.all([
     resolveKey('OPENAI_API_KEY', 'openai_api_key'),
     resolveKey('ANTHROPIC_API_KEY', 'anthropic_api_key'),
     resolveKey('OPENROUTER_API_KEY', 'openrouter_api_key'),
+    resolveKey('OPENAI_EMBEDDING_API_KEY', 'openai_embedding_api_key'),
   ]);
+  // When OPENAI_BASE_URL is set (e.g. MiniMax), the OpenAIProvider used for
+  // completion routes through it. The embedding provider stays on the real
+  // OpenAI API via the separate `openai_embedding_api_key` slot.
   const llmProviders = {
-    openai: new OpenAIProvider({ apiKey: openaiKey ?? '' }),
+    openai: new OpenAIProvider({
+      apiKey: openaiKey ?? '',
+      ...(env.OPENAI_BASE_URL ? { baseUrl: env.OPENAI_BASE_URL } : {}),
+    }),
     anthropic: new AnthropicProvider({ apiKey: anthropicKey ?? '' }),
     openrouter: new OpenRouterProvider({ apiKey: openrouterKey ?? '' }),
   };
-  const embedProvider = new OpenAIEmbeddingProvider({ apiKey: openaiKey ?? '' });
+  const embedProvider = new OpenAIEmbeddingProvider({
+    apiKey: embeddingKey ?? openaiKey ?? '',
+  });
   // The LLM/embedding providers in @jheo/core expect `typeof fetch` (raw Response).
   // audit-job uses `fetchText` (a normalized {status, headers, text} shape) for
   // its HTML fetching path — keep that as-is. For the generate worker, pass the

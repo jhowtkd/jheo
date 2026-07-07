@@ -6,7 +6,10 @@ export default defineConfig({
   server: {
     host: '127.0.0.1',
     port: 5173,
-    proxy: { '/api': 'http://127.0.0.1:8080' },
+    // Forward `/api/*` to the Fastify backend. Default port 8080; override
+    // via `JHEO_API_PORT` env var (e.g. when running alongside the docker
+    // stack on a remapped port).
+    proxy: { '/api': `http://127.0.0.1:${process.env.JHEO_API_PORT ?? '8080'}` },
   },
   build: {
     outDir: 'dist',

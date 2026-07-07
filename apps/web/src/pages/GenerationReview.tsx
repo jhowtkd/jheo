@@ -1,13 +1,20 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import {
-  getGeneration,
-  reviewGeneration,
-  type Generation,
-} from '../api.js';
+import { getGeneration, reviewGeneration, type Generation } from '../api.js';
 import { PublishActions } from '../components/PublishActions.js';
+
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  return d.toLocaleString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export function GenerationReview() {
   const { generationId } = useParams<{ generationId: string }>();
@@ -28,66 +35,162 @@ export function GenerationReview() {
     onSuccess: async () => q.refetch(),
   });
 
-  if (!q.data) return <p>Loading…</p>;
-  const g = q.data;
-  return (
-    <section>
-      <h1>Generation {g.id}</h1>
-      <p>
-        Status: {g.status} · Review state: <strong>{g.reviewState}</strong>
-      </p>
-      <p>{g.prompt}</p>
-      {g.outputMarkdown ? (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-          <div>
-            <h2>Output</h2>
-            <ReactMarkdown>{g.outputMarkdown}</ReactMarkdown>
-          </div>
-          <div>
-            <h2>Sources</h2>
-            <ul>
-              {(g.sources ?? []).map((s, i) => (
-                <li key={i}>
-                  <strong>{s.id}</strong> ({s.score.toFixed(3)})
-                  <pre>{s.excerpt}</pre>
-                </li>
-              ))}
-            </ul>
-            {g.usage && (
-              <p>
-                {g.usage.provider}/{g.usage.model} — {g.usage.promptTokens} +
-                {' '}{g.usage.completionTokens} tokens
-              </p>
-            )}
-          </div>
-        </div>
-      ) : (
-        <p>No output yet (job {g.status}).</p>
-      )}
-      <h3>Review</h3>
-      <textarea
-        value={notes}
-        onChange={(e) => setNotes(e.target.value)}
-        placeholder="Optional notes"
-        rows={3}
-        style={{ width: '100%' }}
-      />
-      <div>
-        <button onClick={() => review.mutate('send_to_review')} disabled={g.reviewState !== 'draft'}>
-          Send to review
-        </button>
-        <button onClick={() => review.mutate('approve')} disabled={g.reviewState !== 'in_review'}>
-          Approve
-        </button>
-        <button onClick={() => review.mutate('reject')} disabled={g.reviewState === 'approved'}>
-          Reject
-        </button>
+  if (!q.data) {
+    return (
+      <div className="page">
+        <div className="skeleton skeleton--title" style={{ marginBottom: 'var(--space-3)' }} />
+        <div className="skeleton skeleton--card" style={{ height: 200 }} />
       </div>
-      <PublishActions
-        generationId={generationId!}
-        projectId={g.projectId}
-        reviewState={g.reviewState}
-      />
-    </section>
+    );
+  }
+  const g = q.data;
+  const fm = (g.outputFrontMatter ?? {}) as Record<string, unknown>;
+  const title = (fm.title as string) || `Generation ${g.id.slice(0, 8)}`;
+
+  return (
+    <div className="page">
+      <div className="page__header">
+        <div>
+          <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
+            <Link to="/projects" className="muted tiny">Projects</Link>
+            <span className="muted tiny">/</span>
+            <Link to={`/projects/${g.projectId}`} className="muted tiny">
+              {g.projectId.slice(0, 8)}
+            </Link>
+            <span className="muted tiny">/</span>
+            <span className="tiny">generation</span>
+          </div>
+          <h1 className="page__title">{title}</h1>
+          <p className="page__subtitle">{g.prompt}</p>
+        </div>
+        <div className="status-meta">
+          <span className={`badge badge--${g.status}`}>{g.status}</span>
+          <span className="badge badge--neutral">review · {g.reviewState}</span>
+        </div>
+      </div>
+
+      {!g.outputMarkdown && (
+        <div className="empty">
+          <div className="empty__art">
+            <svg viewBox="0 0 56 56">
+              <circle cx="28" cy="28" r="20" />
+              <path d="M28 16v12l8 4" />
+            </svg>
+          </div>
+          <p className="empty__title">Generation in progress</p>
+          <p className="empty__hint">
+            Job status is {g.status}. The MiniMax model is composing a draft — this page
+            auto-refreshes every 2s.
+          </p>
+        </div>
+      )}
+
+      {g.outputMarkdown && (
+        <div className="gen-grid">
+          <article className="gen-grid__body">
+            <ReactMarkdown>{g.outputMarkdown}</ReactMarkdown>
+          </article>
+
+          <aside className="col">
+            <div className="card">
+              <div className="card__title">Frontmatter</div>
+              <dl className="fm-table">
+                {Object.entries(fm).map(([k, v]) => (
+                  <div key={k}>
+                    <dt>{k}</dt>
+                    <dd>{Array.isArray(v) ? v.join(', ') : String(v)}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+
+            {g.sources && g.sources.length > 0 && (
+              <div className="card">
+                <div className="card__title">Sources</div>
+                <div className="col" style={{ gap: 0 }}>
+                  {g.sources.map((s, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        padding: i > 0 ? 'var(--space-3) 0 0' : 0,
+                        borderTop: i > 0 ? '1px solid var(--border)' : 'none',
+                      }}
+                    >
+                      <div className="spread">
+                        <span className="mono tiny muted">{s.id.slice(0, 12)}…</span>
+                        <span className="tiny tabular" style={{ color: 'var(--accent-bright)' }}>
+                          score {s.score.toFixed(3)}
+                        </span>
+                      </div>
+                      <p className="tiny muted" style={{ margin: '4px 0 0', lineHeight: 1.5 }}>{s.excerpt}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {g.usage && (
+              <div className="card">
+                <div className="card__title">Usage</div>
+                <dl className="fm-table">
+                  <dt>Provider / model</dt>
+                  <dd>{g.usage.provider}/{g.usage.model}</dd>
+                  <dt>Prompt tokens</dt>
+                  <dd className="tabular">{g.usage.promptTokens.toLocaleString()}</dd>
+                  <dt>Completion tokens</dt>
+                  <dd className="tabular">{g.usage.completionTokens.toLocaleString()}</dd>
+                  <dt>Started</dt>
+                  <dd>{formatDate(g.startedAt)}</dd>
+                  <dt>Finished</dt>
+                  <dd>{formatDate(g.finishedAt)}</dd>
+                </dl>
+              </div>
+            )}
+
+            <div className="card">
+              <div className="card__title">Review</div>
+              <textarea
+                className="textarea"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Optional notes for reviewers"
+                rows={3}
+                style={{ marginBottom: 'var(--space-3)' }}
+              />
+              <div className="actions">
+                <button
+                  className="btn btn--secondary btn--sm"
+                  onClick={() => review.mutate('send_to_review')}
+                  disabled={g.reviewState !== 'draft' || review.isPending}
+                >
+                  Send to review
+                </button>
+                <button
+                  className="btn btn--primary btn--sm"
+                  onClick={() => review.mutate('approve')}
+                  disabled={g.reviewState !== 'in_review' || review.isPending}
+                >
+                  Approve
+                </button>
+                <button
+                  className="btn btn--danger btn--sm"
+                  onClick={() => review.mutate('reject')}
+                  disabled={g.reviewState === 'approved' || review.isPending}
+                >
+                  Reject
+                </button>
+              </div>
+              <div style={{ marginTop: 'var(--space-4)' }}>
+                <PublishActions
+                  generationId={generationId!}
+                  projectId={g.projectId}
+                  reviewState={g.reviewState}
+                />
+              </div>
+            </div>
+          </aside>
+        </div>
+      )}
+    </div>
   );
 }

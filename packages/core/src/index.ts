@@ -15,6 +15,14 @@ export {
 export {
   OpenAIEmbeddingProvider,
 } from './llm/embeddings.js';
+export type {
+  LLMProvider,
+  EmbeddingProvider,
+  LLMRequest,
+  LLMResponse,
+  EmbeddingRequest,
+  EmbeddingResponse,
+} from './llm/types.js';
 export {
   runGeneration,
   type RetrievedMaterial,
@@ -25,6 +33,12 @@ export {
 export {
   aggregateReviewState,
 } from './distribution/aggregate.js';
+export type {
+  Publisher,
+  PublishStatus,
+  PublishRequest,
+  PublishResult,
+} from './distribution/types.js';
 export {
   WordPressPublisher,
 } from './distribution/wordpress.js';

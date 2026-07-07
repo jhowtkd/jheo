@@ -5,7 +5,14 @@ export type Audit = {
   id: string;
   projectId: string;
   status: 'queued' | 'running' | 'completed' | 'failed';
-  score?: { overall: number; byCategory: Record<string, number | null> } | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  score?: {
+    overall: number;
+    byCategory: Record<string, number | null>;
+    pagesAudited?: number;
+    discoveryLimitReached?: boolean;
+  } | null;
 };
 export type Finding = {
   id: string;
@@ -22,7 +29,7 @@ export async function listProjects(): Promise<Project[]> {
   const r = await fetch(`${API}/projects`);
   return r.json();
 }
-export async function createProject(input: { name: string; rootUrl: string }): Promise<Project> {
+export async function createProject(input: { domain: string }): Promise<Project> {
   const r = await fetch(`${API}/projects`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -30,7 +37,8 @@ export async function createProject(input: { name: string; rootUrl: string }): P
   });
   return r.json();
 }
-export type ProjectDetail = Project & { audits: Audit[] };
+export type ProjectPage = { id: string; url: string; discoveredVia: 'root' | 'sitemap' | 'crawl'; lastAuditedAt: string | null };
+export type ProjectDetail = Project & { audits: Audit[]; pages: ProjectPage[] };
 export async function getProject(id: string): Promise<ProjectDetail> {
   return (await fetch(`${API}/projects/${id}`)).json();
 }
@@ -131,6 +139,8 @@ export type Generation = {
   outputFrontMatter: unknown;
   sources: Array<{ id: string; score: number; excerpt: string }>;
   usage: { promptTokens: number; completionTokens: number; provider: string; model: string } | null;
+  startedAt: string | null;
+  finishedAt: string | null;
   createdAt: string;
 };
 export async function listGenerations(projectId: string): Promise<Generation[]> {
@@ -238,6 +248,13 @@ export async function deleteChannel(id: string): Promise<{ id: string }> {
 
 // ---------- Publishes ----------
 export type PublishStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+export type PublishEvent = {
+  id: string;
+  fromStatus: PublishStatus | null;
+  toStatus: PublishStatus;
+  message: string | null;
+  createdAt: string;
+};
 export type Publish = {
   id: string;
   generationId: string;
@@ -251,6 +268,8 @@ export type Publish = {
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string;
+  channel?: { type: 'wordpress' | 'http' | 'agent'; name: string };
+  events?: PublishEvent[];
 };
 export async function listPublishes(generationId: string): Promise<Publish[]> {
   return (await fetch(`/api/generations/${generationId}/publishes`)).json();

@@ -1,7 +1,8 @@
 import type { Job } from 'bullmq';
-import { runAudit } from '@jheo/core';
+import { runAudit, type Finding } from '@jheo/core';
 import type { AuditJobData } from '../queue.js';
 import { prisma } from '../db.js';
+import { discoverSite } from '../site-discovery.js';
 
 export type FetchText = (
   url: string,
@@ -30,8 +31,6 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
       data: { status: 'running', startedAt: new Date() },
     });
     try {
-      const htmlRes = await opts.fetchText(project.rootUrl);
-
       // Inflight dedupe: many plugins ask fetchText for the same relative
       // URL (e.g. /robots.txt is fetched by both checkRobotsTxt and
       // checkAiCrawlerAccess). Without dedup this fires the same HTTP
@@ -50,37 +49,69 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
         }
         return p;
       };
+      const configuredMax = Number((audit.configSnapshot as { maxPages?: unknown } | undefined)?.maxPages);
+      const maxPages = Number.isInteger(configuredMax) && configuredMax > 0
+        ? Math.min(configuredMax, 5_000)
+        : 500;
+      const pages = await discoverSite(project.rootUrl, fetchTextDedup, maxPages);
+      await prisma.projectPage.createMany({
+        data: pages.map((page) => ({ projectId: project.id, ...page })),
+        skipDuplicates: true,
+      });
 
-      const ctx = {
-        url: project.rootUrl,
-        html: htmlRes.text,
-        fetchText: fetchTextDedup,
-        log() {},
-        // Derived view state — plugins can read these instead of re-walking
-        // the entire HTML body. Keeps a strong reference while the audit
-        // runs, then becomes GC-eligible when `ctx` goes out of scope.
-        [PLAIN_TEXT]: htmlRes.text
-          .replace(/<[^>]+>/g, ' ')
-          .replace(/\s+/g, ' ')
-          .trim()
-          .split(' ')
-          .filter(Boolean),
-        [JSONLD_BLOCKS]: Array.from(
-          htmlRes.text.matchAll(
-            /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
-          ),
-        ),
+      const findings: Finding[] = [];
+      const scores: Array<{ overall: number; byCategory?: Record<string, number | null> }> = [];
+
+      for (const page of pages) {
+        try {
+          const htmlRes = await fetchTextDedup(page.url);
+          if (htmlRes.status < 200 || htmlRes.status >= 400) throw new Error(`HTTP ${htmlRes.status}`);
+          const ctx = {
+            url: page.url,
+            html: htmlRes.text,
+            fetchText: fetchTextDedup,
+            log() {},
+            [PLAIN_TEXT]: htmlRes.text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean),
+            [JSONLD_BLOCKS]: Array.from(htmlRes.text.matchAll(
+              /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+            )),
+          };
+          const result = await runAudit(ctx);
+          findings.push(...result.findings);
+          scores.push(result.score as { overall: number; byCategory?: Record<string, number | null> });
+        } catch (error) {
+          findings.push({
+            category: 'content',
+            severity: 'error',
+            rule: 'page.unreachable',
+            message: `Page could not be audited: ${error instanceof Error ? error.message : String(error)}`,
+            url: page.url,
+            evidence: {},
+          });
+          scores.push({ overall: 0, byCategory: { content: 0 } });
+        }
+      }
+
+      const categories = ['seo', 'cwv', 'geo', 'a11y', 'content'];
+      const byCategory = Object.fromEntries(categories.map((category) => {
+        const values = scores.map((score) => score.byCategory?.[category]).filter((value): value is number => value !== null && value !== undefined);
+        return [category, values.length ? Math.round(values.reduce((sum, value) => sum + value, 0) / values.length) : null];
+      }));
+      const score = {
+        overall: scores.length ? Math.round(scores.reduce((sum, value) => sum + value.overall, 0) / scores.length) : 0,
+        byCategory,
+        pagesAudited: pages.length,
+        discoveryLimitReached: pages.length === maxPages,
       };
-
-      const result = await runAudit(ctx);
+      const finishedAt = new Date();
 
       // createMany replaces N round-trips (one per finding) with one. The
       // combined update is run in the same statement for atomicity.
       await prisma.$transaction([
-        ...(result.findings.length > 0
+        ...(findings.length > 0
           ? [
               prisma.finding.createMany({
-                data: result.findings.map((f) => ({
+                data: findings.map((f) => ({
                   auditId: audit.id,
                   category: f.category,
                   severity: f.severity,
@@ -95,7 +126,11 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
           : []),
         prisma.audit.update({
           where: { id: audit.id },
-          data: { status: 'completed', finishedAt: new Date(), score: result.score as object },
+          data: { status: 'completed', finishedAt, score },
+        }),
+        prisma.projectPage.updateMany({
+          where: { projectId: project.id, url: { in: pages.map((page) => page.url) } },
+          data: { lastAuditedAt: finishedAt },
         }),
       ]);
     } catch (err) {

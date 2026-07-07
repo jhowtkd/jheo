@@ -11,9 +11,35 @@ export interface ParseResult {
   detail?: string;
 }
 
-export function parseMarkdownWithFrontmatter(raw: string): ParseResult {
-  // Strip leading whitespace.
+/**
+ * Strip the leading noise some chat-style models emit before the actual
+ * structured output:
+ *   - a UTF-8 BOM
+ *   - a chain-of-thought block (`...`)
+ *   - a leading code fence opener (```yaml) that wraps the frontmatter
+ * After stripping, the returned string starts at the first YAML frontmatter
+ * delimiter `---` it can find. If no such delimiter exists in the input,
+ * the original string is returned unchanged so the caller can flag
+ * `no-frontmatter`.
+ */
+function stripThinkingPrefix(raw: string): string {
   let s = raw.replace(/^\uFEFF/, '');
+  // Drop a leading `...` chain-of-thought block (up to first blank line).
+  s = s.replace(/^\s*<think>[\s\S]*?(?:<\/think>|$)/i, '');
+  // Drop a leading opening code fence (``` or ```yaml) before the frontmatter.
+  s = s.replace(/^\s*```(?:yaml|markdown|md)?\s*\n/, '');
+  // If there's still a `<think>` we missed (no close tag), strip until end of
+  // first paragraph to be safe.
+  s = s.replace(/^\s*<think>[\s\S]*?\n\n/, '');
+  // Trim leading blank lines.
+  s = s.replace(/^\s*\n+/, '');
+  return s;
+}
+
+export function parseMarkdownWithFrontmatter(raw: string): ParseResult {
+  // Strip leading noise from chat-style models (`<think>...`, code fences,
+  // BOM) before checking for the frontmatter delimiter.
+  let s = stripThinkingPrefix(raw);
   if (!s.startsWith('---')) {
     return { ok: false, raw, error: 'no-frontmatter', detail: 'must start with --- frontmatter' };
   }

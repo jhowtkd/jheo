@@ -14,6 +14,14 @@ const EnvSchema = z.object({
   WEB_PORT: z.coerce.number().int().min(1).max(65535).default(8080),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   JHEO_SECRET_KEY: z.string().optional(),
+  // OpenAI-compatible provider override (e.g. MiniMax). When set, the
+  // OpenAIProvider used for completion routes through this base URL
+  // (scheme+host only — the provider appends `/v1/chat/completions`).
+  OPENAI_BASE_URL: z.string().url().optional(),
+  // Separate API key slot for the OpenAI embedding provider when the
+  // completion provider is routed to an OpenAI-compatible third party.
+  // Falls back to `openai_api_key` Setting if unset.
+  OPENAI_EMBEDDING_API_KEY: z.string().optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;

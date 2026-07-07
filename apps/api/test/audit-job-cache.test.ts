@@ -6,6 +6,7 @@ vi.mock('../src/db.js', () => {
     prisma: {
       audit: { findUnique: vi.fn(), update: vi.fn() },
       project: { findUnique: vi.fn() },
+      projectPage: { createMany: vi.fn(), updateMany: vi.fn() },
       finding: { createMany: vi.fn().mockResolvedValue({ count: 0 }) },
       $transaction: transaction,
     },
@@ -79,10 +80,10 @@ describe('audit-job inflight dedupe', () => {
     const handler = makeAuditHandler({ fetchText });
     await handler({ data: { auditId: 'a1' } } as never);
 
-    // count = 1 root HTML fetch + 1 robots.txt (deduped) + 1 llms.txt.
-    // If dedupe were missing we'd see 1 + 2 + 1 = 4 upstream calls.
-    expect(counter).toBe(3);
-    expect(fetchSpy.mock.calls.length).toBe(3);
+    // count = 1 sitemap + 1 crawl fetch + 1 audit fetch + 1 robots.txt (deduped) + 1 llms.txt.
+    // If dedupe were missing we'd see 6 upstream calls.
+    expect(counter).toBe(5);
+    expect(fetchSpy.mock.calls.length).toBe(5);
     const robotsCalls = fetchSpy.mock.calls.filter((c) => (c[0] as string).endsWith('/robots.txt'));
     expect(robotsCalls.length).toBe(1);
   });

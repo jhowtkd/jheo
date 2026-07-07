@@ -1,6 +1,7 @@
 import type { LLMProvider, LLMResponse, EmbeddingProvider, LLMRequest } from '../llm/types.js';
 import { parseMarkdownWithFrontmatter } from './parse.js';
 import type { ParsedMarkdown } from './schema.js';
+import { stringify as yamlStringify } from 'yaml';
 
 export interface RetrievedMaterial {
   id: string;
@@ -86,7 +87,10 @@ export async function runGeneration(
   if (p1.ok && p1.parsed) {
     return {
       parsed: p1.parsed,
-      raw: r1.text,
+      // Persist the cleaned text (think block + code fences stripped) so
+      // downstream consumers (UI markdown render, exports) don't surface
+      // the model's chain-of-thought.
+      raw: serializeMarkdown(p1.parsed),
       sources: ctx.retrievedMaterials.map((m) => ({ id: m.id, score: m.score, excerpt: m.excerpt })),
       usage: r1.usage,
     };
@@ -108,8 +112,18 @@ export async function runGeneration(
   }
   return {
     parsed: p2.parsed,
-    raw: r2.text,
+    raw: serializeMarkdown(p2.parsed),
     sources: ctx.retrievedMaterials.map((m) => ({ id: m.id, score: m.score, excerpt: m.excerpt })),
     usage: r2.usage,
   };
+}
+
+/**
+ * Reconstruct a clean `--- frontmatter ---\nbody` markdown string from a
+ * parsed result. Used as the persisted `outputMarkdown` so consumers don't
+ * have to know about the think-block stripping the parser does upstream.
+ */
+function serializeMarkdown(p: ParsedMarkdown): string {
+  const fm = yamlStringify(p.frontMatter).trimEnd();
+  return `---\n${fm}\n---\n\n${p.body}`;
 }

@@ -52,4 +52,56 @@ title: : not yaml
 body`);
     expect(r.ok).toBe(false);
   });
+
+  it('strips a leading `<think>...` chain-of-thought block', () => {
+    const raw = `<think>
+The user wants a blog post about apples. I will follow the schema.
+</think>
+
+---
+title: Apples
+slug: apples
+description: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+tags: [fruit]
+date: 2026-07-07
+sources: []
+targetSites: [https://example.com]
+---
+
+# Apples
+
+A crisp and ancient fruit, enjoyed across cultures for thousands of years and counting.`;
+    const r = parseMarkdownWithFrontmatter(raw);
+    expect(r.ok).toBe(true);
+    expect(r.parsed?.frontMatter.title).toBe('Apples');
+  });
+
+  it('strips a leading `\`\`\`yaml` code fence around the frontmatter', () => {
+    const raw = `\`\`\`yaml
+---
+title: Pears
+slug: pears
+description: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+tags: [fruit]
+date: 2026-07-07
+sources: []
+targetSites: [https://example.com]
+---
+
+# Pears
+
+A sweet and ancient fruit, enjoyed across cultures for thousands of years and counting.`;
+    const r = parseMarkdownWithFrontmatter(raw);
+    expect(r.ok).toBe(true);
+    expect(r.parsed?.frontMatter.title).toBe('Pears');
+  });
+
+  it('still rejects content with no frontmatter at all', () => {
+    const raw = `<think>reasoning</think>
+
+Just plain markdown with no frontmatter delimiter at all in the body.`;
+    const r = parseMarkdownWithFrontmatter(raw);
+    expect(r.ok).toBe(false);
+    expect(r.error).toBe('no-frontmatter');
+  });
 });

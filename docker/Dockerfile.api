@@ -40,6 +40,10 @@ RUN corepack enable \
 COPY --from=deps /repo/node_modules /repo/node_modules
 COPY --from=deps /repo/apps/api/node_modules /repo/apps/api/node_modules
 COPY --from=deps /repo/packages/core/node_modules /repo/packages/core/node_modules
+# Overlay the @prisma/client generated artifacts from the prisma stage.
+# Without this, the runner imports the stub `default.js` that throws
+# "@prisma/client did not initialize yet — please run prisma generate".
+COPY --from=prisma /repo/node_modules /repo/node_modules
 
 # Built artifacts only.
 COPY --from=build /repo/apps/api/dist /repo/apps/api/dist
