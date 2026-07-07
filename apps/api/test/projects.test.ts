@@ -44,4 +44,15 @@ describe('routes/projects', () => {
     const body = res.json();
     expect(body.id).toBeTypeOf('string');
   });
+  it.runIf(canRunDb)('accepts a bare domain and normalizes to https://<domain>/', async () => {
+    const res = await app!.inject({
+      method: 'POST',
+      url: '/api/projects',
+      payload: { name: 'example', domain: 'example.com' },
+    });
+    expect(res.statusCode).toBe(200);
+    const body = res.json();
+    expect(body.rootUrl).toBe('https://example.com/');
+    expect(body.name).toBe('example');
+  });
 });
