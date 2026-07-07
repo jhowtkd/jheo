@@ -42,6 +42,17 @@ describe('routes/channels validation', () => {
     expect(r.statusCode).toBe(400);
   });
 
+  it('rejects an HTTP channel with ftp:// config.endpointUrl', async () => {
+    const r = await app.inject({
+      method: 'POST',
+      url: '/api/projects/p1/channels',
+      payload: { name: 'bad', type: 'http', config: { endpointUrl: 'ftp://example.com/x' } },
+    });
+    expect(r.statusCode).toBe(400);
+    const body = JSON.parse(r.body);
+    expect(body.error?.code).toBe('invalid_url');
+  });
+
   it('accepts a well-formed wordpress config with 201 (DB gated)', async () => {
     // Skipped without DB; just verify the route is registered (not 404).
     const r = await app.inject({

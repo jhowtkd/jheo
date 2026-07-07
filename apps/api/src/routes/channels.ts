@@ -1,4 +1,5 @@
 import type { FastifyInstance } from 'fastify';
+import { z } from 'zod';
 import { prisma } from '../db.js';
 import { encrypt, decrypt } from '../crypto.js';
 import { loadEnv } from '../env.js';
@@ -8,6 +9,22 @@ import {
   UpdateChannelBodySchema,
   validateConfig,
 } from '../channels-config.js';
+
+/**
+ * Returns true when the given Zod error contains the spec's URL-protocol
+ * rejection (i.e. a non-http(s) scheme was provided). Used to map such
+ * failures to the `invalid_url` error code (HTTP 400) rather than the
+ * generic flattened-Zod shape. Matches both top-level paths (e.g.
+ * `config.endpointUrl` at the body level) and the path produced by
+ * `validateConfig` (which re-parses the inner config schema).
+ */
+function hasUrlProtocolIssue(err: z.ZodError): boolean {
+  return err.issues.some(
+    (i) =>
+      i.path.some((p) => p === 'endpointUrl' || p === 'siteUrl') &&
+      i.message === 'URL must be http(s)',
+  );
+}
 
 // Tiny in-process cache for `findUnique` reads. Lists read more often than
 // they're written and the channel detail endpoint decrypts config — caching
@@ -42,12 +59,32 @@ export async function channelRoutes(app: FastifyInstance): Promise<void> {
     '/api/projects/:projectId/channels',
     async (req, reply) => {
       const parsed = CreateChannelBodySchema.safeParse(req.body);
-      if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+      if (!parsed.success) {
+        if (hasUrlProtocolIssue(parsed.error)) {
+          return reply.code(400).send({
+            error: {
+              code: 'invalid_url',
+              message: 'URL must be http(s)',
+              requestId: req.id,
+            },
+          });
+        }
+        return reply.code(400).send({ error: parsed.error.flatten() });
+      }
       const { name, type, config, isActive } = parsed.data;
       let validatedConfig: unknown;
       try {
         validatedConfig = validateConfig(type, config);
       } catch (e) {
+        if (e instanceof z.ZodError && hasUrlProtocolIssue(e)) {
+          return reply.code(400).send({
+            error: {
+              code: 'invalid_url',
+              message: 'URL must be http(s)',
+              requestId: req.id,
+            },
+          });
+        }
         return reply.code(400).send({ error: (e as Error).message });
       }
       const env = loadEnv();
@@ -103,7 +140,18 @@ export async function channelRoutes(app: FastifyInstance): Promise<void> {
 
   app.put<{ Params: { id: string } }>('/api/channels/:id', async (req, reply) => {
     const parsed = UpdateChannelBodySchema.safeParse(req.body);
-    if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+    if (!parsed.success) {
+      if (hasUrlProtocolIssue(parsed.error)) {
+        return reply.code(400).send({
+          error: {
+            code: 'invalid_url',
+            message: 'URL must be http(s)',
+            requestId: req.id,
+          },
+        });
+      }
+      return reply.code(400).send({ error: parsed.error.flatten() });
+    }
     const row = await prisma.distributionChannel.findUnique({ where: { id: req.params.id } });
     if (!row) return reply.code(404).send({ error: 'not found' });
     const { name, config, isActive } = parsed.data;
@@ -113,6 +161,15 @@ export async function channelRoutes(app: FastifyInstance): Promise<void> {
       try {
         validatedConfig = validateConfig(row.type, config);
       } catch (e) {
+        if (e instanceof z.ZodError && hasUrlProtocolIssue(e)) {
+          return reply.code(400).send({
+            error: {
+              code: 'invalid_url',
+              message: 'URL must be http(s)',
+              requestId: req.id,
+            },
+          });
+        }
         return reply.code(400).send({ error: (e as Error).message });
       }
       const env = loadEnv();

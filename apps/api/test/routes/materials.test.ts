@@ -46,4 +46,17 @@ describe('routes/materials validation', () => {
     });
     expect(r.statusCode).toBe(400);
   });
+  });
+
+describe.skipIf(!canRunDb, 'rejects a non-http(s) URL with 400 invalid_url', () => {
+  it('returns 400 invalid_url for ftp:// source', async () => {
+    const r = await app!.inject({
+      method: 'POST',
+      url: '/api/projects/p1/materials',
+      payload: { type: 'url', title: 'bad', source: 'ftp://example.com/x' },
+    });
+    expect(r.statusCode).toBe(400);
+    const body = JSON.parse(r.body);
+    expect(body.error?.code).toBe('invalid_url');
+  });
 });

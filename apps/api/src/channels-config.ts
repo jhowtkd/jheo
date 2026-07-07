@@ -1,25 +1,23 @@
 import { z } from 'zod';
 import { UnsafeUrlError, assertSafeUrl } from './safe-fetch.js';
+import { httpUrl } from './validation/http-url.js';
 
 // Re-export for callers that don't want to import from safe-fetch directly.
 export { UnsafeUrlError };
 
 const ChannelTypeSchema = z.enum(['wordpress', 'http', 'agent']);
 
-const PublicUrlSchema = z
-  .string()
-  .url()
-  .superRefine((raw, ctx) => {
-    try {
-      assertSafeUrl(raw);
-    } catch (err) {
-      if (err instanceof UnsafeUrlError) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message });
-        return;
-      }
-      throw err;
+const PublicUrlSchema = httpUrl.superRefine((raw, ctx) => {
+  try {
+    assertSafeUrl(raw);
+  } catch (err) {
+    if (err instanceof UnsafeUrlError) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, message: err.message });
+      return;
     }
-  });
+    throw err;
+  }
+});
 
 const WordPressConfigSchema = z.object({
   siteUrl: PublicUrlSchema,

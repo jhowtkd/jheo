@@ -3,6 +3,7 @@ import { z } from 'zod';
 import crypto from 'node:crypto';
 import { prisma } from '../db.js';
 import { safeFetch, UnsafeUrlError } from '../safe-fetch.js';
+import { httpUrl, isHttpUrlProtocolError } from '../validation/http-url.js';
 
 const CreateMaterialBody = z
   .object({
@@ -21,6 +22,17 @@ const CreateMaterialBody = z
         path: ['source'],
         message: `source exceeds ${maxBytes} bytes for type=${data.type}`,
       });
+    }
+    // For URL materials, enforce http(s)-only at the schema layer so the
+    // protocol rejection is mapped to the spec's `invalid_url` error code
+    // (rather than reaching the SSRF/route layer with a non-http scheme).
+    if (data.type === 'url') {
+      const r = httpUrl.safeParse(data.source);
+      if (!r.success) {
+        for (const issue of r.error.issues) {
+          ctx.addIssue({ ...issue, path: ['source'] });
+        }
+      }
     }
   });
 
@@ -97,7 +109,22 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     },
     async (req, reply) => {
       const parsed = CreateMaterialBody.safeParse(req.body);
-      if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+      if (!parsed.success) {
+        // Map http(s)-protocol rejections to the spec's `invalid_url` error
+        // code so callers can distinguish URL-scheme failures from generic
+        // shape errors. Other validation failures keep the flattened Zod
+        // shape for backwards compatibility with existing clients.
+        if (isHttpUrlProtocolError(parsed.error)) {
+          return reply.code(400).send({
+            error: {
+              code: 'invalid_url',
+              message: 'URL must be http(s)',
+              requestId: req.id,
+            },
+          });
+        }
+        return reply.code(400).send({ error: parsed.error.flatten() });
+      }
       let title = parsed.data.title;
       let content = '';
       if (parsed.data.type === 'url') {
