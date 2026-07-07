@@ -12,6 +12,7 @@ model Project {
   id                   String                @id @default(cuid())
   name                 String
   rootUrl              String
+  maxPages             Int                   @default(0)
   createdAt            DateTime              @default(now())
   audits               Audit[]
   materials            Material[]
@@ -28,9 +29,29 @@ model ProjectPage {
   discoveredVia String
   lastAuditedAt DateTime?
   createdAt     DateTime  @default(now())
+  pageAudits    PageAudit[]
 
   @@unique([projectId, url])
   @@index([projectId])
+}
+
+model PageAudit {
+  id            String      @id @default(cuid())
+  auditId       String?
+  audit         Audit?      @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  projectPageId String
+  projectPage   ProjectPage @relation(fields: [projectPageId], references: [id], onDelete: Cascade)
+  status        String      // 'queued' | 'running' | 'completed' | 'failed' | 'skipped'
+  score         Json?
+  errorMessage  String?
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  createdAt     DateTime    @default(now())
+  findings      Finding[]
+
+  @@index([auditId])
+  @@index([projectPageId])
+  @@index([status])
 }
 
 model Audit {
@@ -43,26 +64,33 @@ model Audit {
   configSnapshot Json
   score          Json?
   findings       Finding[]
+  pageAudits     PageAudit[]
   createdAt      DateTime  @default(now())
 
   @@index([projectId])
 }
 
 model Finding {
-  id        String  @id @default(cuid())
-  auditId   String
-  audit     Audit   @relation(fields: [auditId], references: [id], onDelete: Cascade)
-  category  String
-  severity  String
-  rule      String
-  message   String
-  url       String
-  selector  String?
-  evidence  Json    @default("{}")
+  id                 String     @id @default(cuid())
+  auditId            String
+  audit              Audit      @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  category           String
+  severity           String
+  rule               String
+  message            String
+  url                String
+  selector           String?
+  evidence           Json       @default("{}")
+  pageAuditId        String
+  pageAudit          PageAudit  @relation(fields: [pageAuditId], references: [id], onDelete: Cascade)
+  previousFindingId  String?
+  previousFinding    Finding?   @relation("FindingLineage", fields: [previousFindingId], references: [id])
+  nextFindings       Finding[]  @relation("FindingLineage")
 
   @@index([auditId])
   @@index([category])
   @@index([severity])
+  @@index([pageAuditId])
 }
 
 model DistributionChannel {
