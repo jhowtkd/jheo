@@ -24,6 +24,8 @@
     "ioredis": "5.4.1",
     "jsdom": "24.1.0",
     "pg": "8.12.0",
+    "pino": "^9",
+    "pino-http": "^10",
     "zod": "3.23.8"
   },
   "devDependencies": {

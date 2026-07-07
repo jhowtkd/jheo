@@ -33,6 +33,7 @@ import {
   generateQueue,
 } from './queue.js';
 import { prisma as defaultPrisma } from './db.js';
+import { httpAccessLogHook, requestIdHook } from './log.js';
 
 /**
  * Server-side HTML fetcher used by the audit pipeline. Routes every URL
@@ -73,6 +74,12 @@ export async function buildServer() {
     // worker slot indefinitely.
     connectionTimeout: 30_000,
   });
+
+  // --- Structured access logging (pino-http) -----------------------------
+  // Registered as the FIRST hook so every request gets a stable requestId
+  // and a structured access log line, regardless of what other plugins do.
+  app.addHook('onRequest', requestIdHook);
+  app.addHook('onRequest', httpAccessLogHook);
 
   // --- In-process rate limiter ------------------------------------------
   // Token-bucket, keyed by `${ip}:${method}:${url}`. Routes opt in by
