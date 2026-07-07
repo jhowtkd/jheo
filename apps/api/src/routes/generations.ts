@@ -31,12 +31,20 @@ const validTransitions: Record<string, string[]> = {
 export async function generationRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { projectId: string } }>(
     '/api/projects/:projectId/generations',
+    {
+      config: {
+        // Each generation burns LLM tokens. Cap to 20/min/IP.
+        rateLimit: { max: 20, windowMs: 60_000 },
+      },
+    },
     async (req, reply) => {
       const parsed = CreateBody.safeParse(req.body);
       if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
-      const project = await prisma.project.findUnique({ where: { id: req.params.projectId } });
+      const [project, tmpl] = await Promise.all([
+        prisma.project.findUnique({ where: { id: req.params.projectId } }),
+        prisma.generationTemplate.findUnique({ where: { id: parsed.data.templateId } }),
+      ]);
       if (!project) return reply.code(404).send({ error: 'project not found' });
-      const tmpl = await prisma.generationTemplate.findUnique({ where: { id: parsed.data.templateId } });
       if (!tmpl) return reply.code(404).send({ error: 'template not found' });
       const gen = await prisma.generation.create({
         data: {

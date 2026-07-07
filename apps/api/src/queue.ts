@@ -13,11 +13,49 @@ const connection = new IORedis({
   host: process.env.REDIS_HOST ?? '127.0.0.1',
   port: Number(process.env.REDIS_PORT ?? 6379),
   maxRetriesPerRequest: null,
+  connectTimeout: 10_000,
+  enableOfflineQueue: false,
 });
+
+/**
+ * Default job options applied to every job enqueued on a queue, and to every
+ * worker that consumes from it. Combine with the worker's own concurrency cap
+ * to bound retry storms against external providers.
+ */
+const RETRY_POLICY = {
+  attempts: 3,
+  backoff: { type: 'exponential' as const, delay: 15_000 },
+  removeOnComplete: { age: 24 * 3600, count: 1000 },
+  removeOnFail: { age: 7 * 24 * 3600, count: 1000 },
+};
+
+const GENERATE_RETRY_POLICY = {
+  ...RETRY_POLICY,
+  attempts: 5, // generate jobs are the most expensive; tolerate more transient blips
+};
+
+/** Read with a numeric fallback for env-driven config knobs. */
+function readInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw === '') return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : fallback;
+}
+
+/** Limiter cap so a flood of jobs doesn't slam external providers. */
+function readLimiter(name: string, fallbackMs: { max: number; ms: number }) {
+  const max = readInt(`${name}_MAX`, fallbackMs.max);
+  // BullMQ 5's RateLimiterOptions.duration is a number of ms, not a string.
+  const ms = readInt(`${name}_MS`, fallbackMs.ms);
+  return { max, duration: ms };
+}
 
 export const AUDIT_QUEUE = 'audit';
 
-export const auditQueue = new Queue(AUDIT_QUEUE, { connection });
+export const auditQueue = new Queue(AUDIT_QUEUE, {
+  connection,
+  defaultJobOptions: RETRY_POLICY,
+});
 
 export type AuditJobData = { auditId: string };
 
@@ -25,12 +63,23 @@ export function startWorkers(fetchText: FetchText) {
   return new Worker<AuditJobData>(
     AUDIT_QUEUE,
     async (job) => makeAuditHandler({ fetchText })(job),
-    { connection, concurrency: 2 },
+    {
+      connection,
+      // 27 audit plugins × concurrency N can fan out up to 27×N outbound
+      // requests. Keep N low; per-plugin caps in the orchestrator bound it
+      // further.
+      concurrency: readInt('AUDIT_CONCURRENCY', 2),
+      limiter: readLimiter('AUDIT_LIMITER', { max: 60, ms: 60_000 }),
+      ...RETRY_POLICY,
+    },
   );
 }
 
 export const GENERATE_QUEUE = 'generate';
-export const generateQueue = new Queue(GENERATE_QUEUE, { connection });
+export const generateQueue = new Queue(GENERATE_QUEUE, {
+  connection,
+  defaultJobOptions: GENERATE_RETRY_POLICY,
+});
 
 export type GenerateJobData = { generationId: string };
 
@@ -43,12 +92,23 @@ export function startGenerateWorkers(
   return new Worker<GenerateJobData>(
     GENERATE_QUEUE,
     async (job) => makeGenerateHandler({ prisma, fetchFn, embedProvider, llmProviders })(job),
-    { connection, concurrency: 3 },
+    {
+      connection,
+      concurrency: readInt('GENERATE_CONCURRENCY', 3),
+      // External LLM providers' rate limits (OpenAI tier-1: 500 RPM) sit
+      // well above what one process will see; this is mostly to keep
+      // retries from snowballing.
+      limiter: readLimiter('GENERATE_LIMITER', { max: 120, ms: 60_000 }),
+      ...GENERATE_RETRY_POLICY,
+    },
   );
 }
 
 export const PUBLISH_QUEUE = 'publish';
-export const publishQueue = new Queue(PUBLISH_QUEUE, { connection });
+export const publishQueue = new Queue(PUBLISH_QUEUE, {
+  connection,
+  defaultJobOptions: RETRY_POLICY,
+});
 
 export type { PublishJobData };
 
@@ -58,6 +118,11 @@ export function startPublishWorkers(deps: PublishHandlerDeps) {
   return new Worker<PublishJobData>(
     PUBLISH_QUEUE,
     async (job) => makePublishHandler(deps)(job),
-    { connection, concurrency: 3 },
+    {
+      connection,
+      concurrency: readInt('PUBLISH_CONCURRENCY', 3),
+      limiter: readLimiter('PUBLISH_LIMITER', { max: 120, ms: 60_000 }),
+      ...RETRY_POLICY,
+    },
   );
 }

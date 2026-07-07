@@ -1,4 +1,5 @@
 import type { AuditContext, Finding } from '../../types.js';
+import { plainTextWords } from '../derived.js';
 
 export const ThinContentKey = Symbol('thin-content');
 
@@ -15,8 +16,7 @@ export async function checkThinContent(
   if (config.keyPages && config.keyPages.length > 0 && !config.keyPages.includes(ctx.url)) {
     return out;
   }
-  const text = ctx.html.replace(/<[^>]+>/g, ' ').trim();
-  const words = text.split(/\s+/).filter(Boolean).length;
+  const words = plainTextWords(ctx).length;
   if (words < config.minWords) {
     out.push({
       category: 'content',

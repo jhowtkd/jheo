@@ -1,10 +1,9 @@
 import type { AuditContext, Finding } from '../../types.js';
+import { jsonLdBlocks } from '../derived.js';
 
 export async function checkSchemaCoverage(ctx: AuditContext): Promise<Finding[]> {
   const out: Finding[] = [];
-  const schemaBlocks = Array.from(
-    ctx.html.matchAll(/<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
-  );
+  const schemaBlocks = jsonLdBlocks(ctx);
   if (schemaBlocks.length === 0) {
     return out;
   }

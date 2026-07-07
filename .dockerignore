@@ -1,0 +1,57 @@
+# Exclude heavy / sensitive paths from the Docker build context. The api
+# Dockerfile uses `context: ..` (repo root) so without this every byte in
+# the working tree — including node_modules, .git, dist, logs, env files —
+# would be copied to the daemon before the build runs. With this in place,
+# context transfers drop by an order of magnitude on cold builds.
+
+# Dependencies
+node_modules
+**/node_modules
+.pnpm-store
+
+# Build outputs (created inside Docker)
+**/dist
+**/build
+
+# TypeScript build info
+**/*.tsbuildinfo
+**/.tsbuildinfo
+
+# Test / coverage artifacts
+**/coverage
+**/.vitest
+**/.nyc_output
+
+# Source control / IDE
+.git
+.gitignore
+.github
+.vscode
+.idea
+
+# Documentation / misc
+docs
+**/*.md
+README.md
+LICENSE
+.editorconfig
+
+# Local config & secrets
+.env
+.env.local
+**/.env
+!**/.env.example
+
+# Logs / temp
+**/*.log
+**/tmp
+**/.cache
+**/.turbo
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Tests folder is rebuilt inside the container if needed
+**/test
+**/tests

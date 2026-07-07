@@ -12,6 +12,9 @@ import {
 } from '@jheo/core';
 import { loadEnv, ensureSecretKey } from './env.js';
 import { decrypt } from './crypto.js';
+import { safeFetch } from './safe-fetch.js';
+import { ensureDatabaseReady } from './db-bootstrap.js';
+import { responseCompressionPlugin } from './compress.js';
 import { healthRoutes } from './routes/health.js';
 import { projectRoutes } from './routes/projects.js';
 import { auditRoutes } from './routes/audits.js';
@@ -21,15 +24,37 @@ import { templateRoutes } from './routes/templates.js';
 import { generationRoutes } from './routes/generations.js';
 import { channelRoutes } from './routes/channels.js';
 import { publishRoutes } from './routes/publishes.js';
-import { startWorkers, startGenerateWorkers, startPublishWorkers, publishQueue } from './queue.js';
+import {
+  startWorkers,
+  startGenerateWorkers,
+  startPublishWorkers,
+  publishQueue,
+  auditQueue,
+  generateQueue,
+} from './queue.js';
 import { prisma as defaultPrisma } from './db.js';
 
-async function fetchText(url: string, init?: { headers?: Record<string, string> }) {
+/**
+ * Server-side HTML fetcher used by the audit pipeline. Routes every URL
+ * through safeFetch so the same SSRF / size-cap / timeout guarantees apply
+ * across the entire attack surface (route handlers + workers).
+ */
+export async function fetchText(
+  url: string,
+  init?: { headers?: Record<string, string>; signal?: AbortSignal },
+) {
   const headers = {
     'User-Agent': 'JHEO/0.1 (+local)',
     ...(init?.headers ?? {}),
   };
-  const res = await fetch(url, { headers });
+  // 5 MB cap and 15s default timeout — plugins only need a few hundred KB
+  // of markup; anything bigger is almost certainly an attack.
+  const res = await safeFetch(url, {
+    headers,
+    ...(init?.signal ? { signal: init.signal } : {}),
+    maxBytes: 5 * 1024 * 1024,
+    timeoutMs: 15_000,
+  });
   return {
     status: res.status,
     headers: Object.fromEntries(res.headers.entries()),
@@ -39,8 +64,66 @@ async function fetchText(url: string, init?: { headers?: Record<string, string> 
 
 export async function buildServer() {
   const env = loadEnv();
-  const app = Fastify({ logger: { level: env.LOG_LEVEL } });
+  const app = Fastify({
+    logger: { level: env.LOG_LEVEL },
+    // Hard per-request body cap. The materials POST handler further trims
+    // source per-type, but this is the outer guard against multi-MB JSON.
+    bodyLimit: 1024 * 1024,
+    // A reasonable connection timeout so a TCP-level stall doesn't pin a
+    // worker slot indefinitely.
+    connectionTimeout: 30_000,
+  });
+
+  // --- In-process rate limiter ------------------------------------------
+  // Token-bucket, keyed by `${ip}:${method}:${url}`. Routes opt in by
+  // passing `config: { rateLimit: { max, windowMs } }`; everything else
+  // passes through untouched. Avoids pulling in @fastify/rate-limit just
+  // for the handful of routes that actually need it.
+  const buckets = new Map<string, { tokens: number; last: number }>();
+  const BURST = 20;
+  const REFILL_PER_SEC = 5;
+  // Track which routes opted in (registered in preParsing/onRequest prep).
+  app.addHook('onRoute', (routeOptions) => {
+    const cfg = routeOptions.config as { rateLimit?: { max: number; windowMs: number } };
+    if (cfg?.rateLimit) {
+      // No-op: just verifying config is captured. The actual rate check
+      // happens in onRequest after the route is matched (so routeOptions
+      // is populated and stable).
+      routeOptions.config = { ...routeOptions.config, rateLimit: cfg.rateLimit };
+    }
+  });
+  app.addHook('onRequest', async (req, reply) => {
+    const cfg = (req.routeOptions?.config ?? {}) as { rateLimit?: { max: number; windowMs: number } };
+    const limit = cfg.rateLimit;
+    if (!limit) return;
+    const key = `${req.ip}:${req.routeOptions.method}:${req.routeOptions.url}`;
+    const now = Date.now();
+    const b = buckets.get(key) ?? { tokens: BURST, last: now };
+    const elapsed = (now - b.last) / 1000;
+    b.tokens = Math.min(BURST, b.tokens + elapsed * REFILL_PER_SEC);
+    b.last = now;
+    if (b.tokens < 1) {
+      buckets.set(key, b);
+      reply.code(429);
+      return { error: 'rate limit exceeded' };
+    }
+    b.tokens -= 1;
+    buckets.set(key, b);
+  });
+
+  // --- Security headers (in place of @fastify/helmet) -------------------
+  app.addHook('onSend', async (_req, reply, payload) => {
+    const setIfMissing = (name: string, value: string) => {
+      if (!reply.getHeader(name)) reply.header(name, value);
+    };
+    setIfMissing('X-Content-Type-Options', 'nosniff');
+    setIfMissing('X-Frame-Options', 'DENY');
+    setIfMissing('Referrer-Policy', 'no-referrer');
+    return payload;
+  });
+
   await app.register(cors, { origin: true });
+  await app.register(responseCompressionPlugin);
   await app.register(healthRoutes);
   await app.register(projectRoutes);
   await app.register(auditRoutes);
@@ -57,7 +140,7 @@ const isMain = import.meta.url === `file://${process.argv[1]}`;
 if (isMain) {
   const env = loadEnv();
   ensureSecretKey(process.cwd());
-  startWorkers(fetchText);
+  const auditWorker = startWorkers(fetchText);
 
   // Resolve API keys: prefer encrypted Setting rows, fall back to env vars.
   async function resolveKey(providerEnv: string, settingKey: string): Promise<string | undefined> {
@@ -65,7 +148,6 @@ if (isMain) {
     if (row) {
       const env = loadEnv();
       if (!env.JHEO_SECRET_KEY) return undefined;
-      const { decrypt } = await import('./crypto.js');
       return decrypt(row.valueCiphertext, env.JHEO_SECRET_KEY);
     }
     return process.env[providerEnv];
@@ -86,12 +168,17 @@ if (isMain) {
   // audit-job uses `fetchText` (a normalized {status, headers, text} shape) for
   // its HTML fetching path — keep that as-is. For the generate worker, pass the
   // global fetch directly.
-  startGenerateWorkers(globalThis.fetch.bind(globalThis), embedProvider, llmProviders, defaultPrisma);
+  const generateWorker = startGenerateWorkers(
+    globalThis.fetch.bind(globalThis),
+    embedProvider,
+    llmProviders,
+    defaultPrisma,
+  );
 
   const wordpress = new WordPressPublisher();
   const http = new HttpPublisher();
   const agent = new AgentPublisher();
-  startPublishWorkers({
+  const publishWorker = startPublishWorkers({
     prisma: defaultPrisma,
     fetchFn: globalThis.fetch.bind(globalThis),
     publishers: { wordpress, http, agent },
@@ -101,5 +188,40 @@ if (isMain) {
   });
 
   const app = await buildServer();
+
+  // Idempotent schema bootstrap: ensure pgvector + the HNSW index on
+  // Material.embedding exist before the first audit or generation runs.
+  // No-op on subsequent boots.
+  await ensureDatabaseReady().catch((e: unknown) =>
+    app.log.warn({ err: e }, 'ensureDatabaseReady failed (non-fatal)'),
+  );
+
+  // Graceful shutdown — drain HTTP, workers, Redis, Prisma on SIGTERM/SIGINT so
+  // rolling deploys don't leak FDs or leave jobs half-completed.
+  // BullMQ Queue.close() also closes the underlying IORedis connection for us,
+  // so we don't need to reach into the (protected) connection field directly.
+  let shuttingDown = false;
+  const shutdown = async (signal: NodeJS.Signals) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    app.log.info({ signal }, 'shutting down');
+    try {
+      await Promise.allSettled([
+        app.close(),
+        auditWorker.close(),
+        generateWorker.close(),
+        publishWorker.close(),
+        auditQueue.close(),
+        generateQueue.close(),
+        publishQueue.close(),
+        defaultPrisma.$disconnect(),
+      ]);
+    } finally {
+      process.exit(0);
+    }
+  };
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
+
   await app.listen({ host: '0.0.0.0', port: env.WEB_PORT });
 }

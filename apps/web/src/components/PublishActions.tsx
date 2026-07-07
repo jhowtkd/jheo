@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   cancelPublish,
@@ -26,12 +26,22 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
     enabled: !!generationId,
     refetchInterval: 2000,
   });
-  const [selected, setSelected] = useState<string[]>([]);
+  // Set for O(1) membership in the checkbox. Converting back to an array
+  // only at submit time keeps the mutation contract unchanged.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = useCallback((id: string, on: boolean) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
   const publish = useMutation({
-    mutationFn: () => createPublishes(generationId, selected),
+    mutationFn: () => createPublishes(generationId, [...selected]),
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: ['publishes', generationId] });
-      setSelected([]);
+      setSelected(new Set());
     },
   });
   const cancel = useMutation({
@@ -43,7 +53,15 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
     onSuccess: async () => qc.invalidateQueries({ queryKey: ['publishes', generationId] }),
   });
 
-  const activeChannels = channels.data?.filter((c: Channel) => c.isActive) ?? [];
+  // Memoise the derived data so the 2s polling refetch doesn't churn the
+  // identity of activeChannels / channelById every tick — that re-renders
+  // every row in the table for no reason.
+  const { activeChannels, channelById } = useMemo(() => {
+    const list = channels.data?.filter((c: Channel) => c.isActive) ?? [];
+    const byId = new Map<string, Channel>();
+    for (const c of channels.data ?? []) byId.set(c.id, c);
+    return { activeChannels: list, channelById: byId };
+  }, [channels.data]);
 
   return (
     <section>
@@ -52,25 +70,21 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
         <>
           <p>Select channels:</p>
           <ul>
-            {activeChannels.map((c: Channel) => (
+            {activeChannels.map((c) => (
               <li key={c.id}>
                 <label>
                   <input
                     type="checkbox"
-                    checked={selected.includes(c.id)}
-                    onChange={(e) =>
-                      setSelected((prev) =>
-                        e.target.checked ? [...prev, c.id] : prev.filter((x) => x !== c.id),
-                      )
-                    }
+                    checked={selected.has(c.id)}
+                    onChange={(e) => toggle(c.id, e.target.checked)}
                   />
                   {c.name} ({c.type})
                 </label>
               </li>
             ))}
           </ul>
-          <button onClick={() => publish.mutate()} disabled={selected.length === 0}>
-            Publish to {selected.length} channel(s)
+          <button onClick={() => publish.mutate()} disabled={selected.size === 0}>
+            Publish to {selected.size} channel(s)
           </button>
         </>
       )}
@@ -80,7 +94,10 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
         </thead>
         <tbody>
           {publishes.data?.map((p: Publish) => {
-            const ch = channels.data?.find((c: Channel) => c.id === p.channelId);
+            // O(1) lookup; the previous implementation did a linear find
+            // inside the map, making each render O(N×M) — quadratic with
+            // channels × publishes.
+            const ch = channelById.get(p.channelId);
             return (
               <tr key={p.id}>
                 <td>{ch?.name ?? p.channelId}</td>

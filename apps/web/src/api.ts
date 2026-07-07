@@ -30,6 +30,10 @@ export async function createProject(input: { name: string; rootUrl: string }): P
   });
   return r.json();
 }
+export type ProjectDetail = Project & { audits: Audit[] };
+export async function getProject(id: string): Promise<ProjectDetail> {
+  return (await fetch(`${API}/projects/${id}`)).json();
+}
 export async function runAudit(projectId: string): Promise<Audit> {
   const r = await fetch(`${API}/audits`, {
     method: 'POST',

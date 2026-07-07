@@ -8,7 +8,10 @@ const CreateProjectBody = z.object({
 });
 
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/api/projects', async () => prisma.project.findMany({ orderBy: { createdAt: 'desc' } }));
+  app.get('/api/projects', async (_req, reply) => {
+    reply.header('cache-control', 'private, max-age=15');
+    return prisma.project.findMany({ orderBy: { createdAt: 'desc' } });
+  });
 
   app.post('/api/projects', async (req, reply) => {
     const parsed = CreateProjectBody.safeParse(req.body);
@@ -17,6 +20,7 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.get<{ Params: { id: string } }>('/api/projects/:id', async (req, reply) => {
+    reply.header('cache-control', 'private, max-age=10');
     const project = await prisma.project.findUnique({
       where: { id: req.params.id },
       include: { audits: { orderBy: { createdAt: 'desc' }, take: 10 } },

@@ -1,4 +1,5 @@
 import type { LLMProvider, LLMRequest, LLMResponse } from './types.js';
+import { safeJson } from './http.js';
 
 interface OpenAIChatResponse {
   choices: { message: { content: string } }[];
@@ -46,13 +47,5 @@ export class OpenAIProvider implements LLMProvider {
       provider: 'openai',
       model: req.config.model,
     };
-  }
-}
-
-function safeJson(s: string): unknown {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
   }
 }

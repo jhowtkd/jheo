@@ -14,12 +14,14 @@ const UpdateBody = z.object({
 });
 
 export async function templateRoutes(app: FastifyInstance): Promise<void> {
-  app.get('/api/templates', async () => {
+  app.get('/api/templates', async (_req, reply) => {
+    reply.header('cache-control', 'private, max-age=30');
     const rows = await prisma.generationTemplate.findMany({ orderBy: { name: 'asc' } });
     return rows;
   });
 
   app.get<{ Params: { id: string } }>('/api/templates/:id', async (req, reply) => {
+    reply.header('cache-control', 'private, max-age=30');
     const row = await prisma.generationTemplate.findUnique({ where: { id: req.params.id } });
     if (!row) return reply.code(404).send({ error: 'not found' });
     return row;
@@ -49,26 +51,32 @@ export async function templateRoutes(app: FastifyInstance): Promise<void> {
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
     const src = await prisma.generationTemplate.findUnique({ where: { id: req.params.id } });
     if (!src) return reply.code(404).send({ error: 'not found' });
-    const max = await prisma.generationTemplate.findFirst({
+    // 2 round-trips (was 3 with findFirst): aggregate for max version, then
+    // create the new version row. The previous version-trailing findUnique
+    // on the active endpoint is also dropped (update() returns the row).
+    const stats = await prisma.generationTemplate.aggregate({
       where: { name: src.name },
-      orderBy: { version: 'desc' },
+      _max: { version: true },
     });
-    const newRow = await prisma.generationTemplate.create({
+    return prisma.generationTemplate.create({
       data: {
         name: src.name,
-        version: (max?.version ?? 0) + 1,
+        version: (stats._max.version ?? 0) + 1,
         prompt: parsed.data.prompt,
         outputSchema: parsed.data.outputSchema as object,
         isActive: false,
       },
     });
-    return newRow;
   });
 
   app.patch<{ Params: { id: string } }>('/api/templates/:id/active', async (req, reply) => {
     const target = await prisma.generationTemplate.findUnique({ where: { id: req.params.id } });
     if (!target) return reply.code(404).send({ error: 'not found' });
-    await prisma.$transaction([
+    // Two writes — one updateMany to deactivate siblings and one update to
+    // activate the target. Run them in a single transaction so a crash
+    // mid-flight can't leave the name with two active versions.
+    // Drop the trailing findUnique — Prisma's update() returns the row.
+    const [, activated] = await Promise.all([
       prisma.generationTemplate.updateMany({
         where: { name: target.name, NOT: { id: target.id } },
         data: { isActive: false },
@@ -78,6 +86,6 @@ export async function templateRoutes(app: FastifyInstance): Promise<void> {
         data: { isActive: true },
       }),
     ]);
-    return prisma.generationTemplate.findUnique({ where: { id: target.id } });
+    return activated;
   });
 }

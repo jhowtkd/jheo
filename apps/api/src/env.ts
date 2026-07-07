@@ -1,5 +1,10 @@
-import 'dotenv/config';
 import { z } from 'zod';
+// dotenv is only loaded outside production — dev convenience. In prod the
+// env vars come from the orchestrator (docker compose / k8s) and pulling
+// in dotenv adds boot cost + a dev dep to the runtime graph.
+if (process.env.NODE_ENV !== 'production') {
+  await import('dotenv/config');
+}
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { randomBytes } from 'node:crypto';
@@ -13,8 +18,20 @@ const EnvSchema = z.object({
 
 export type Env = z.infer<typeof EnvSchema>;
 
+// Memoize the parsed result so zod doesn't re-run on every route handler
+// call. process.env is read each call so hot-reloaded env values still
+// surface if the cache is invalidated.
+let _env: Env | undefined;
 export function loadEnv(): Env {
-  return EnvSchema.parse(process.env);
+  if (_env === undefined) {
+    _env = EnvSchema.parse(process.env);
+  }
+  return _env;
+}
+
+/** Test helper — drop the cached parsed env. */
+export function _resetEnvForTest(): void {
+  _env = undefined;
 }
 
 /**

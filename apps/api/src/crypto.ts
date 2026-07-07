@@ -1,7 +1,16 @@
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto';
 
+// Per-process cache for the derived AES key. The secret never changes during
+// a process's lifetime so re-hashing it on every encrypt/decrypt was pure
+// waste at hot paths (every channel get + every publish-job loop iteration).
+const keyCache = new Map<string, Buffer>();
 function key(raw: string): Buffer {
-  return createHash('sha256').update(raw).digest();
+  let k = keyCache.get(raw);
+  if (!k) {
+    k = createHash('sha256').update(raw).digest();
+    keyCache.set(raw, k);
+  }
+  return k;
 }
 
 export function encrypt(plaintext: string, secret: string): string {

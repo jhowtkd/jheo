@@ -1,4 +1,5 @@
 import type { LLMProvider, LLMRequest, LLMResponse } from './types.js';
+import { safeJson } from './http.js';
 
 interface AnthropicResponse {
   content: { text: string }[];
@@ -47,13 +48,5 @@ export class AnthropicProvider implements LLMProvider {
       provider: 'anthropic',
       model: req.config.model,
     };
-  }
-}
-
-function safeJson(s: string): unknown {
-  try {
-    return JSON.parse(s);
-  } catch {
-    return null;
   }
 }

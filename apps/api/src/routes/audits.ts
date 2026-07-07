@@ -9,7 +9,10 @@ const CreateAuditBody = z.object({
 });
 
 export async function auditRoutes(app: FastifyInstance): Promise<void> {
-  app.post('/api/audits', async (req, reply) => {
+  app.post(
+    '/api/audits',
+    { config: { rateLimit: { max: 20, windowMs: 60_000 } } },
+    async (req, reply) => {
     const parsed = CreateAuditBody.safeParse(req.body);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
     const audit = await prisma.audit.create({

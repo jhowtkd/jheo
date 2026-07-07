@@ -6,28 +6,51 @@ COPY apps/api/package.json apps/api/
 COPY packages/core/package.json packages/core/
 RUN pnpm install --frozen-lockfile --filter @jheo/api... --filter @jheo/core
 
-FROM node:20.11-bookworm-slim AS build
+# Pin the Prisma schema to its own layer so `prisma generate` is only re-run
+# when the schema (not arbitrary source) changes.
+FROM deps AS prisma
 WORKDIR /repo
-RUN corepack enable
-COPY --from=deps /repo /repo
-COPY tsconfig.base.json ./
-COPY packages packages
-COPY apps/api apps/api
-RUN pnpm --filter @jheo/core build
+COPY apps/api/prisma apps/api/prisma
 RUN pnpm --filter @jheo/api exec prisma generate
+
+FROM deps AS build
+WORKDIR /repo
+COPY --from=prisma /repo /repo
+COPY tsconfig.base.json ./
+COPY packages/core/src packages/core/src
+COPY packages/core/tsconfig.json packages/core/
+COPY apps/api/tsconfig.json apps/api/
+RUN pnpm --filter @jheo/core build
+COPY apps/api/src apps/api/src
 RUN pnpm --filter @jheo/api build
 
+# Slim runner: only ships the compiled artifacts and the production node_modules.
+# No source tree, no devDependencies, no test scaffolding, no docs.
 FROM node:20.11-bookworm-slim AS runner
 WORKDIR /repo
 ENV NODE_ENV=production
 ENV DATABASE_URL=postgres://jheo:jheo@postgres:5432/jheo
-RUN corepack enable && corepack prepare pnpm@9.6.0 --activate
-RUN apt-get update && apt-get install -y --no-install-recommends chromium fonts-liberation \
-  openssl ca-certificates \
+ENV WEB_PORT=8080
+RUN corepack enable \
+ && apt-get update \
+ && apt-get install -y --no-install-recommends openssl ca-certificates curl \
  && rm -rf /var/lib/apt/lists/*
-ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
-COPY --from=build /repo /repo
-WORKDIR /repo/apps/api
-RUN pnpm --filter @jheo/api exec prisma db push --skip-generate
+
+# Pull prod node_modules from the deps stage (production-only resolution).
+COPY --from=deps /repo/node_modules /repo/node_modules
+COPY --from=deps /repo/apps/api/node_modules /repo/apps/api/node_modules
+COPY --from=deps /repo/packages/core/node_modules /repo/packages/core/node_modules
+
+# Built artifacts only.
+COPY --from=build /repo/apps/api/dist /repo/apps/api/dist
+COPY --from=build /repo/packages/core/dist /repo/packages/core/dist
+COPY apps/api/prisma /repo/apps/api/prisma
+COPY package.json pnpm-workspace.yaml ./
+COPY apps/api/package.json apps/api/
+COPY packages/core/package.json packages/core/
+
 EXPOSE 8080
-CMD ["node", "dist/server.js"]
+HEALTHCHECK --interval=10s --timeout=5s --start-period=20s --retries=6 \
+  CMD curl -fsS http://127.0.0.1:${WEB_PORT}/api/health || exit 1
+
+CMD ["node", "apps/api/dist/server.js"]

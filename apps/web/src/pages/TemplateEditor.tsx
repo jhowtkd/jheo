@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getTemplate, updateTemplate } from '../api.js';
 
@@ -9,12 +9,17 @@ export function TemplateEditor() {
   const t = useQuery({ queryKey: ['template', templateId], queryFn: () => getTemplate(templateId!) });
   const [prompt, setPrompt] = useState('');
   const [schema, setSchema] = useState('{}');
-  const [autoSet, setAutoSet] = useState(false);
-  if (t.data && !autoSet) {
+  // One-shot hydration when the template arrives — `useEffect` with a
+  // sentinel ref avoids the setState-during-render warning and keeps the
+  // JSON.stringify cost off the render path.
+  const hydrated = useRef(false);
+  useEffect(() => {
+    if (hydrated.current || !t.data) return;
+    hydrated.current = true;
     setPrompt(t.data.prompt);
     setSchema(JSON.stringify(t.data.outputSchema, null, 2));
-    setAutoSet(true);
-  }
+  }, [t.data]);
+
   const save = useMutation({
     mutationFn: () =>
       updateTemplate(templateId!, { prompt, outputSchema: JSON.parse(schema) as unknown }),

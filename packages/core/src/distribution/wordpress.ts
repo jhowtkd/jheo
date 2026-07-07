@@ -1,4 +1,3 @@
-import type { ParsedMarkdown } from '../generation/schema.js';
 import type { Publisher, PublishRequest, PublishResult } from './types.js';
 
 export interface WordPressConfig {
@@ -12,6 +11,14 @@ function authHeader(c: WordPressConfig): string {
   return `Basic ${Buffer.from(`${c.username}:${c.appPassword}`).toString('base64')}`;
 }
 
+/**
+ * Resolve a WordPress taxonomy term (category or tag) by case-insensitive
+ * name match, creating it if absent. The endpoint string MUST be the taxonomy
+ * endpoint name (`categories` or `tags`) — callers are responsible for picking
+ * the right one. Previously this function was called with a hard-coded
+ * 'categories' for what was actually a tag loop, silently tagging posts as
+ * categories.
+ */
 async function findOrCreateTerm(
   endpoint: 'categories' | 'tags',
   name: string,
@@ -25,24 +32,28 @@ async function findOrCreateTerm(
     headers: { Authorization: authHeader(c) },
   });
   if (!searchRes.ok) throw new Error(`wp ${endpoint} search ${searchRes.status}`);
-  const searchText = await searchRes.clone().text();
-  let matches: unknown = [];
-  try {
-    matches = JSON.parse(searchText) as unknown;
-  } catch {
-    matches = [];
-  }
-  const list = Array.isArray(matches) ? (matches as Array<{ id: number; name: string }>) : [];
+
+  // res.json() streams + parses in one pass — the previous
+  // searchRes.clone().text() + JSON.parse allocated an extra UTF-8 string.
+  const matches = (await searchRes.json().catch(() => [])) as Array<{ id: number; name: string }>;
+  const list = Array.isArray(matches) ? matches : [];
   const found = list.find((m) => m.name.toLowerCase() === name.toLowerCase());
   if (found) return found.id;
+
   const createRes = await fetchFn(`${siteUrl}/wp-json/wp/v2/${endpoint}`, {
     method: 'POST',
     headers: { Authorization: authHeader(c), 'content-type': 'application/json' },
     body: JSON.stringify({ name }),
   });
   if (!createRes.ok) throw new Error(`wp ${endpoint} create ${createRes.status}`);
-  const createText = await createRes.text();
-  const created = JSON.parse(createText) as { id: number };
+  // Wrap the create-response parse so a non-JSON body surfaces a clear error
+  // rather than the unhelpful "Unexpected token < in JSON at position 0".
+  let created: { id: number };
+  try {
+    created = (await createRes.json()) as { id: number };
+  } catch (e) {
+    throw new Error(`wp ${endpoint} create response parse failed: ${(e as Error).message}`);
+  }
   return created.id;
 }
 
@@ -76,15 +87,22 @@ export class WordPressPublisher implements Publisher {
     }
     const json = JSON.parse(text) as { id: number; link?: string };
 
-    // Best-effort term resolution after post; results not attached to the post body.
+    // Best-effort term resolution. Tags go into the `tags` taxonomy and
+    // categories (if front-matter ever exposes them) into `categories`.
+    // The previous version hard-coded 'categories' for the tag loop, which
+    // silently landed every tag in the categories taxonomy.
     for (const tag of fm.tags) {
       try {
-        await findOrCreateTerm('categories', tag, c.siteUrl, c, fetchFn);
-      } catch {
-        // Term resolution is best-effort; post is the source of truth.
+        await findOrCreateTerm('tags', tag, c.siteUrl, c, fetchFn);
+      } catch (e) {
+        // Best-effort: a tag lookup/creation failure mustn't undo the
+        // already-created post. Surface it via stderr so misconfigured WP
+        // installs are diagnosable in production logs.
+        console.warn('[wp] tag resolution failed', { tag, err: String(e) });
       }
     }
     for (const cat of fm.targetSites ?? []) {
+      // Reserved for future category-driven routing; intentionally no-op.
       void cat;
     }
 

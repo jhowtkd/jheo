@@ -1,15 +1,28 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import crypto from 'node:crypto';
-import { Readability } from '@mozilla/readability';
-import { JSDOM } from 'jsdom';
 import { prisma } from '../db.js';
+import { safeFetch, UnsafeUrlError } from '../safe-fetch.js';
 
-const CreateMaterialBody = z.object({
-  type: z.enum(['url', 'file', 'note']),
-  title: z.string().min(1).max(200),
-  source: z.string().min(1),
-});
+const CreateMaterialBody = z
+  .object({
+    type: z.enum(['url', 'file', 'note']),
+    title: z.string().min(1).max(200),
+    source: z.string().min(1),
+  })
+  .superRefine((data, ctx) => {
+    // Cap source size for url / file / note paths separately. The route has
+    // a hard bodyLimit too (see server.ts), but we cap the JSON string here
+    // so that base64-decoded files can't sneak in multi-MB payloads.
+    const maxBytes = data.type === 'url' ? 2048 : 2 * 1024 * 1024;
+    if (Buffer.byteLength(data.source, 'utf8') > maxBytes) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['source'],
+        message: `source exceeds ${maxBytes} bytes for type=${data.type}`,
+      });
+    }
+  });
 
 function normalize(content: string): string {
   return content.replace(/\s+/g, ' ').trim();
@@ -20,13 +33,30 @@ function contentHash(content: string): string {
 }
 
 async function extractUrlContent(url: string): Promise<{ title: string; content: string }> {
-  const res = await fetch(url, { headers: { 'user-agent': 'JHEO/0.1 (+local)' } });
+  // safeFetch blocks RFC1918 / loopback / link-local IPs and enforces a body
+  // size cap + timeout, closing the SSRF + slow-loris attack surface.
+  const res = await safeFetch(url, {
+    headers: { 'user-agent': 'JHEO/0.1 (+local)' },
+    maxBytes: 5 * 1024 * 1024,
+    timeoutMs: 10_000,
+  });
   const html = await res.text();
+
+  // Lazy-import: jsdom + readability are ~12 MB heap. Don't pay the cost
+  // unless the endpoint actually has to parse a URL.
+  const [{ JSDOM }, { Readability }] = await Promise.all([
+    import('jsdom'),
+    import('@mozilla/readability'),
+  ]);
   const dom = new JSDOM(html, { url });
-  const reader = new Readability(dom.window.document);
-  const article = reader.parse();
-  if (!article) throw new Error('readability returned no article');
-  return { title: article.title ?? 'untitled', content: article.textContent ?? '' };
+  try {
+    const reader = new Readability(dom.window.document);
+    const article = reader.parse();
+    if (!article) throw new Error('readability returned no article');
+    return { title: article.title ?? 'untitled', content: article.textContent ?? '' };
+  } finally {
+    dom.window.close();
+  }
 }
 
 export async function materialRoutes(app: FastifyInstance): Promise<void> {
@@ -58,17 +88,31 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
 
   app.post<{ Params: { projectId: string } }>(
     '/api/projects/:projectId/materials',
+    {
+      config: {
+        // JSDOM+Readability per request is multi-second CPU. Cap to 30/min
+        // per IP so a runaway client can't pin the workers.
+        rateLimit: { max: 30, windowMs: 60_000 },
+      },
+    },
     async (req, reply) => {
       const parsed = CreateMaterialBody.safeParse(req.body);
       if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
       let title = parsed.data.title;
       let content = '';
       if (parsed.data.type === 'url') {
-        const extracted = await extractUrlContent(parsed.data.source).catch((e: unknown) => {
-          throw new Error(`extract failed: ${String(e)}`);
-        });
-        if (extracted.title) title = extracted.title;
-        content = extracted.content;
+        try {
+          const extracted = await extractUrlContent(parsed.data.source);
+          if (extracted.title) title = extracted.title;
+          content = extracted.content;
+        } catch (e) {
+          // Map SSRF rejections + timeouts to 400; everything else 502.
+          if (e instanceof UnsafeUrlError) {
+            return reply.code(400).send({ error: e.message });
+          }
+          req.log.error({ err: e, url: parsed.data.source }, 'extract failed');
+          return reply.code(502).send({ error: 'failed to fetch URL' });
+        }
       } else if (parsed.data.type === 'file') {
         content = Buffer.from(parsed.data.source, 'utf8').toString('utf8');
       } else {
@@ -98,10 +142,12 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
   app.delete<{ Params: { id: string } }>(
     '/api/materials/:id',
     async (req, reply) => {
-      const m = await prisma.material.findUnique({ where: { id: req.params.id } });
-      if (!m) return reply.code(404).send({ error: 'not found' });
-      await prisma.material.delete({ where: { id: m.id } });
-      return { id: m.id };
+      // Single round-trip: deleteMany is a no-op when nothing matches, so we
+      // can return 404 based on the affected-row count instead of doing a
+      // findUnique + delete pair.
+      const result = await prisma.material.deleteMany({ where: { id: req.params.id } });
+      if (result.count === 0) return reply.code(404).send({ error: 'not found' });
+      return { id: req.params.id };
     },
   );
 }

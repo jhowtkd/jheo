@@ -10,17 +10,33 @@ export interface ScoreBreakdown {
 }
 
 export function scoreFindings(findings: Finding[]): ScoreBreakdown {
+  // Single-pass aggregation: one walk over findings produces both the
+  // by-category penalty map AND a running count of populated categories.
+  // The previous implementation did C×N + a final reduce — five passes
+  // where one suffices.
+  type Counts = Partial<Record<Category, { penalty: number; present: boolean }>>;
+  const counts: Counts = {};
+  for (const f of findings) {
+    const entry = counts[f.category] ?? { penalty: 0, present: false };
+    entry.penalty += WEIGHTS[f.severity];
+    entry.present = true;
+    counts[f.category] = entry;
+  }
+
   const byCategory: Partial<Record<Category, number | null>> = {};
+  let populatedTotal = 0;
+  let populatedCount = 0;
   for (const cat of CATEGORIES) {
-    const items = findings.filter((f) => f.category === cat);
-    if (items.length === 0) {
+    const entry = counts[cat];
+    if (!entry?.present) {
       byCategory[cat] = null;
       continue;
     }
-    const penalty = items.reduce((acc, f) => acc + WEIGHTS[f.severity], 0);
-    byCategory[cat] = Math.max(0, 100 - penalty);
+    const score = Math.max(0, 100 - entry.penalty);
+    byCategory[cat] = score;
+    populatedTotal += score;
+    populatedCount += 1;
   }
-  const cats = CATEGORIES.map((c) => byCategory[c]).filter((v): v is number => v !== null);
-  const overall = cats.length === 0 ? 100 : Math.round(cats.reduce((a, b) => a + b, 0) / cats.length);
+  const overall = populatedCount === 0 ? 100 : Math.round(populatedTotal / populatedCount);
   return { overall, byCategory };
 }

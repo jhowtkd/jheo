@@ -35,9 +35,10 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
   );
 
   app.delete<{ Params: { key: string } }>('/api/settings/:key', async (req, reply) => {
-    const row = await prisma.setting.findUnique({ where: { key: req.params.key } });
-    if (!row) return reply.code(404).send({ error: 'not found' });
-    await prisma.setting.delete({ where: { key: req.params.key } });
-    return { key: row.key };
+    // deleteMany is a single round-trip and a no-op when nothing matches,
+    // so we map its affected-row count to 404.
+    const result = await prisma.setting.deleteMany({ where: { key: req.params.key } });
+    if (result.count === 0) return reply.code(404).send({ error: 'not found' });
+    return { key: req.params.key };
   });
 }

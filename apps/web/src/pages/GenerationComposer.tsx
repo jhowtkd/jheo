@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { createGeneration, listMaterials, listTemplates, type Material } from '../api.js';
 
@@ -14,25 +14,36 @@ export function GenerationComposer() {
   const tmpls = useQuery({ queryKey: ['templates'], queryFn: listTemplates });
   const [prompt, setPrompt] = useState('');
   const [templateId, setTemplateId] = useState('');
-  const [selectedMaterials, setSelectedMaterials] = useState<string[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<Set<string>>(new Set());
+  const toggleMaterial = (id: string, on: boolean) =>
+    setSelectedMaterials((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
   const [provider, setProvider] = useState<'openai' | 'anthropic' | 'openrouter'>('openai');
   const [model, setModel] = useState('gpt-4o-mini');
+
+  // One-shot: when templates arrive and the user hasn't picked one, default
+  // to the active version. Lives in useEffect rather than the render body so
+  // we don't trigger React's setState-during-render warning.
+  useEffect(() => {
+    if (!tmpls.data || templateId) return;
+    const active = tmpls.data.find((t) => t.isActive);
+    if (active) setTemplateId(active.id);
+  }, [tmpls.data, templateId]);
 
   const create = useMutation({
     mutationFn: () =>
       createGeneration(projectId!, {
         prompt,
         templateId,
-        materialIds: selectedMaterials,
+        materialIds: [...selectedMaterials],
         llmConfig: { provider, model },
       }),
     onSuccess: (gen) => navigate(`/generations/${gen.id}`),
   });
-
-  if (tmpls.data && !templateId) {
-    const active = tmpls.data.find((t) => t.isActive);
-    if (active) setTemplateId(active.id);
-  }
 
   return (
     <section>
@@ -59,12 +70,8 @@ export function GenerationComposer() {
             <label>
               <input
                 type="checkbox"
-                checked={selectedMaterials.includes(m.id)}
-                onChange={(e) =>
-                  setSelectedMaterials((prev) =>
-                    e.target.checked ? [...prev, m.id] : prev.filter((x) => x !== m.id),
-                  )
-                }
+                checked={selectedMaterials.has(m.id)}
+                onChange={(e) => toggleMaterial(m.id, e.target.checked)}
               />{' '}
               {m.title}
             </label>

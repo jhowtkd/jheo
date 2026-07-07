@@ -4,8 +4,11 @@ import type { Finding } from '../types.js';
  * Helper that builds a fetchText mock returning the supplied raw HTML
  * for the URL the plugin is auditing, and 404 (empty body) for any
  * supporting asset. Plugin tests compose these via makeHarness.
+ *
+ * FetchScript is kept file-scoped (not exported) — only the harness
+ * consumes it, and tests pass scripts through the harness opts.
  */
-export interface FetchScript {
+interface FetchScript {
   match: (url: string) => boolean;
   respond: () => Promise<{ status: number; headers: Record<string, string>; text: string }>;
 }
@@ -29,6 +32,8 @@ export function makeAuditHarness(opts: { html: string; url: string; fetches?: Fe
   return { ctx, calls, log };
 }
 
-export function persistFindings(findings: Finding[]) {
-  return findings;
-}
+// Used by tests that import `{ type Finding }` — kept here so a single
+// import surfaces all public artifacts.
+export type { Finding };
+
+

@@ -6,5 +6,7 @@ export default defineConfig({
     globals: false,
     setupFiles: ['./test/setup.ts'],
     include: ['test/**/*.test.ts'],
+    pool: 'threads',
+    poolOptions: { threads: { minThreads: 1, maxThreads: 4 } },
   },
 });

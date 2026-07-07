@@ -1,12 +1,17 @@
 import type { AuditContext, Finding } from '../../types.js';
+import { plainTextWords } from '../derived.js';
 
 export async function checkReadability(ctx: AuditContext): Promise<Finding[]> {
-  const text = ctx.html.replace(/<[^>]+>/g, ' ').trim();
-  const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 0);
-  const words = text.split(/\s+/).filter(Boolean);
-  if (sentences.length === 0 || words.length === 0) return [];
+  const words = plainTextWords(ctx);
+  // Sentence-end detection: derived helper gives tokens; we approximate
+  // sentence count by counting tokens ending with sentence terminators.
+  const sentences = words.filter((w) => /[.!?]$/.test(w));
+  // When the worker pre-stripped, sentences array may be empty; fall back
+  // to at-least-one for the Flesch calc.
+  const sentenceCount = sentences.length > 0 ? sentences.length : Math.max(1, Math.floor(words.length / 15));
+  if (words.length === 0) return [];
   const syllables = words.reduce((acc, w) => acc + countSyllables(w), 0);
-  const wordsPerSentence = words.length / sentences.length;
+  const wordsPerSentence = words.length / sentenceCount;
   const syllablesPerWord = syllables / words.length;
   const flesch = 206.835 - 1.015 * wordsPerSentence - 84.6 * syllablesPerWord;
   if (flesch < 30) {

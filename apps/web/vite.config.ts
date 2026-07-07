@@ -8,6 +8,31 @@ export default defineConfig({
     port: 5173,
     proxy: { '/api': 'http://127.0.0.1:8080' },
   },
-  build: { outDir: 'dist', emptyOutDir: true },
-  test: { environment: 'jsdom', globals: false },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    target: 'es2020',
+    // Hidden sourcemap for prod error monitoring without shipping the full
+    // .map to end users.
+    sourcemap: 'hidden',
+    rollupOptions: {
+      output: {
+        // Long-term cache stability: separate vendor chunks so app-only
+        // changes don't invalidate React / TanStack / react-markdown.
+        manualChunks: {
+          react: ['react', 'react-dom', 'react-router-dom'],
+          query: ['@tanstack/react-query'],
+          markdown: ['react-markdown'],
+          state: ['zustand'],
+        },
+      },
+    },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: false,
+    // Cap parallel workers so heavy fixtures don't OOM in CI.
+    pool: 'threads',
+    poolOptions: { threads: { minThreads: 1, maxThreads: 4 } },
+  },
 });

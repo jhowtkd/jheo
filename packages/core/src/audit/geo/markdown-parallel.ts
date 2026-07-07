@@ -1,11 +1,8 @@
 import type { AuditContext, Finding } from '../../types.js';
+import { plainTextWords } from '../derived.js';
 
 export async function checkMarkdownParallel(ctx: AuditContext): Promise<Finding[]> {
-  const wordCount = ctx.html
-    .replace(/<[^>]+>/g, ' ')
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean).length;
+  const wordCount = plainTextWords(ctx).length;
   if (wordCount < 300) return [];
   const out: Finding[] = [];
   let res;

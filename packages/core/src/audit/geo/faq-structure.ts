@@ -1,10 +1,9 @@
 import type { AuditContext, Finding } from '../../types.js';
+import { jsonLdBlocks } from '../derived.js';
 
 export async function checkFaqStructure(ctx: AuditContext): Promise<Finding[]> {
   const out: Finding[] = [];
-  const blocks = Array.from(
-    ctx.html.matchAll(/<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi),
-  );
+  const blocks = jsonLdBlocks(ctx);
   let hasFaqSchema = false;
   for (const b of blocks) {
     try {

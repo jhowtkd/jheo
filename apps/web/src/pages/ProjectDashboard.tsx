@@ -1,16 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { useState } from 'react';
 import { ScoreCard } from '../components/ScoreCard.js';
-
-type ProjectDetail = {
-  id: string; name: string; rootUrl: string;
-  audits: { id: string; status: string; score: { overall: number; byCategory: Record<string, number | null> } | null }[];
-};
-
-async function getProject(id: string): Promise<ProjectDetail> {
-  return (await fetch(`/api/projects/${id}`)).json();
-}
+import { getProject } from '../api.js';
 
 export function ProjectDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
