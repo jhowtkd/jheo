@@ -67,10 +67,34 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
         gscSnapshot = undefined;
       }
 
+      // discoverSite yields raw { url, discoveredVia } records, not DB rows.
+      // ProjectPage has @@unique([projectId, url]) and createMany + skipDuplicates
+      // means persisted rows may pre-date this audit; resolve ids in one query so
+      // the per-page loop can stamp PageAudit rows correctly.
+      const persistedPages = await prisma.projectPage.findMany({
+        where: { projectId: project.id, url: { in: pages.map((p) => p.url) } },
+        select: { id: true, url: true },
+      });
+      const projectPageIdByUrl = new Map(persistedPages.map((p) => [p.url, p.id]));
+
       const findings: Finding[] = [];
       const scores: Array<{ overall: number; byCategory?: Record<string, number | null> }> = [];
 
       for (const page of pages) {
+        const projectPageId = projectPageIdByUrl.get(page.url);
+        if (!projectPageId) {
+          // Shouldn't happen — createMany above guarantees insertion — but
+          // skip cleanly so a missing row doesn't poison the whole audit.
+          continue;
+        }
+        const pageAudit = await prisma.pageAudit.create({
+          data: {
+            auditId: audit.id,
+            projectPageId,
+            status: 'running',
+            startedAt: new Date(),
+          },
+        });
         try {
           const htmlRes = await fetchTextDedup(page.url);
           if (htmlRes.status < 200 || htmlRes.status >= 400) throw new Error(`HTTP ${htmlRes.status}`);
@@ -86,8 +110,33 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
             ...(gscSnapshot ? { [GSC_SNAPSHOT]: gscSnapshot } : {}),
           };
           const result = await runAudit(ctx);
+          const pageScore = result.score as { overall: number; byCategory?: Record<string, number | null> };
           findings.push(...result.findings);
-          scores.push(result.score as { overall: number; byCategory?: Record<string, number | null> });
+          scores.push(pageScore);
+          const finishedAt = new Date();
+          await prisma.$transaction([
+            prisma.finding.createMany({
+              data: result.findings.map((f) => ({
+                auditId: audit.id,
+                pageAuditId: pageAudit.id,
+                category: f.category,
+                severity: f.severity,
+                rule: f.rule,
+                message: f.message,
+                url: f.url,
+                selector: f.selector ?? null,
+                evidence: f.evidence as object,
+              })),
+            }),
+            prisma.pageAudit.update({
+              where: { id: pageAudit.id },
+              data: { status: 'completed', finishedAt, score: pageScore },
+            }),
+            prisma.projectPage.update({
+              where: { id: projectPageId },
+              data: { lastAuditedAt: finishedAt },
+            }),
+          ]);
         } catch (error) {
           findings.push({
             category: 'content',
@@ -98,6 +147,15 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
             evidence: {},
           });
           scores.push({ overall: 0, byCategory: { content: 0 } });
+          await prisma.pageAudit.update({
+            where: { id: pageAudit.id },
+            data: {
+              status: 'failed',
+              finishedAt: new Date(),
+              errorMessage: error instanceof Error ? error.message : String(error),
+              score: { overall: 0, byCategory: { content: 0 } },
+            },
+          });
         }
       }
 
@@ -114,34 +172,12 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
       };
       const finishedAt = new Date();
 
-      // createMany replaces N round-trips (one per finding) with one. The
-      // combined update is run in the same statement for atomicity.
-      await prisma.$transaction([
-        ...(findings.length > 0
-          ? [
-              prisma.finding.createMany({
-                data: findings.map((f) => ({
-                  auditId: audit.id,
-                  category: f.category,
-                  severity: f.severity,
-                  rule: f.rule,
-                  message: f.message,
-                  url: f.url,
-                  selector: f.selector ?? null,
-                  evidence: f.evidence as object,
-                })),
-              }),
-            ]
-          : []),
-        prisma.audit.update({
-          where: { id: audit.id },
-          data: { status: 'completed', finishedAt, score },
-        }),
-        prisma.projectPage.updateMany({
-          where: { projectId: project.id, url: { in: pages.map((page) => page.url) } },
-          data: { lastAuditedAt: finishedAt },
-        }),
-      ]);
+      // Per-page transactions above already write findings + lastAuditedAt.
+      // All that's left is to flip the parent Audit row to 'completed'.
+      await prisma.audit.update({
+        where: { id: audit.id },
+        data: { status: 'completed', finishedAt, score },
+      });
     } catch (err) {
       await prisma.audit.update({
         where: { id: audit.id },
