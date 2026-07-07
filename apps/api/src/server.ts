@@ -233,12 +233,16 @@ if (isMain) {
   // rolling deploys don't leak FDs or leave jobs half-completed.
   // BullMQ Queue.close() also closes the underlying IORedis connection for us,
   // so we don't need to reach into the (protected) connection field directly.
+  // The FlowProducer used by the flow orchestrator is a module-level lazy
+  // singleton inside audit-job.ts; close it here via dynamic import so we
+  // keep server.ts free of a circular dependency on jobs/.
   let shuttingDown = false;
   const shutdown = async (signal: NodeJS.Signals) => {
     if (shuttingDown) return;
     shuttingDown = true;
     app.log.info({ signal }, 'shutting down');
     try {
+      const { closeFlowProducer } = await import('./jobs/audit-job.js');
       await Promise.allSettled([
         app.close(),
         auditWorker.close(),
@@ -249,6 +253,7 @@ if (isMain) {
         generateQueue.close(),
         publishQueue.close(),
         auditPageQueue.close(),
+        closeFlowProducer(),
         defaultPrisma.$disconnect(),
       ]);
     } finally {

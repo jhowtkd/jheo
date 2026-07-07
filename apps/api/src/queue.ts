@@ -139,14 +139,36 @@ export type PageAuditJobData = {
   url: string;
 };
 
+// Per spec: retry schedule is 0s (immediate), 30s, then 5min. BullMQ only
+// routes through the custom backoff function when the job-level `backoff`
+// has an unknown type — which is the trigger to look up
+// `settings.backoffStrategy` on the queue. Returning 0 from the function
+// means "retry right away" (`Job.moveToFailed` only branches into
+// moveToDelayed when `delay` is truthy). The built-in exponential/fixed
+// strategies can't express "0 then 30s then 5min", so we use this custom
+// function form.
+const auditPageBackoffStrategy = (attemptsMade: number) => {
+  if (attemptsMade <= 1) return 0;
+  if (attemptsMade === 2) return 30_000;
+  return 5 * 60_000;
+};
+
 export const auditPageQueue = new Queue<PageAuditJobData>(AUDIT_PAGE_QUEUE, {
   connection,
   defaultJobOptions: {
     attempts: 3,
-    backoff: { type: 'exponential', delay: 30_000 },
+    // `type: 'custom'` makes Backoffs.calculate invoke settings.backoffStrategy.
+    // `BackoffOptions.type` is typed as 'fixed' | 'exponential' | (string & {}),
+    // so 'custom' is structurally permitted.
+    backoff: { type: 'custom' },
     removeOnComplete: { count: 500 },
     removeOnFail: { count: 200 },
   },
+  // `settings.backoffStrategy` is read by Job.moveToFailed at runtime
+  // (`queue.opts.settings.backoffStrategy`); the public QueueOptions type
+  // only declares `settings: AdvancedRepeatOptions`, so cast to attach the
+  // function-typed custom retry policy.
+  settings: { backoffStrategy: auditPageBackoffStrategy } as never,
 });
 
 /** Concurrency cap read by server.ts when creating the Worker. */

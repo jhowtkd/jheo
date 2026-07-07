@@ -69,11 +69,32 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     const parsed = PagesQuery.safeParse(req.query);
     if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
 
-    const where: { projectId: string; lastAuditedAt?: null | { not: null }; discoveredVia?: string } = {
+    const where: {
+      projectId: string;
+      lastAuditedAt?: null | { not: null };
+      discoveredVia?: string;
+      AND?: Array<Record<string, unknown>>;
+    } = {
       projectId: project.id,
     };
+    // Base filter: synthetic pages (url starts with `synthetic://`) are
+    // harness-generated and should never appear in the user-facing
+    // /pages listing. Combine with other predicates via AND so this
+    // exclusion holds for every filter branch below.
+    const syntheticExclusion = { url: { not: { startsWith: 'synthetic://' } } };
     if (parsed.data.filter === 'not_audited') where.lastAuditedAt = null;
-    if (parsed.data.filter === 'with_error') where.lastAuditedAt = { not: null };
+    if (parsed.data.filter === 'with_error') {
+      // A page qualifies only if it has been audited AND at least one
+      // completed PageAudit record is `failed`. Use explicit AND to
+      // make the conjunction unambiguous.
+      where.AND = [
+        { lastAuditedAt: { not: null } },
+        { pageAudits: { some: { status: 'failed' } } },
+        syntheticExclusion,
+      ];
+    } else {
+      where.AND = [syntheticExclusion];
+    }
     if (parsed.data.filter?.startsWith('discovered_via:')) {
       where.discoveredVia = parsed.data.filter.split(':')[1]!;
     }
