@@ -58,18 +58,20 @@ no-ops if `pnpm` is not on the runner's PATH — F2 follow-up will harden this.)
 ```bash
 PROJ=$(curl -s -X POST http://127.0.0.1:8080/api/projects \
   -H 'content-type: application/json' \
-  -d '{"name":"example","rootUrl":"https://example.com/"}')
+  -d '{"name":"example","domain":"example.com"}')
 PID=$(echo "$PROJ" | jq -r .id)
 AUDIT=$(curl -s -X POST http://127.0.0.1:8080/api/audits \
   -H 'content-type: application/json' \
   -d "{\"projectId\":\"$PID\",\"config\":{}}")
 AID=$(echo "$AUDIT" | jq -r .id)
 sleep 8
-curl -s http://127.0.0.1:8080/api/audits/$AID | jq '{status, score, findingsCount: (.findings | length)}'
+curl -s http://127.0.0.1:8080/api/audits/$AID | jq '{status, score, findingsCount: (.findings | length), pagesAudited: .score.pagesAudited}'
+curl -s http://127.0.0.1:8080/api/projects/$PID | jq '.pages | length'
 ```
 
-Expected: `status: "completed"`, `score.overall` plus `score.byCategory` populated
-for `seo`, `cwv`, `geo`, `a11y`, `content`, and `findingsCount > 0`.
+Expected: `status: "completed"`, `score.overall` plus `score.byCategory` populated for
+`seo`, `cwv`, `geo`, `a11y`, `content`, `findingsCount > 0`, `pagesAudited ≥ 1`,
+and the project detail returns `pages.length ≥ 1`.
 
 ### Tearing down
 
