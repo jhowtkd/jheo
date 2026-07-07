@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { prisma } from '../db.js';
 import { safeFetch, UnsafeUrlError } from '../safe-fetch.js';
 import { httpUrl, isHttpUrlProtocolError } from '../validation/http-url.js';
+import { isSafeOutboundUrl } from '../security/url-guard.js';
 
 const CreateMaterialBody = z
   .object({
@@ -128,6 +129,19 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
       let title = parsed.data.title;
       let content = '';
       if (parsed.data.type === 'url') {
+        // SSRF guard (H-08): reject loopback / private / link-local targets
+        // with the spec's `unsafe_url` 422 contract before any network call.
+        // safeFetch below also blocks these, but a 422 here is clearer for
+        // API consumers than the 400/502 wrapper currently maps them to.
+        if (!(await isSafeOutboundUrl(parsed.data.source))) {
+          return reply.code(422).send({
+            error: {
+              code: 'unsafe_url',
+              message: 'URL is not safe to fetch',
+              requestId: req.id,
+            },
+          });
+        }
         try {
           const extracted = await extractUrlContent(parsed.data.source);
           if (extracted.title) title = extracted.title;

@@ -1,6 +1,7 @@
 import type { Job } from 'bullmq';
 import { aggregateReviewState, type Publisher, type PublishStatus } from '@jheo/core';
 import type { PrismaClient } from '@prisma/client';
+import { fetchWithGuard } from '../security/url-guard.js';
 
 const BACKOFF_MS: readonly number[] = [0, 30_000, 300_000];
 const MAX_ATTEMPTS_DEFAULT = 3;
@@ -50,6 +51,19 @@ export function makePublishHandler(deps: {
       return;
     }
 
+    // Wrap the worker-injected fetchFn with the SSRF guard so HttpPublisher
+    // (and any future publisher that takes a fetchFn) cannot reach
+    // loopback / private / link-local targets. Publishers that don't
+    // actually call fetchFn (WordPress, Agent) ignore the wrapper.
+    // `packages/core/src/distribution/http.ts` keeps its `fetchFn`-
+    // injection invariant — wrapping happens at the API/worker boundary,
+    // preserving the "core is infra-free" F3 rule.
+    const guardedFetchFn: typeof fetch = (input, init) =>
+      fetchWithGuard(
+        typeof input === 'string' ? input : input.toString(),
+        init,
+      ) as Promise<Response>;
+
     try {
       const fm = publish.generation.outputFrontMatter as { title?: string; slug?: string; tags?: string[]; description?: string };
       const result = await publisher.publish(
@@ -68,7 +82,7 @@ export function makePublishHandler(deps: {
           },
           config,
         },
-        deps.fetchFn,
+        guardedFetchFn,
       );
       await prisma.publish.update({
         where: { id: publish.id },
