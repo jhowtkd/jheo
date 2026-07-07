@@ -29,11 +29,31 @@ export const log = pino({
 // point and would force bogus casts).
 type ReqShape = { method: string; url?: string; id?: string };
 
+// Single source of truth for x-request-id. `requestIdHook` is the FIRST
+// `onRequest` hook registered in server.ts; it sets `req.id` from the
+// incoming header (if a valid 16-char hex) or generates a fresh one,
+// sets the response header, and stores the id on `req.id`. pino-http's
+// `genReqId` then reads `req.id` and returns it. This guarantees the
+// response header, the access log `requestId`, and `req.id` are the same
+// value — there is no parallel id-generation path.
+function deriveRequestId(req: { headers: Record<string, unknown> }): string {
+  const incoming = (req.headers['x-request-id'] as string | undefined) ?? '';
+  return isHex16(incoming) ? incoming : randomUUID().replace(/-/g, '').slice(0, 16);
+}
+
 export const httpLogger = pinoHttp({
   logger: log,
   genReqId: (req, res) => {
-    const incoming = (req.headers['x-request-id'] as string | undefined) ?? '';
-    const id = isHex16(incoming) ? incoming : randomUUID().replace(/-/g, '').slice(0, 16);
+    // `requestIdHook` runs first and sets `req.id` + the response header.
+    // We just mirror what it computed so pino-http's log record shares the
+    // same id. If `req.id` is somehow unset (hook ordering bug), fall back
+    // to a fresh generation — but only then, so the access log never lies.
+    const existing = (req as { id?: string }).id;
+    if (typeof existing === 'string' && existing.length > 0) {
+      res.setHeader('x-request-id', existing);
+      return existing;
+    }
+    const id = deriveRequestId(req as { headers: Record<string, unknown> });
     res.setHeader('x-request-id', id);
     return id;
   },
@@ -52,7 +72,14 @@ export const httpLogger = pinoHttp({
 });
 
 export function requestIdHook(req: FastifyRequest, _reply: FastifyReply, done: () => void): void {
-  if (!req.id) req.id = randomUUID().replace(/-/g, '').slice(0, 16);
+  if (!req.id) {
+    const id = deriveRequestId(req);
+    req.id = id;
+  }
+  // Always set the response header here so the contract holds even if the
+  // downstream access-log hook is reordered in the future. Cheap (header
+  // set, not generated twice).
+  _reply.header('x-request-id', req.id);
   done();
 }
 
