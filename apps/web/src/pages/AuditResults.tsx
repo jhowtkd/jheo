@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
 import { FindingList } from '../components/FindingList.js';
 import { ScoreCard } from '../components/ScoreCard.js';
-import { getAudit, type Finding } from '../api.js';
+import { getAudit, type Finding, type ProjectHealth } from '../api.js';
 
 export function AuditResults() {
   const { auditId } = useParams<{ auditId: string }>();
@@ -56,27 +56,23 @@ export function AuditResults() {
       </div>
 
       {a.score && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(220px, auto) 1fr',
-            gap: 'var(--space-4)',
-            marginBottom: 'var(--space-8)',
-            alignItems: 'stretch',
-          }}
-        >
-          <ScoreCard label="Overall" value={a.score.overall} hero />
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-              gap: 'var(--space-3)',
+        <div style={{ marginBottom: 'var(--space-8)' }}>
+          <ScoreCard
+            health={{
+              overall: a.score.overall,
+              byCategory: {
+                seo: a.score.byCategory.seo ?? null,
+                cwv: a.score.byCategory.cwv ?? null,
+                geo: a.score.byCategory.geo ?? null,
+                a11y: a.score.byCategory.a11y ?? null,
+                content: a.score.byCategory.content ?? null,
+              },
+              pagesAudited: a.score.pagesAudited ?? 0,
+              pagesTotal: 0,
+              pagesWithError: 0,
+              lastAuditAt: null,
             }}
-          >
-            {Object.entries(a.score.byCategory).map(([k, v]) => (
-              <ScoreCard key={k} label={k} value={v} />
-            ))}
-          </div>
+          />
         </div>
       )}
 

@@ -1,26 +1,55 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
+import {
+  getProject,
+  getProjectHealth,
+  getProjectPages,
+  listMaterials,
+  listChannels,
+  listGenerations,
+} from '../api.js';
 import { ScoreCard } from '../components/ScoreCard.js';
-import { getProject, listMaterials, listChannels, listGenerations } from '../api.js';
+import { FilterBar, type FilterOption } from '../components/FilterBar.js';
 
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
+type FilterValue = 'all' | 'not_audited' | 'with_error' | 'discovered_via:sitemap' | 'discovered_via:crawl' | 'discovered_via:root';
+
+const FILTER_OPTIONS: FilterOption<FilterValue>[] = [
+  { value: 'all', label: 'All' },
+  { value: 'not_audited', label: 'Not audited' },
+  { value: 'with_error', label: 'With error' },
+  { value: 'discovered_via:sitemap', label: 'Sitemap' },
+  { value: 'discovered_via:crawl', label: 'Crawl' },
+  { value: 'discovered_via:root', label: 'Root' },
+];
 
 export function ProjectDashboard() {
   const { projectId } = useParams<{ projectId: string }>();
+  const [filter, setFilter] = useState<FilterValue>('all');
+  const apiFilter = filter === 'all' ? undefined : filter;
+
   const project = useQuery({
     queryKey: ['project', projectId],
     queryFn: () => getProject(projectId!),
-    enabled: !!projectId,
+    enabled: Boolean(projectId),
     refetchInterval: 5000,
   });
+
+  const health = useQuery({
+    queryKey: ['project-health', projectId],
+    queryFn: () => getProjectHealth(projectId!),
+    enabled: Boolean(projectId),
+    refetchInterval: 5_000,
+  });
+
+  const pages = useQuery({
+    queryKey: ['project-pages', projectId, apiFilter],
+    queryFn: () => getProjectPages(projectId!, apiFilter ? { filter: apiFilter, limit: 200 } : { limit: 200 }),
+    enabled: Boolean(projectId),
+    refetchInterval: 5_000,
+  });
+
+  // Materialized sections from F2/F3 — kept for backward compatibility
   const materials = useQuery({
     queryKey: ['materials', projectId],
     queryFn: () => listMaterials(projectId!),
@@ -40,7 +69,7 @@ export function ProjectDashboard() {
     refetchInterval: 5000,
   });
 
-  if (!project.data) {
+  if (project.isPending) {
     return (
       <div className="page">
         <div className="skeleton skeleton--title" style={{ marginBottom: 'var(--space-3)' }} />
@@ -49,113 +78,99 @@ export function ProjectDashboard() {
       </div>
     );
   }
+  if (project.isError) return <p>Failed to load project.</p>;
+  if (!project.data) return <p>Not found.</p>;
 
-  const p = project.data;
-  const latest = p.audits[0];
+  const h = health.data;
+  const inFlight = (h?.pagesTotal ?? 0) - (h?.pagesAudited ?? 0) > 0;
 
   return (
-    <div className="page">
-      <div className="page__header">
+    <div className="page col" style={{ gap: 'var(--space-6)' }}>
+      {/* Header */}
+      <header className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
             <Link to="/projects" className="muted tiny">Projects</Link>
             <span className="muted tiny">/</span>
-            <span className="tiny">{p.name}</span>
+            <span className="tiny">{project.data.name}</span>
           </div>
-          <h1 className="page__title">{p.name}</h1>
-          <p className="page__subtitle mono">{p.rootUrl}</p>
+          <h1 className="page__title">{project.data.name}</h1>
+          <p className="page__subtitle mono">{project.data.rootUrl}</p>
         </div>
         <Link to={`/projects/${projectId}/audit`} className="btn btn--primary">
           Run audit
         </Link>
+      </header>
+
+      {/* Health card */}
+      <ScoreCard health={h} />
+
+      {/* Filter bar */}
+      <FilterBar value={filter} onChange={setFilter} options={FILTER_OPTIONS} />
+
+      {/* Pages table */}
+      <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+        <table className="table">
+          <thead>
+            <tr>
+              <th>URL</th>
+              <th>Source</th>
+              <th>Last audited</th>
+              <th>Score</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {pages.data?.items.map((page) => (
+              <tr key={page.id}>
+                <td>
+                  <a href={page.url} target="_blank" rel="noreferrer" className="mono">
+                    {page.url}
+                  </a>
+                </td>
+                <td>
+                  <span className={`tag tag--${page.discoveredVia}`}>{page.discoveredVia}</span>
+                </td>
+                <td>{page.lastAuditedAt ? new Date(page.lastAuditedAt).toLocaleString() : '—'}</td>
+                <td>{page.lastScore ? Math.round(page.lastScore.overall) : '—'}</td>
+                <td>
+                  <button type="button" className="btn btn--secondary btn--sm" disabled title="Coming in F5.4">
+                    Re-audit
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {pages.data?.items.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+                  No pages match this filter.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
       </div>
 
-      {/* Stat tiles */}
-      <div
+      {/* Sticky footer with audited progress */}
+      <footer
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: 'var(--space-3)',
-          marginBottom: 'var(--space-8)',
+          position: 'sticky',
+          bottom: 0,
+          padding: 'var(--space-3)',
+          background: 'var(--bg-elevated)',
+          borderTop: '1px solid var(--border)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
         }}
       >
-        <StatTile
-          label="Audits"
-          value={p.audits.length}
-          {...(latest?.status === 'completed' ? { accent: 'success' as const } : {})}
-        />
-        <StatTile label="Materials" value={materials.data?.length ?? '—'} />
-        <StatTile label="Generations" value={generations.data?.length ?? '—'} />
-        <StatTile label="Channels" value={channels.data?.length ?? '—'} />
-      </div>
+        <span className="mono">
+          {h?.pagesAudited ?? 0} / {h?.pagesTotal ?? 0} audited
+        </span>
+        {inFlight && <span className="spinner" aria-label="In progress" />}
+      </footer>
 
-      {/* Latest audit score */}
-      {latest?.score && (
-        <section style={{ marginBottom: 'var(--space-8)' }}>
-          <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
-            <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>Latest audit</h2>
-            <Link to={`/audits/${latest.id}`} className="tiny">
-              Open full report →
-            </Link>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'minmax(200px, auto) 1fr',
-              gap: 'var(--space-3)',
-              alignItems: 'stretch',
-            }}
-          >
-            <ScoreCard label="Overall" value={latest.score.overall} hero />
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-                gap: 'var(--space-3)',
-              }}
-            >
-              {Object.entries(latest.score.byCategory).map(([k, v]) => (
-                <ScoreCard key={k} label={k} value={v} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Audit history */}
-      {p.audits.length > 0 && (
-        <section style={{ marginBottom: 'var(--space-8)' }}>
-          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>Audit history</h2>
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Status</th>
-                  <th>Started</th>
-                  <th style={{ textAlign: 'right' }}>Overall</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {p.audits.map((a) => (
-                  <tr key={a.id}>
-                    <td><span className={`badge badge--${a.status}`}>{a.status}</span></td>
-                    <td className="tiny tabular muted">{a.startedAt ? formatDate(a.startedAt) : '—'}</td>
-                    <td className="tabular" style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {a.score?.overall ?? '—'}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link to={`/audits/${a.id}`} className="tiny">View →</Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-      )}
-
-      {/* Quick links */}
+      {/* Workspace quick links — preserved from F2/F3 (materials, channels, generations) */}
       <section>
         <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>Workspace</h2>
         <div
@@ -185,35 +200,6 @@ export function ProjectDashboard() {
           />
         </div>
       </section>
-    </div>
-  );
-}
-
-function StatTile({ label, value, accent }: { label: string; value: number | string; accent?: 'success' }) {
-  return (
-    <div
-      className="card"
-      style={{
-        padding: 'var(--space-4) var(--space-5)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-1)',
-      }}
-    >
-      <span className="tiny" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
-        {label}
-      </span>
-      <span
-        className="tabular"
-        style={{
-          fontSize: 'var(--fs-2xl)',
-          fontWeight: 700,
-          letterSpacing: '-0.025em',
-          color: accent === 'success' ? 'var(--accent-bright)' : 'var(--text)',
-        }}
-      >
-        {value}
-      </span>
     </div>
   );
 }
