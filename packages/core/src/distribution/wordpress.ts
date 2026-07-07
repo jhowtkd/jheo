@@ -1,5 +1,12 @@
 import type { Publisher, PublishRequest, PublishResult } from './types.js';
 
+export class WordPressPublishError extends Error {
+  constructor(public readonly status: number, public readonly bodyText: string) {
+    super(`WordPress publish failed (${status}): ${bodyText.slice(0, 200)}`);
+    this.name = 'WordPressPublishError';
+  }
+}
+
 export interface WordPressConfig {
   siteUrl: string;
   username: string;
@@ -71,6 +78,7 @@ export class WordPressPublisher implements Publisher {
       excerpt: fm.description,
       status: c.defaultStatus,
     };
+    if (req.termIds?.post_tag && req.termIds.post_tag.length > 0) body.tags = req.termIds.post_tag;
     const init: RequestInit = {
       method: 'POST',
       headers: {
@@ -82,6 +90,9 @@ export class WordPressPublisher implements Publisher {
     if (req.signal) init.signal = req.signal;
     const res = await fetchFn(url, init);
     const text = await res.text();
+    if (!res.ok && (res.status < 400 || res.status >= 500)) {
+      throw new WordPressPublishError(res.status, text);
+    }
     if (!res.ok) {
       throw new Error(`wp post ${res.status}: ${text}`);
     }

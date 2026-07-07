@@ -6,6 +6,7 @@ export interface PublishRequest {
   content: ParsedMarkdown;
   config: unknown;
   signal?: AbortSignal;
+  termIds?: Record<string, number[]>;
 }
 
 export interface PublishResult {

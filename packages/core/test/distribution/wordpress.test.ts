@@ -156,4 +156,30 @@ describe('distribution/wordpress', () => {
       ),
     ).rejects.toThrow(/403/);
   });
+
+  it('attaches term IDs as the tags field on the post body', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 7 }), { status: 201 }));
+    const wp = new WordPressPublisher();
+    await wp.publish(
+      {
+        content: sampleMarkdown,
+        config: baseConfig,
+        termIds: { category: [1, 2], post_tag: [10, 20] },
+      },
+      fetchFn,
+    );
+    const body = JSON.parse((fetchFn.mock.calls[0]?.[1] as RequestInit).body as string);
+    expect(body.tags).toEqual([10, 20]);
+  });
+
+  it('surfaces a 503 response body in WordPressPublishError', async () => {
+    const fetchFn = vi.fn().mockResolvedValue(new Response('upstream down', { status: 503 }));
+    const wp = new WordPressPublisher();
+    await expect(
+      wp.publish({ content: sampleMarkdown, config: baseConfig }, fetchFn),
+    ).rejects.toMatchObject({
+      name: 'WordPressPublishError',
+      status: 503,
+    });
+  });
 });
