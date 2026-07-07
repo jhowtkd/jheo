@@ -4,7 +4,7 @@ export type Project = { id: string; name: string; rootUrl: string; createdAt: st
 export type Audit = {
   id: string;
   projectId: string;
-  status: 'queued' | 'running' | 'completed' | 'failed';
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
   startedAt: string | null;
   finishedAt: string | null;
   score?: {
@@ -37,10 +37,97 @@ export async function createProject(input: { domain: string }): Promise<Project>
   });
   return r.json();
 }
-export type ProjectPage = { id: string; url: string; discoveredVia: 'root' | 'sitemap' | 'crawl'; lastAuditedAt: string | null };
+export type PageScore = { overall: number; byCategory: Record<string, number | null> };
+
+export type ProjectPage = {
+  id: string;
+  url: string;
+  discoveredVia: 'root' | 'sitemap' | 'crawl';
+  lastAuditedAt: string | null;
+  lastScore?: PageScore | null;
+};
+
+export type PagesResponse = {
+  total: number;
+  limit: number;
+  offset: number;
+  items: ProjectPage[];
+};
+
+// ---------- Re-audit + diff (F5.4) ----------
+export type FindingDiff = 'NEW' | 'UNCHANGED' | 'IMPROVEMENT' | 'REGRESSION';
+
+export type FindingWithDiff = {
+  id: string;
+  category: string;
+  severity: 'info' | 'warning' | 'error';
+  rule: string;
+  message: string;
+  url: string;
+  selector: string | null;
+  evidence: Record<string, unknown>;
+  previousFindingId: string | null;
+  diff: FindingDiff;
+};
+
+export type PageAuditDetail = {
+  id: string;
+  projectPageId: string;
+  url: string;
+  status: string;
+  score: { overall: number; byCategory: Record<string, number | null> } | null;
+  startedAt: string | null;
+  finishedAt: string | null;
+  errorMessage: string | null;
+  findings: FindingWithDiff[];
+  fixed: Array<{ id: string; category: string; severity: string; rule: string; message: string; url: string }>;
+};
+
+export async function reAuditPage(pageId: string): Promise<{ pageAuditId: string }> {
+  const res = await fetch(`${API}/pages/${pageId}/audit`, { method: 'POST' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error ?? `Re-audit failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+export async function getPageAuditDetail(pageAuditId: string): Promise<PageAuditDetail> {
+  const res = await fetch(`${API}/page-audits/${pageAuditId}`);
+  if (!res.ok) throw new Error(`Failed to load page audit: ${res.status}`);
+  return res.json();
+}
+
+export type ProjectHealth = {
+  overall: number | null;
+  byCategory: Record<'seo' | 'cwv' | 'geo' | 'a11y' | 'content', number | null>;
+  pagesAudited: number;
+  pagesTotal: number;
+  pagesWithError: number;
+  lastAuditAt: string | null;
+};
+
 export type ProjectDetail = Project & { audits: Audit[]; pages: ProjectPage[] };
 export async function getProject(id: string): Promise<ProjectDetail> {
   return (await fetch(`${API}/projects/${id}`)).json();
+}
+export async function getProjectPages(
+  id: string,
+  opts: { limit?: number; offset?: number; filter?: string } = {},
+): Promise<PagesResponse> {
+  const params = new URLSearchParams();
+  if (opts.limit !== undefined) params.set('limit', String(opts.limit));
+  if (opts.offset !== undefined) params.set('offset', String(opts.offset));
+  if (opts.filter) params.set('filter', opts.filter);
+  const qs = params.toString();
+  const res = await fetch(`${API}/projects/${id}/pages${qs ? `?${qs}` : ''}`);
+  if (!res.ok) throw new Error(`Failed to load pages: ${res.status}`);
+  return res.json();
+}
+export async function getProjectHealth(id: string): Promise<ProjectHealth> {
+  const res = await fetch(`${API}/projects/${id}/health`);
+  if (!res.ok) throw new Error(`Failed to load health: ${res.status}`);
+  return res.json();
 }
 export async function runAudit(projectId: string): Promise<Audit> {
   const r = await fetch(`${API}/audits`, {
@@ -53,6 +140,27 @@ export async function runAudit(projectId: string): Promise<Audit> {
 export async function getAudit(id: string): Promise<Audit & { findings: Finding[] }> {
   const r = await fetch(`${API}/audits/${id}`);
   return r.json();
+}
+
+export type AuditProgress = {
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  pagesTotal: number;
+  pagesCompleted: number;
+  pagesFailed: number;
+  pagesSkipped: number;
+  currentPages: string[];
+};
+
+export async function getAuditProgress(auditId: string): Promise<AuditProgress> {
+  const res = await fetch(`${API}/audits/${auditId}/progress`);
+  if (!res.ok) throw new Error(`Failed to load progress: ${res.status}`);
+  return res.json();
+}
+
+export async function cancelAudit(auditId: string): Promise<{ id: string; status: string }> {
+  const res = await fetch(`${API}/audits/${auditId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Failed to cancel: ${res.status}`);
+  return res.json();
 }
 
 // ---------- Materials ----------
@@ -242,7 +350,7 @@ export async function updateChannel(
   });
   return r.json();
 }
-export async function deleteChannel(id: string): Promise<{ id: string }> {
+export async function deleteChannel(id: string): Promise<Channel> {
   return (await fetch(`/api/channels/${id}`, { method: 'DELETE' })).json();
 }
 
