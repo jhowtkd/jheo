@@ -158,6 +158,13 @@ export function makeGenerateHandler(deps: {
         })),
         llmConfig,
         fetchFn: deps.fetchFn,
+        // `generation.locale` is set by the POST handler to the negotiated
+        // locale (with optional `targetLocale` override). It defaults to "en"
+        // at the Prisma layer, so it's always a real BCP-47 tag here. The
+        // core pipeline's `buildSystemPrompt` resolves the corresponding
+        // localeName (e.g. "pt-BR" → "Português (Brasil)") and emits the
+        // plain-language system prompt.
+        locale: generation.locale,
       },
       providers,
     );

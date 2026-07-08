@@ -16,6 +16,13 @@ const CreateBody = z.object({
   templateId: z.string().min(1),
   materialIds: z.array(z.string()).min(0).max(50),
   llmConfig: LlmConfigSchema,
+  /**
+   * Optional locale override. When present, the generation is rendered in
+   * this locale instead of the negotiated `req.locale`. If the override
+   * differs from `req.locale`, we also record `translatedTo` so downstream
+   * consumers can tell this is a translated artifact.
+   */
+  targetLocale: z.enum(['en', 'pt-BR']).optional(),
 });
 
 const ReviewBody = z.object({
@@ -47,6 +54,15 @@ export async function generationRoutes(app: FastifyInstance): Promise<void> {
       ]);
       if (!project) return reply.code(404).send({ error: 'project not found' });
       if (!tmpl) return reply.code(404).send({ error: 'template not found' });
+      // The requested locale: explicit override beats the negotiated one. The
+      // worker (`generate-job`) reads `generation.locale` to build the
+      // language-aware system prompt.
+      const effectiveLocale = parsed.data.targetLocale ?? req.locale;
+      // `translated` is true when the user asked for content in a language
+      // different from what they'd get by default. Drives the `translatedTo`
+      // column and the response flag the brief calls out.
+      const translated =
+        parsed.data.targetLocale !== undefined && parsed.data.targetLocale !== req.locale;
       const gen = await prisma.generation.create({
         data: {
           projectId: project.id,
@@ -57,13 +73,21 @@ export async function generationRoutes(app: FastifyInstance): Promise<void> {
           llmConfig: parsed.data.llmConfig as Prisma.InputJsonValue,
           sources: [],
           reviewState: 'draft',
+          locale: effectiveLocale,
+          // `translatedTo` is optional in the schema; under
+          // `exactOptionalPropertyTypes` spreading a `undefined` value is a
+          // type error, so build the optional key dynamically only when we
+          // actually have an override.
+          ...(translated && parsed.data.targetLocale !== undefined
+            ? { translatedTo: parsed.data.targetLocale }
+            : {}),
         },
       });
       await generateQueue.add('generate.run', { generationId: gen.id }).catch(() => {
         // If queueing fails (Redis down), mark failed.
         void prisma.generation.update({ where: { id: gen.id }, data: { status: 'failed' } });
       });
-      return gen;
+      return { ...gen, translated };
     },
   );
 
