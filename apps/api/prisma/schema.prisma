@@ -116,6 +116,7 @@ model Finding {
   previousFindingId  String?
   previousFinding    Finding?   @relation("FindingLineage", fields: [previousFindingId], references: [id])
   nextFindings       Finding[]  @relation("FindingLineage")
+  suggestions        Suggestion[]
 
   @@index([category])
   @@index([severity])
@@ -250,4 +251,26 @@ model TranslationCache {
   createdAt    DateTime @default(now())
 
   @@index([targetLocale, context])
+}
+
+model Suggestion {
+  id          String   @id @default(cuid())
+  findingId   String
+  finding     Finding  @relation(fields: [findingId], references: [id], onDelete: Cascade)
+  kind        String
+  category    String
+  before      String   @db.Text
+  after       String   @db.Text
+  confidence  String
+  rationale   String   @db.Text
+  locale      String
+  status      String   @default("pending")
+  model       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  decidedAt   DateTime?
+
+  @@unique([findingId, status])
+  @@index([findingId])
+  @@index([status])
 }
