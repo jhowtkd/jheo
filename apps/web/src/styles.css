@@ -1039,3 +1039,18 @@ h1, h2, h3, h4, h5 {
 .modal__close:hover {
   color: var(--text);
 }
+
+.lang-toggle { position: relative; display: inline-block; }
+.lang-toggle__btn {
+  display: inline-flex; align-items: center; gap: var(--space-2, 8px);
+  background: transparent; color: inherit; border: 1px solid var(--border, #333);
+  border-radius: 6px; padding: 4px 10px; cursor: pointer; font: inherit;
+}
+.lang-toggle__btn:hover { background: rgba(255,255,255,0.04); }
+.lang-toggle__menu {
+  position: absolute; right: 0; top: calc(100% + 6px);
+  background: var(--surface, #1a1a1a); border: 1px solid var(--border, #333);
+  border-radius: 6px; padding: 6px; min-width: 160px; z-index: 100;
+}
+.lang-toggle__option { display: flex; align-items: center; gap: 8px; padding: 4px 8px; cursor: pointer; }
+.lang-toggle__option:hover { background: rgba(255,255,255,0.04); }

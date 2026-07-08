@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { LanguageToggle } from './LanguageToggle.js';
 
 interface NavItem {
   to: string;
@@ -148,6 +149,7 @@ export function Layout() {
         <header className="topbar">
           <Crumb />
           <div className="topbar__actions">
+            <LanguageToggle />
             <HealthIndicator />
           </div>
         </header>

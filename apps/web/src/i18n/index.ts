@@ -4,6 +4,8 @@ import en from './en.json';
 import ptBR from './pt-BR.json';
 import { resolveInitialLocale, type SupportedLocale } from './locale';
 
+export type { SupportedLocale };
+
 let initialized = false;
 
 export async function ensureI18n(): Promise<void> {
