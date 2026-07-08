@@ -202,3 +202,61 @@ Whole-branch reviewer verdict: **Ready to merge: Yes, with one follow-up.**
 - 8/8 suggestion-route tests pass; 118 passed in apps/api suite (1 pre-existing failure unrelated)
 - typecheck clean across 3 workspaces
 - Review: spec ✅, quality Approved (with M-F7-002/003/004 noted)
+
+## F7 — Whole-branch review
+
+**Reviewer:** Sonnet (whole-branch review)
+**Verdict:** ✅ Approved with Minor (8 minors, 0 Critical, 0 Important)
+**Spec §12 acceptance criteria:** 12/12 met
+
+### Strengths (from reviewer)
+- Invariants held: `packages/core/src/suggestions/` infra-free; F5.4 delegation only; `ProjectPage.htmlSnapshot` persisted atomically.
+- Sound architecture: `@@unique([findingId, status])` + 5min supersede composition; 1:N Suggestion→Finding.
+- Type discipline: no `any`, no `as unknown as` in production source.
+- Test discipline: red→green TDD across 15 tasks.
+- i18n parity + `ensureI18n()` global benefit.
+
+### Whole-branch minor ledger (carryover from task reviews + new)
+- M-F7-001: `prisma-schema-shape-f7.test.ts` trailing newline missing (Task 1; M-001 carryover)
+- M-F7-002: `x-project-id` header not enforced (Task 6; spec §6.2 step 4 vs F3 invariant)
+- M-F7-003: `Suggestion.model` persisted as `${providerName}:unknown` (Task 6; brief-mandated)
+- M-F7-004: `htmlSnapshot` nullable on pre-existing rows (Task 6 fix; design choice)
+- M-F7-D: CWV slice regex over-escaped (Task 3; readability)
+- M-F7-E: `fixes/*` i18n file changes + 5 component files lack trailing newline (M-001 carryover)
+- M-F7-F: README F7 section lacks trailing newline (M-001 carryover)
+- M-F7-G: `SuggestionActions` button disable race (Task 12; sync handlers, no real disable)
+- M-F7-H: `FixesPage` direct `fetch` for `/api/audits/:id/findings` bypasses typed client (Task 13; consistency)
+
+### Final state (merge-ready)
+
+| Workspace | Test count | Δ vs F6 |
+|---|---|---|
+| `packages/core` | 150 passing | +29 (was 121) |
+| `apps/web` | 36 passing | +12 (was 24) |
+| `apps/api` | 128 passing, 1 pre-existing failure, 47 skipped | +21 (was 107) |
+
+- 19 F7 commits on `automatizacao-seo` (1 plan + 1 fix + 16 feature/test/docs + 1 spec + 1 plan pre-flight fix)
+- typecheck exit 0 across all 3 workspaces
+- Whole-branch reviewer: 0 Critical, 0 Important — **merge-ready**
+- 9 minors recorded in carryover ledger (not blocking)
+
+### Commits (chronological)
+1. `e4172ab` — spec
+2. `8fa04d4` — plan
+3. `f1e2cf8` — plan pre-flight fix (Task 5 model config)
+4. `fcb8a82` — Task 1: Suggestion schema + migration
+5. `7a52e0b` — Task 2: SuggestionOutput Zod schema
+6. `98e4abb` — Task 3: buildSuggestionContext
+7. `3ebc2c3` — Task 4: 6 prompt files
+8. `a4c834b` — Task 5: runSuggestion orchestrator
+9. `536eb41` — Task 6: POST/GET /api/suggestions
+10. `723c8a2` — Task 6 fix: ProjectPage.htmlSnapshot + page-audit-job write
+11. `343a00e` — Task 7: accept/reject routes
+12. `36b657a` — Task 8: rate limit test
+13. `934585e` — Task 9: i18n catalogs en/pt-BR
+14. `3f7da22` — Task 10: api.ts typed client
+15. `b807519` — Task 11: DiffView + ConfidenceChip
+16. `6a7dab6` — Task 12: FixCard + SuggestionActions + EmptyFixesState
+17. `ad28d77` — Task 13: FixesPage + sidebar + route
+18. `6c4bd16` — Task 14: cross-link on AuditResults
+19. `5779487` — Task 15: smoke E2E + README + progress.md
