@@ -68,3 +68,4 @@ export {
   type UrlInspectionRequest,
   type UrlInspectionResult,
 } from './gsc/index.js';
+export * from './suggestions/index.js';
