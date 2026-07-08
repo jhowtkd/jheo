@@ -158,3 +158,47 @@ Whole-branch reviewer verdict: **Ready to merge: Yes, with one follow-up.**
 **Tests:** 24/24 web, 121/121 core, 36/36 F6-specific api, 107/153 full api (1 pre-existing generate-job Redis fail, 46 skipped)
 **End-to-end smoke:** 11/11 against compiled server
 **Reviewer verdict:** Ready to merge
+
+## F7 — Autonomous Fix Suggester
+
+**Plan:** `docs/superpowers/plans/2026-07-08-jheo-f7-implementation.md` (15 tasks, TDD)
+**Spec:** `docs/superpowers/specs/2026-07-08-jheo-f7-autonomous-fixes-design.md`
+**Branch:** `automatizacao-seo`
+**Status:** in progress
+
+| # | Task | Status | Commit | Brief | Report | Review |
+|---|------|--------|--------|-------|--------|--------|
+| 1 | Schema + migration | ✅ DONE | fcb8a82 | task-1-brief.md | task-1-report.md | spec ✅, quality Approved |
+| 2 | suggestionOutputSchema | ✅ DONE | 7a52e0b | task-2-brief.md | task-2-report.md | spec ✅, quality Approved |
+| 3 | buildSuggestionContext | ✅ DONE | 98e4abb | task-3-brief.md | task-3-report.md | spec ✅, quality Approved |
+| 4 | 6 prompt files | ✅ DONE | 3ebc2c3 | task-4-brief.md | task-4-report.md | spec ✅, quality Approved |
+| 5 | runSuggestion | ✅ DONE | a4c834b | task-5-brief.md | task-5-report.md | spec ✅, quality Approved |
+| 6 | POST/GET /api/suggestions | ✅ DONE | 536eb41 + 723c8a2 (htmlSnapshot fix) | task-6-brief.md | task-6-report.md | spec ✅, quality Approved |
+| 7 | accept/reject routes | ✅ DONE | 343a00e | task-7-brief.md | task-7-report.md | spec ✅, quality Approved |
+| 8 | rate limit test | ✅ DONE | 36b657a | task-8-brief.md | task-8-report.md | spec ✅, quality Approved |
+| 9 | i18n catalogs en/pt-BR | ✅ DONE | 934585e | task-9-brief.md | task-9-report.md | spec ✅, quality Approved |
+| 10 | api.ts typed client | ✅ DONE | 3f7da22 | task-10-brief.md | task-10-report.md | spec ✅, quality Approved |
+| 11 | DiffView + ConfidenceChip | ✅ DONE | b807519 | task-11-brief.md | task-11-report.md | spec ✅, quality Approved |
+| 12 | FixCard + SuggestionActions + Empty | ✅ DONE | 6a7dab6 | task-12-brief.md | task-12-report.md | spec ✅, quality Approved |
+| 13 | FixesPage + sidebar + route | ✅ DONE | ad28d77 | task-13-brief.md | task-13-report.md | spec ✅, quality Approved |
+| 14 | cross-link AuditResults | ✅ DONE | 6c4bd16 | task-14-brief.md | task-14-report.md | spec ✅, quality Approved |
+| 15 | smoke E2E + README + progress | ✅ DONE | 66fa242 | task-15-brief.md | task-15-report.md | spec ✅, quality Approved |
+
+### Whole-branch minor ledger
+- M-F7-001: `prisma-schema-shape-f7.test.ts` trailing newline missing (Task 1, M-001 carryover; non-blocking)
+
+### Notes
+- Pre-existing `generate-job.test.ts` failure on this branch (last touched F4 commit 1929e8f, unrelated to F7) — carried over from F6.
+- Migration baseline fix: implementer baselined all 7 pre-existing migrations in `_prisma_migrations` so future `migrate deploy` works cleanly. Schema baseline is now consistent.
+
+### Whole-branch minor ledger (updates)
+- M-F7-001: `prisma-schema-shape-f7.test.ts` trailing newline missing (Task 1, M-001 carryover; non-blocking)
+- M-F7-002: `apps/api/src/routes/suggestions.ts` does not enforce `x-project-id` header (spec §6.2 step 4 + F3 invariant); brief did not call for it. Cross-cutting concern, F3-pattern.
+- M-F7-003: `Suggestion.model` is persisted as `${providerName}:unknown` (api layer doesn't read LLM response.model); brief-mandated, F2 pattern differs (F2 reads `res.model`).
+- M-F7-004: `htmlSnapshot` is nullable; pre-existing rows have `null`. F7 will only suggest for pages that have been re-audited after this migration. Out of scope to backfill.
+
+### Task 6 + fix complete
+- Commits: 536eb41 (Task 6 main) + 723c8a2 (fix: add htmlSnapshot to ProjectPage + migration + page-audit-job write + remove cast)
+- 8/8 suggestion-route tests pass; 118 passed in apps/api suite (1 pre-existing failure unrelated)
+- typecheck clean across 3 workspaces
+- Review: spec ✅, quality Approved (with M-F7-002/003/004 noted)

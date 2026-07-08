@@ -249,3 +249,38 @@ curl -s http://127.0.0.1:8080/api/page-audits/$PAID | jq '{findings: [.findings[
 ```
 
 Expected: findings have `diff: NEW|UNCHANGED|IMPROVEMENT|REGRESSION`; `fixed` lists findings from the prior audit that no longer appear.
+
+### Suggestions panel (F7)
+
+The `/fixes` page in the SPA turns every page-scoped finding into a
+click-to-suggest workflow:
+
+1. Pick an audit from the URL (`?auditId=...`) or follow the
+   "Suggest fix" button on a finding card in `/audits/:id`.
+2. Click "Generate suggestion" — JHEO calls the LLM with the page
+   snapshot, the finding, and (optionally) the GSC summary for that URL.
+3. The suggestion renders as a diff (inline or side-by-side) with a
+   confidence chip and a plain-language rationale.
+4. Accept → JHEO marks the suggestion `accepted` and enqueues a
+   re-audit of the page (delegated to the F5.4 re-audit primitive).
+5. Reject → marked `rejected`, no re-audit.
+6. Regenerate → a new `pending` suggestion replaces the old one
+   (the old one is `superseded`).
+
+Smoke test:
+
+```bash
+PROJ=$(curl -s -X POST http://127.0.0.1:8080/api/projects \
+  -H 'content-type: application/json' \
+  -d '{"name":"example","domain":"example.com"}')
+PID=$(echo "$PROJ" | jq -r .id)
+# ... create audit, find a page-scoped finding.id, then:
+curl -s -X POST http://127.0.0.1:8080/api/suggestions \
+  -H 'content-type: application/json' \
+  -d '{"findingId": "<finding-id>"}' | jq .
+```
+
+Limitations (F7): category-`overall` findings are blocked with 422;
+CWV suggestions are textual (not snippet-style); rationale language
+follows the operator's UI locale but is not post-translated via
+`/api/translate`.
