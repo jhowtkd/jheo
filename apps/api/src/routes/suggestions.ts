@@ -128,4 +128,52 @@ export const suggestionRoutes: FastifyPluginAsync<SuggestionDeps> = async (
     if (!s) return reply.code(404).send({ error: 'not found' });
     return reply.send(s);
   });
+
+  app.post<{ Params: { id: string } }>('/api/suggestions/:id/accept', async (req, reply) => {
+    const s = await deps.prisma.suggestion.findUnique({
+      where: { id: req.params.id },
+      include: { finding: { include: { pageAudit: { include: { projectPage: true } } } } },
+    });
+    if (!s) return reply.code(404).send({ error: 'not found' });
+    if (s.status !== 'pending') return reply.code(409).send({ error: 'ALREADY_DECIDED' });
+
+    const updated = await deps.prisma.suggestion.update({
+      where: { id: s.id },
+      data: { status: 'accepted', decidedAt: new Date() },
+    });
+
+    // Delegate to F5.4 re-audit primitive. We use the running app's injector
+    // so the request is scoped to the same project chain (server-derived).
+    const pageId = s.finding.pageAudit?.projectPageId;
+    if (!pageId) return reply.code(422).send({ error: 'FINDING_NOT_PAGE_SCOPED' });
+    let reAuditId: string | null = null;
+    try {
+      const r = await app.inject({ method: 'POST', url: `/api/pages/${pageId}/audit`, payload: {} });
+      if (r.statusCode === 200) {
+        reAuditId = r.json().pageAuditId ?? null;
+      } else if (r.statusCode === 409) {
+        // In-progress re-audit — fetch the existing one.
+        const existing = await deps.prisma.pageAudit.findFirst({
+          where: { projectPageId: pageId, status: { in: ['queued', 'running'] } },
+        });
+        reAuditId = existing?.id ?? null;
+      } else {
+        return reply.code(502).send({ error: 'REAUDIT_ENQUEUE_FAILED', detail: r.body });
+      }
+    } catch (e) {
+      return reply.code(502).send({ error: 'REAUDIT_ENQUEUE_FAILED', detail: String(e) });
+    }
+    return reply.send({ suggestion: updated, reAuditId });
+  });
+
+  app.post<{ Params: { id: string } }>('/api/suggestions/:id/reject', async (req, reply) => {
+    const s = await deps.prisma.suggestion.findUnique({ where: { id: req.params.id } });
+    if (!s) return reply.code(404).send({ error: 'not found' });
+    if (s.status !== 'pending') return reply.code(409).send({ error: 'ALREADY_DECIDED' });
+    const updated = await deps.prisma.suggestion.update({
+      where: { id: s.id },
+      data: { status: 'rejected', decidedAt: new Date() },
+    });
+    return reply.send(updated);
+  });
 };
