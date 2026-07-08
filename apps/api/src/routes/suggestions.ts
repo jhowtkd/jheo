@@ -49,12 +49,7 @@ export const suggestionRoutes: FastifyPluginAsync<SuggestionDeps> = async (
       include: { pageAudit: { include: { projectPage: true } } },
     });
     if (!finding) return reply.code(404).send({ error: 'not found' });
-    // F7's `htmlSnapshot` column is a forward-compat field; the underlying
-    // Prisma `ProjectPage` doesn't carry it yet. The route casts the related
-    // `projectPage` so the test mock's `htmlSnapshot` works at runtime. A
-    // later task adds the column to the schema.
-    type PageRow = { id: string; url: string; htmlSnapshot: string | null };
-    const page = (finding.pageAudit?.projectPage ?? null) as unknown as PageRow | null;
+    const page = finding.pageAudit?.projectPage ?? null;
     if (!page) return reply.code(422).send({ error: 'FINDING_NOT_PAGE_SCOPED' });
     if (!page.htmlSnapshot) return reply.code(422).send({ error: 'PAGE_HTML_MISSING' });
 

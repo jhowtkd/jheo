@@ -116,7 +116,7 @@ export function makePageAuditHandler(opts: { fetchText: FetchText }) {
         }),
         prisma.projectPage.update({
           where: { id: projectPageId },
-          data: { lastAuditedAt: finishedAt },
+          data: { lastAuditedAt: finishedAt, htmlSnapshot: htmlRes.text },
         }),
       ]);
     } catch (error) {
