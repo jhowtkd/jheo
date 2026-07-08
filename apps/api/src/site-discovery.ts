@@ -35,7 +35,7 @@ function links(html: string, base: URL): string[] {
 export async function discoverSite(
   rootUrl: string,
   fetchText: FetchText,
-  maxPages = 500,
+  maxPages = 0,
 ): Promise<DiscoveredPage[]> {
   const root = new URL(rootUrl);
   root.hash = '';
@@ -53,7 +53,7 @@ export async function discoverSite(
     // /sitemap.xml remains the conventional fallback.
   }
 
-  while (sitemapQueue.length && found.size < maxPages && seenSitemaps.size < 50) {
+  while (sitemapQueue.length && (maxPages === 0 || found.size < maxPages) && seenSitemaps.size < 50) {
     const sitemapUrl = sitemapQueue.shift()!;
     if (seenSitemaps.has(sitemapUrl)) continue;
     seenSitemaps.add(sitemapUrl);
@@ -71,7 +71,7 @@ export async function discoverSite(
           }
         } else {
           const url = internalUrl(raw, root);
-          if (url && found.size < maxPages && !found.has(url)) found.set(url, 'sitemap');
+          if (url && (maxPages === 0 || found.size < maxPages) && !found.has(url)) found.set(url, 'sitemap');
         }
       }
     } catch {
@@ -82,7 +82,7 @@ export async function discoverSite(
   if (found.size === 1) {
     const crawlQueue = [root.toString()];
     const crawled = new Set<string>();
-    while (crawlQueue.length && found.size < maxPages) {
+    while (crawlQueue.length && (maxPages === 0 || found.size < maxPages)) {
       const url = crawlQueue.shift()!;
       if (crawled.has(url)) continue;
       crawled.add(url);
@@ -90,7 +90,7 @@ export async function discoverSite(
         const response = await fetchText(url, { headers: { Accept: 'text/html' } });
         if (response.status < 200 || response.status >= 400) continue;
         for (const next of links(response.text, new URL(url))) {
-          if (!found.has(next) && found.size < maxPages) {
+          if (!found.has(next) && (maxPages === 0 || found.size < maxPages)) {
             found.set(next, 'crawl');
             crawlQueue.push(next);
           }

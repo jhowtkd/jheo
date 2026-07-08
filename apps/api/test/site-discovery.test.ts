@@ -32,4 +32,22 @@ describe('discoverSite', () => {
       'https://example.com/b',
     ]);
   });
+
+  it('with maxPages=0 discovers all internal links (no cap)', async () => {
+    const fetchText = vi.fn(async (url: string) => {
+      if (url.endsWith('/sitemap.xml')) return response('', 404);
+      if (url.endsWith('/')) return response('<a href="/a">A</a><a href="/b">B</a>');
+      if (url.endsWith('/a')) return response('<a href="/c">C</a>');
+      return response('');
+    });
+
+    const pages = await discoverSite('https://example.com/', fetchText, 0);
+    const urls = pages.map((p) => p.url).sort();
+    expect(urls).toEqual([
+      'https://example.com/',
+      'https://example.com/a',
+      'https://example.com/b',
+      'https://example.com/c',
+    ]);
+  });
 });

@@ -17,6 +17,12 @@ function domainUrl(input: string): URL {
   return new URL('/', url.origin);
 }
 
+const PagesQuery = z.object({
+  limit: z.coerce.number().int().min(1).max(200).default(50),
+  offset: z.coerce.number().int().min(0).default(0),
+  filter: z.enum(['not_audited', 'with_error', 'discovered_via:root', 'discovered_via:sitemap', 'discovered_via:crawl']).optional(),
+});
+
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
   app.get('/api/projects', async (_req, reply) => {
     reply.header('cache-control', 'private, max-age=15');
@@ -53,5 +59,110 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     });
     if (!project) return reply.code(404).send({ error: 'not found' });
     return project;
+  });
+
+  app.get<{ Params: { id: string }; Querystring: { limit?: string; offset?: string; filter?: string } }>('/api/projects/:id/pages', async (req, reply) => {
+    reply.header('cache-control', 'private, max-age=5');
+    const project = await prisma.project.findUnique({ where: { id: req.params.id } });
+    if (!project) return reply.code(404).send({ error: 'not found' });
+
+    const parsed = PagesQuery.safeParse(req.query);
+    if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+
+    const where: {
+      projectId: string;
+      lastAuditedAt?: null | { not: null };
+      discoveredVia?: string;
+      AND?: Array<Record<string, unknown>>;
+    } = {
+      projectId: project.id,
+    };
+    // Base filter: synthetic pages (url starts with `synthetic://`) are
+    // harness-generated and should never appear in the user-facing
+    // /pages listing. Combine with other predicates via AND so this
+    // exclusion holds for every filter branch below.
+    const syntheticExclusion = { url: { not: { startsWith: 'synthetic://' } } };
+    if (parsed.data.filter === 'not_audited') where.lastAuditedAt = null;
+    if (parsed.data.filter === 'with_error') {
+      // A page qualifies only if it has been audited AND at least one
+      // completed PageAudit record is `failed`. Use explicit AND to
+      // make the conjunction unambiguous.
+      where.AND = [
+        { lastAuditedAt: { not: null } },
+        { pageAudits: { some: { status: 'failed' } } },
+        syntheticExclusion,
+      ];
+    } else {
+      where.AND = [syntheticExclusion];
+    }
+    if (parsed.data.filter?.startsWith('discovered_via:')) {
+      where.discoveredVia = parsed.data.filter.split(':')[1]!;
+    }
+
+    const [pages, total] = await Promise.all([
+      prisma.projectPage.findMany({
+        where,
+        orderBy: { url: 'asc' },
+        take: parsed.data.limit,
+        skip: parsed.data.offset,
+        include: {
+          pageAudits: {
+            where: { status: 'completed' },
+            orderBy: { finishedAt: 'desc' },
+            take: 1,
+            select: { score: true, finishedAt: true },
+          },
+        },
+      }),
+      prisma.projectPage.count({ where }),
+    ]);
+
+    return {
+      total,
+      limit: parsed.data.limit,
+      offset: parsed.data.offset,
+      items: pages.map((p) => ({
+        id: p.id,
+        url: p.url,
+        discoveredVia: p.discoveredVia,
+        lastAuditedAt: p.lastAuditedAt,
+        lastScore: p.pageAudits[0]?.score ?? null,
+      })),
+    };
+  });
+
+  app.get<{ Params: { id: string } }>('/api/projects/:id/health', async (req, reply) => {
+    reply.header('cache-control', 'private, max-age=5');
+    const project = await prisma.project.findUnique({ where: { id: req.params.id } });
+    if (!project) return reply.code(404).send({ error: 'not found' });
+
+    const lastAudit = await prisma.audit.findFirst({
+      where: { projectId: project.id, status: 'completed' },
+      orderBy: { finishedAt: 'desc' },
+    });
+
+    const [pagesTotal, pagesWithError] = await Promise.all([
+      prisma.projectPage.count({ where: { projectId: project.id } }),
+      prisma.projectPage.count({
+        where: {
+          projectId: project.id,
+          lastAuditedAt: { not: null },
+          pageAudits: { some: { status: 'failed' } },
+        },
+      }),
+    ]);
+
+    const score = (lastAudit?.score ?? null) as
+      | { overall: number; byCategory: Record<string, number | null>; pagesAudited: number }
+      | null;
+
+    return {
+      overall: score?.overall ?? null,
+      byCategory: score?.byCategory ?? { seo: null, cwv: null, geo: null, a11y: null, content: null },
+      pagesAudited: score?.pagesAudited ?? 0,
+      pagesTotal,
+      pagesWithError,
+      lastAuditAt: lastAudit?.finishedAt ?? null,
+    };
   });
 }

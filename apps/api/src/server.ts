@@ -1,5 +1,6 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
+import { Worker } from 'bullmq';
 import {
   OpenAIEmbeddingProvider,
   OpenAIProvider,
@@ -25,6 +26,7 @@ import { generationRoutes } from './routes/generations.js';
 import { channelRoutes } from './routes/channels.js';
 import { gscRoutes } from './routes/gsc.js';
 import { publishRoutes } from './routes/publishes.js';
+import { pageRoutes } from './routes/pages.js';
 import {
   startWorkers,
   startGenerateWorkers,
@@ -34,7 +36,11 @@ import {
   auditQueue,
   generateQueue,
   gscQueue,
+  auditPageQueue,
+  auditPageConcurrency,
+  type PageAuditJobData,
 } from './queue.js';
+import { makePageAuditHandler } from './jobs/page-audit-job.js';
 import { prisma as defaultPrisma } from './db.js';
 import { httpAccessLogHook, requestIdHook } from './log.js';
 import { startGscCron } from './gsc-cron.js';
@@ -145,6 +151,7 @@ export async function buildServer() {
   await app.register(channelRoutes);
   await app.register(gscRoutes);
   await app.register(publishRoutes);
+  await app.register(pageRoutes);
   return app;
 }
 
@@ -153,6 +160,17 @@ if (isMain) {
   const env = loadEnv();
   ensureSecretKey(process.cwd());
   const auditWorker = startWorkers(fetchText);
+  const pageAuditWorker = new Worker<PageAuditJobData>(
+    'auditPage',
+    makePageAuditHandler({ fetchText }),
+    {
+      connection: {
+        host: process.env.REDIS_HOST ?? '127.0.0.1',
+        port: Number(process.env.REDIS_PORT ?? 6379),
+      },
+      concurrency: auditPageConcurrency,
+    },
+  );
 
   // Resolve API keys: prefer encrypted Setting rows, fall back to env vars.
   async function resolveKey(providerEnv: string, settingKey: string): Promise<string | undefined> {
@@ -257,15 +275,20 @@ if (isMain) {
   // rolling deploys don't leak FDs or leave jobs half-completed.
   // BullMQ Queue.close() also closes the underlying IORedis connection for us,
   // so we don't need to reach into the (protected) connection field directly.
+  // The FlowProducer used by the flow orchestrator is a module-level lazy
+  // singleton inside audit-job.ts; close it here via dynamic import so we
+  // keep server.ts free of a circular dependency on jobs/.
   let shuttingDown = false;
   const shutdown = async (signal: NodeJS.Signals) => {
     if (shuttingDown) return;
     shuttingDown = true;
     app.log.info({ signal }, 'shutting down');
     try {
+      const { closeFlowProducer } = await import('./jobs/audit-job.js');
       await Promise.allSettled([
         app.close(),
         auditWorker.close(),
+        pageAuditWorker.close(),
         generateWorker.close(),
         publishWorker.close(),
         gscWorker?.close(),
@@ -274,6 +297,8 @@ if (isMain) {
         generateQueue.close(),
         publishQueue.close(),
         gscQueue.close(),
+        auditPageQueue.close(),
+        closeFlowProducer(),
         defaultPrisma.$disconnect(),
       ]);
     } finally {

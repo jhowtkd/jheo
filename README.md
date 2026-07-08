@@ -58,18 +58,47 @@ no-ops if `pnpm` is not on the runner's PATH — F2 follow-up will harden this.)
 ```bash
 PROJ=$(curl -s -X POST http://127.0.0.1:8080/api/projects \
   -H 'content-type: application/json' \
-  -d '{"name":"example","rootUrl":"https://example.com/"}')
+  -d '{"name":"example","domain":"example.com"}')
 PID=$(echo "$PROJ" | jq -r .id)
 AUDIT=$(curl -s -X POST http://127.0.0.1:8080/api/audits \
   -H 'content-type: application/json' \
   -d "{\"projectId\":\"$PID\",\"config\":{}}")
 AID=$(echo "$AUDIT" | jq -r .id)
 sleep 8
-curl -s http://127.0.0.1:8080/api/audits/$AID | jq '{status, score, findingsCount: (.findings | length)}'
+curl -s http://127.0.0.1:8080/api/audits/$AID | jq '{status, score, findingsCount: (.findings | length), pagesAudited: .score.pagesAudited}'
+curl -s http://127.0.0.1:8080/api/projects/$PID | jq '.pages | length'
 ```
 
-Expected: `status: "completed"`, `score.overall` plus `score.byCategory` populated
-for `seo`, `cwv`, `geo`, `a11y`, `content`, and `findingsCount > 0`.
+Expected: `status: "completed"`, `score.overall` plus `score.byCategory` populated for
+`seo`, `cwv`, `geo`, `a11y`, `content`, `findingsCount > 0`, `pagesAudited ≥ 1`,
+and the project detail returns `pages.length ≥ 1`.
+
+### Mapping UX (F5.2)
+
+```bash
+# After creating a project (see Smoke test above):
+PID=<project-id>
+curl -s "http://127.0.0.1:8080/api/projects/$PID/health" | jq
+curl -s "http://127.0.0.1:8080/api/projects/$PID/pages?filter=not_audited" | jq '.total'
+```
+
+Expected: `/health` returns `{overall: null|number, byCategory: {...}, pagesAudited, pagesTotal, pagesWithError, lastAuditAt}`; `/pages?filter=not_audited` returns the count of pages that have never been audited.
+
+### Parallel audit + cancel (F5.3)
+
+```bash
+PID=<project-id>
+AUDIT=$(curl -s -X POST http://127.0.0.1:8080/api/audits \
+  -H 'content-type: application/json' \
+  -d "{\"projectId\":\"$PID\"}")
+AID=$(echo "$AUDIT" | jq -r .id)
+# Poll progress
+for i in 1 2 3 4 5; do curl -s http://127.0.0.1:8080/api/audits/$AID/progress | jq .; sleep 2; done
+# Cancel
+curl -s -X DELETE http://127.0.0.1:8080/api/audits/$AID | jq .
+```
+
+Expected: `pagesCompleted` advances; `DELETE` returns `status: "cancelled"`; the audit halts within ≤ 5s.
 
 ### Tearing down
 
@@ -207,3 +236,16 @@ curl http://127.0.0.1:8080/api/generations/<gid>/publishes
 ```
 
 Agent bundles are written to `/data/agent-bundles/<publishId>/` inside the container. The `docker-compose.yml` from F1 already mounts `/data` as a volume; no further config needed.
+
+### Re-audit + delta (F5.4)
+
+```bash
+PID=<project-id>
+PAGEID=$(curl -s http://127.0.0.1:8080/api/projects/$PID | jq -r '.pages[0].id')
+RA=$(curl -s -X POST http://127.0.0.1:8080/api/pages/$PAGEID/audit)
+PAID=$(echo "$RA" | jq -r .pageAuditId)
+sleep 5
+curl -s http://127.0.0.1:8080/api/page-audits/$PAID | jq '{findings: [.findings[] | {rule, diff}], fixed}'
+```
+
+Expected: findings have `diff: NEW|UNCHANGED|IMPROVEMENT|REGRESSION`; `fixed` lists findings from the prior audit that no longer appear.
