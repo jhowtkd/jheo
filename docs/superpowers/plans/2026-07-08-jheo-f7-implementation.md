@@ -1203,9 +1203,14 @@ export async function runSuggestion(
   void buildOverallPrompt;
 
   const prompt = selectPrompt(ctx);
+  // `LLMProvider` doesn't carry its own model name — the model is a config
+  // choice the caller (api layer) supplies. The api layer threads the real
+  // model name into the persisted `Suggestion.model` field after the call
+  // returns. Here we send a default that the provider may ignore; OpenAI
+  // for example uses `req.config.model` as the deployment name.
   const req: LLMRequest = {
     prompt,
-    config: { model: provider === undefined ? 'unknown' : 'gpt-4o-mini' },
+    config: { model: 'gpt-4o-mini' },
   };
   const res = await provider.complete(req, globalThis.fetch);
   const parsed = tryParseJson(res.text);
