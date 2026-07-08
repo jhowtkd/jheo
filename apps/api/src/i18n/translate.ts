@@ -10,6 +10,8 @@ export type TranslateDeps = {
   prisma: PrismaClient;
   llmProviders: Record<'openai' | 'anthropic' | 'openrouter', LLMProvider>;
   fetchFn: typeof fetch;
+  /** Optional logger for internal warnings (e.g. splitTranslations truncation). */
+  logFn?: (msg: string) => void;
 };
 
 export type TranslateInput = {
@@ -29,12 +31,23 @@ function makeCacheKey(text: string, locale: SupportedLocale, ctx: TranslateConte
 /**
  * Split a single LLM response into one translation per input line.
  * Empty lines are preserved as empty (the caller filters them).
+ *
+ * If the LLM returns fewer lines than expected, the trailing slots fall back
+ * to the original English silently (see the caller's `translated[i] ?? t.text`).
+ * A warning is logged in that case so the silent degradation is visible in
+ * operator logs.
  */
-function splitTranslations(blob: string, expected: number): string[] {
+function splitTranslations(blob: string, expected: number, log?: (msg: string) => void): string[] {
   const lines = blob.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
   if (lines.length === expected) return lines;
   // Defensive: the LLM sometimes adds a trailing explanation. Trim until we
   // have at least `expected` non-empty lines, or fall back to the whole blob.
+  if (lines.length < expected) {
+    (log ?? console.warn)(
+      `[i18n] splitTranslations: expected ${expected} line(s), got ${lines.length}; ` +
+        `missing slots will fall back to the original text.`,
+    );
+  }
   return lines.slice(0, expected);
 }
 
@@ -91,7 +104,7 @@ export async function translateBatch(
       config: { model: 'gpt-4o-mini', temperature: 0.2 },
     };
     const res = await provider.complete(req, deps.fetchFn);
-    const translated = splitTranslations(res.text, toTranslate.length);
+    const translated = splitTranslations(res.text, toTranslate.length, deps.logFn);
 
     await Promise.all(
       toTranslate.map(async (t, i) => {

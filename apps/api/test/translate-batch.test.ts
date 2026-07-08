@@ -37,10 +37,11 @@ function spyProvider(text: string): LLMProvider {
   return { ...p, complete: spy as any };
 }
 
-const deps = (prisma: any, provider: LLMProvider) => ({
+const deps = (prisma: any, provider: LLMProvider, logFn?: (msg: string) => void) => ({
   prisma,
   llmProviders: { openai: provider, anthropic: provider, openrouter: provider },
   fetchFn: globalThis.fetch,
+  logFn,
 });
 
 describe('translateBatch', () => {
@@ -147,5 +148,42 @@ describe('translateBatch', () => {
       translated: 'A2',
       cached: false,
     });
+  });
+
+  it('falls back to original texts when the LLM returns fewer lines than expected, and logs a warning', async () => {
+    // Regression for the silent fallback in splitTranslations. The LLM
+    // returned only one translation line for a 3-text batch; the function
+    // must still produce 3 result rows, with slots 2 and 3 falling back to
+    // their original English text, and a warning must be surfaced via the
+    // optional logFn.
+    const log = vi.fn();
+    const provider = spyProvider('Apenas uma linha traduzida.');
+    const out = await translateBatch(deps(prisma, provider, log), {
+      texts: ['First text.', 'Second text.', 'Third text.'],
+      targetLocale: 'pt-BR',
+      context: 'finding',
+    });
+    expect(out.translations).toHaveLength(3);
+    expect(out.translations[0]).toEqual({
+      original: 'First text.',
+      translated: 'Apenas uma linha traduzida.',
+      cached: false,
+    });
+    // Slots 2 and 3 silently fall back to the original English.
+    expect(out.translations[1]).toEqual({
+      original: 'Second text.',
+      translated: 'Second text.',
+      cached: false,
+    });
+    expect(out.translations[2]).toEqual({
+      original: 'Third text.',
+      translated: 'Third text.',
+      cached: false,
+    });
+    // The operator must see this in logs.
+    expect(log).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('splitTranslations'));
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('expected 3'));
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('got 1'));
   });
 });

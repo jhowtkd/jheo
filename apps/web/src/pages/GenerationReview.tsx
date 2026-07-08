@@ -99,9 +99,12 @@ export function GenerationReview() {
         <div className="gen-grid">
           <article className="gen-grid__body">
             <ReactMarkdown>{renderedBody ?? ''}</ReactMarkdown>
-            {bodyError && (
-              <span className="translation-unavailable" aria-label={t('topbar.translationUnavailable')}> ↻</span>
-            )}
+            {bodyError && (() => {
+              const label = t(`errors.${bodyError}`, { defaultValue: t('topbar.translationUnavailable') });
+              return (
+                <span className="translation-unavailable" aria-label={label} title={label}> ↻</span>
+              );
+            })()}
           </article>
 
           <aside className="col">

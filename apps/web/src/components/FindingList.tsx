@@ -19,6 +19,18 @@ type FixedItem = {
   url: string;
 };
 
+type TranslationError = 'no_llm_provider' | 'rate_limited' | null;
+
+/**
+ * Build a translation key for the given error code, or empty if none.
+ * The parity test guarantees `errors.no_llm_provider` and `errors.rate_limited`
+ * exist in both catalogs, so callers can render `t(errorLabel(error))` directly.
+ */
+function errorKey(error: TranslationError): string {
+  if (!error) return '';
+  return `errors.${error}`;
+}
+
 export type FindingListItem = FindingWithOptionalDiff;
 
 interface Props {
@@ -124,6 +136,7 @@ function FindingCard({
   error: 'no_llm_provider' | 'rate_limited' | null;
   translationUnavailableLabel: string;
 }) {
+  const { t } = useTranslation();
   const url = (() => {
     try {
       return (
@@ -135,6 +148,7 @@ function FindingCard({
     }
   })();
   const messageText = translated.get(finding.message) ?? finding.message;
+  const errorText = error ? (t(errorKey(error), { defaultValue: translationUnavailableLabel })) : '';
   return (
     <article className="finding">
       <div className={'finding__sev ' + SEV_CLASS[finding.severity]}>
@@ -150,7 +164,7 @@ function FindingCard({
         <div className="finding__msg">
           {messageText}
           {error && (
-            <span className="translation-unavailable" aria-label={translationUnavailableLabel}> ↻</span>
+            <span className="translation-unavailable" aria-label={errorText} title={errorText}> ↻</span>
           )}
         </div>
       </div>

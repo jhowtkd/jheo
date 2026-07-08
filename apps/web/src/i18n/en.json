@@ -1,6 +1,11 @@
 {
   "app": { "name": "JHEO", "tagline": "GEO · SEO · content" },
   "nav": { "projects": "Projects", "templates": "Templates", "settings": "Settings" },
+  "sidebar": {
+    "workspace": "Workspace",
+    "userName": "Local user",
+    "userMeta": "single-user · v0.1.0"
+  },
   "topbar": {
     "api": "API",
     "down": "down",
