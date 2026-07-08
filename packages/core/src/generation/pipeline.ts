@@ -17,6 +17,13 @@ export interface GenerationContext {
   llmConfig: { provider: string; model: string; temperature?: number; maxTokens?: number };
   fetchFn: typeof fetch;
   signal?: AbortSignal;
+  /**
+   * BCP-47 locale tag (e.g. "en", "pt-BR"). When set, `runGeneration` builds a
+   * plain-language system prompt tailored to this locale — see
+   * `buildSystemPrompt`. Optional for backward compat with existing callers
+   * that don't yet plumb a locale.
+   */
+  locale?: string;
 }
 
 export interface GenerationResult {
@@ -33,6 +40,34 @@ export interface GenerationProviders {
 
 const PLACEHOLDER_RE = /\{\{(\w+)\}\}/g;
 
+/**
+ * Human-readable names for locales we know about. Keep this list small and
+ * intentional — adding a locale means committing to producing a clean
+ * plain-language prompt for it. Unknown locales fall back to the bare tag
+ * (e.g. "ja-JP"), which keeps the prompt well-formed without lying about
+ * fluency. The keys are the same BCP-47 tags used on the wire.
+ */
+const LOCALE_NAMES: Record<string, string> = {
+  en: 'English',
+  'pt-BR': 'Português (Brasil)',
+};
+
+/**
+ * Build a system prompt that tells the LLM (a) which locale to write in and
+ * (b) to use the project's plain-language register. The register text comes
+ * verbatim from the F6 spec §4.4 and is the source of truth for the project's
+ * voice — keep them in sync.
+ *
+ * This function lives in `@jheo/core` (not in `apps/api`) deliberately:
+ * generation is core's responsibility, and a unit test for "what does the
+ * system prompt look like in pt-BR?" belongs in core too. Core has no i18n
+ * config dependency — it takes a locale string and returns a string.
+ */
+export function buildSystemPrompt(locale: string): string {
+  const localeName = LOCALE_NAMES[locale] ?? locale;
+  return `You are writing in ${localeName} (${locale}). Write in plain language: short sentences, everyday words, no marketing jargon, no enterprise vocabulary, no "execute" / "leverage" / "utilize". The content will be read by people with limited formal education, so clarity matters more than cleverness.`;
+}
+
 function substitute(template: string, vars: Record<string, string>): string {
   return template.replace(PLACEHOLDER_RE, (_, key: string) => {
     if (!(key in vars)) throw new Error(`unresolved template placeholder {{${key}}}`);
@@ -40,7 +75,7 @@ function substitute(template: string, vars: Record<string, string>): string {
   });
 }
 
-function buildPrompt(ctx: GenerationContext): { prompt: string; system?: string } {
+function buildPrompt(ctx: GenerationContext): { prompt: string; system: string | undefined } {
   const sourcesJson = JSON.stringify(
     ctx.retrievedMaterials.map((m) => ({ id: m.id, title: m.title, excerpt: m.excerpt })),
   );
@@ -53,7 +88,12 @@ function buildPrompt(ctx: GenerationContext): { prompt: string; system?: string 
     sources: sourcesJson,
     outputSchemaDescription: schemaDesc,
   });
-  return { prompt };
+  // When `locale` is set, attach the plain-language system prompt. Absent
+  // `locale` leaves `system` undefined so the request is unchanged from the
+  // pre-F6 behaviour — backward compat for callers that haven't been
+  // migrated yet (e.g. unit tests pinning the old request shape).
+  const system = ctx.locale !== undefined ? buildSystemPrompt(ctx.locale) : undefined;
+  return { prompt, system };
 }
 
 const CORRECTIVE_SUFFIX =

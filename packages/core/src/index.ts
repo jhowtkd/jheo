@@ -25,6 +25,7 @@ export type {
 } from './llm/types.js';
 export {
   runGeneration,
+  buildSystemPrompt,
   type RetrievedMaterial,
   type GenerationContext,
   type GenerationResult,
