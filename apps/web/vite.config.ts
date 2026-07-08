@@ -34,6 +34,9 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: false,
+    // Wire up the jsdom Storage shim — see test/setup.ts for the Node 24+
+    // localStorage polyfill workaround.
+    setupFiles: ['./test/setup.ts'],
     // Cap parallel workers so heavy fixtures don't OOM in CI.
     pool: 'threads',
     poolOptions: { threads: { minThreads: 1, maxThreads: 4 } },
