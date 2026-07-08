@@ -527,3 +527,60 @@ export async function translateTexts(
   const body = await res.json();
   return body.translations;
 }
+
+// ---------- F7: suggestions ----------
+
+export type SuggestionConfidence = 'low' | 'medium' | 'high';
+export type SuggestionStatus = 'pending' | 'accepted' | 'rejected' | 'superseded';
+export type SuggestionLocale = 'en' | 'pt-BR';
+
+export type Suggestion = {
+  id: string;
+  findingId: string;
+  kind: string;
+  category: string;
+  before: string;
+  after: string;
+  confidence: SuggestionConfidence;
+  rationale: string;
+  locale: SuggestionLocale;
+  status: SuggestionStatus;
+  model: string;
+  createdAt: string;
+  updatedAt: string;
+  decidedAt: string | null;
+};
+
+export type CreateSuggestionInput = {
+  findingId: string;
+  locale?: SuggestionLocale;
+};
+
+export type AcceptSuggestionResult = {
+  suggestion: Suggestion;
+  reAuditId: string | null;
+};
+
+export async function createSuggestion(input: CreateSuggestionInput): Promise<Suggestion> {
+  return (await localeFetch('/api/suggestions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  }).then((r) => r.json())) as Suggestion;
+}
+
+export async function listSuggestions(findingId: string): Promise<Suggestion[]> {
+  return (await localeFetch(`/api/suggestions?findingId=${encodeURIComponent(findingId)}`).then((r) => r.json())) as Suggestion[];
+}
+
+export async function getSuggestion(id: string): Promise<Suggestion> {
+  return (await localeFetch(`/api/suggestions/${id}`).then((r) => r.json())) as Suggestion;
+}
+
+export async function acceptSuggestion(id: string): Promise<AcceptSuggestionResult> {
+  return (await localeFetch(`/api/suggestions/${id}/accept`, { method: 'POST' }).then((r) => r.json())) as AcceptSuggestionResult;
+}
+
+export async function rejectSuggestion(id: string): Promise<Suggestion> {
+  return (await localeFetch(`/api/suggestions/${id}/reject`, { method: 'POST' }).then((r) => r.json())) as Suggestion;
+}
