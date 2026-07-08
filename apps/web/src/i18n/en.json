@@ -1,6 +1,6 @@
 {
   "app": { "name": "JHEO", "tagline": "GEO · SEO · content" },
-  "nav": { "projects": "Projects", "templates": "Templates", "settings": "Settings" },
+  "nav": { "projects": "Projects", "templates": "Templates", "settings": "Settings", "fixes": "Fixes" },
   "sidebar": {
     "workspace": "Workspace",
     "userName": "Local user",
@@ -440,5 +440,42 @@
     "generic": "Something went wrong. Please try again.",
     "no_llm_provider": "Configure an LLM provider in Settings to enable translation.",
     "rate_limited": "Too many requests. Please wait a moment."
+  },
+  "fixes": {
+    "title": "Fixes",
+    "empty": "No pending findings. Run an audit to get started.",
+    "filter": {
+      "project": "Project",
+      "audit": "Audit",
+      "category": "Category",
+      "status": "Status"
+    },
+    "status": {
+      "pending": "Pending",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "superseded": "Superseded"
+    },
+    "action": {
+      "generate": "Generate suggestion",
+      "accept": "Accept",
+      "reject": "Reject",
+      "regenerate": "Regenerate"
+    },
+    "confidence": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    },
+    "diff": {
+      "inline": "Inline",
+      "sideBySide": "Side by side"
+    },
+    "error": {
+      "findingNotPageScoped": "This finding is not tied to a page; F7 cannot suggest a patch.",
+      "pageHtmlMissing": "The page has no HTML snapshot. Re-audit the page first.",
+      "llmInvalid": "The LLM returned an invalid response. Try regenerating.",
+      "rateLimited": "Too many requests. Wait a minute and try again."
+    }
   }
 }

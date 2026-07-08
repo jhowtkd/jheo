@@ -1,6 +1,6 @@
 {
   "app": { "name": "JHEO", "tagline": "GEO · SEO · conteúdo" },
-  "nav": { "projects": "Projetos", "templates": "Modelos", "settings": "Configurações" },
+  "nav": { "projects": "Projetos", "templates": "Modelos", "settings": "Configurações", "fixes": "Correções" },
   "sidebar": {
     "workspace": "Espaço de trabalho",
     "userName": "Usuário local",
@@ -440,5 +440,42 @@
     "generic": "Algo deu errado. Tente de novo.",
     "no_llm_provider": "Configure um provedor de IA em Configurações para ativar a tradução.",
     "rate_limited": "Muitas requisições. Aguarde um instante."
+  },
+  "fixes": {
+    "title": "Correções",
+    "empty": "Nenhum achado pendente. Rode uma auditoria para começar.",
+    "filter": {
+      "project": "Projeto",
+      "audit": "Auditoria",
+      "category": "Categoria",
+      "status": "Estado"
+    },
+    "status": {
+      "pending": "Pendente",
+      "accepted": "Aceita",
+      "rejected": "Rejeitada",
+      "superseded": "Substituída"
+    },
+    "action": {
+      "generate": "Gerar sugestão",
+      "accept": "Aceitar",
+      "reject": "Rejeitar",
+      "regenerate": "Regenerar"
+    },
+    "confidence": {
+      "low": "Baixa",
+      "medium": "Média",
+      "high": "Alta"
+    },
+    "diff": {
+      "inline": "Em linha",
+      "sideBySide": "Lado a lado"
+    },
+    "error": {
+      "findingNotPageScoped": "Este achado não está ligado a uma página; o F7 não consegue sugerir correção.",
+      "pageHtmlMissing": "A página não tem captura de HTML. Rode uma nova auditoria da página.",
+      "llmInvalid": "O modelo devolveu uma resposta inválida. Tente regenerar.",
+      "rateLimited": "Muitas requisições. Espere um minuto e tente de novo."
+    }
   }
 }
