@@ -40,6 +40,12 @@ export async function attachLineage(
 export function makePageAuditHandler(opts: { fetchText: FetchText }) {
   return async function handle(job: Job<PageAuditJobData>) {
     const { pageAuditId, auditId, projectPageId, url } = job.data;
+    // The FlowProducer's parent group is enqueued on the `auditPage` queue
+    // alongside the page children (audit-job.ts:97-103), but its data only
+    // carries `{ auditId }` — no `pageAuditId`. The parent job is purely a
+    // marker for `waitUntilFinished`; treat it as a no-op so the worker
+    // doesn't crash on `findUnique({ where: { id: undefined } })`.
+    if (!pageAuditId) return;
     const pageAudit = await prisma.pageAudit.findUnique({ where: { id: pageAuditId } });
     if (!pageAudit) return; // orphan — bail
     if (pageAudit.status === 'completed' || pageAudit.status === 'failed') return; // idempotency

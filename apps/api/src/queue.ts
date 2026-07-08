@@ -167,7 +167,10 @@ export function startGscWorkers(deps: GscHandlerDeps) {
 export const AUDIT_PAGE_QUEUE = 'auditPage';
 
 export type PageAuditJobData = {
-  pageAuditId: string;
+  // FlowProducer parent group jobs carry only `{ auditId }` and act as a
+  // no-op marker for `waitUntilFinished`. Optional so the worker can
+  // distinguish them from real page-audit children.
+  pageAuditId?: string;
   auditId: string | null;
   projectPageId: string;
   url: string;
