@@ -67,12 +67,36 @@ export const ALL_PLUGINS: AuditPlugin[] = [
 // declarations (export async function checkX...), so `.name` is reliable.
 const PLUGIN_NAMES = ALL_PLUGINS.map((p) => p.name);
 
+/** Max concurrent audit plugins (network-heavy plugins share this budget). */
+export const PLUGIN_CONCURRENCY = 6;
+
+async function mapPool<T, R>(
+  items: T[],
+  concurrency: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      try {
+        results[i] = { status: 'fulfilled', value: await fn(items[i]!, i) };
+      } catch (reason) {
+        results[i] = { status: 'rejected', reason };
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
 export async function runAudit(ctx: AuditContext): Promise<{
   findings: Finding[];
   failures: { rule: string; message: string }[];
   score: ReturnType<typeof scoreFindings>;
 }> {
-  const settled = await Promise.allSettled(ALL_PLUGINS.map((p) => p(ctx)));
+  const settled = await mapPool(ALL_PLUGINS, PLUGIN_CONCURRENCY, (p) => p(ctx));
   const findings: Finding[] = [];
   const failures: { rule: string; message: string }[] = [];
   settled.forEach((r, i) => {

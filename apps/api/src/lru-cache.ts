@@ -13,6 +13,8 @@
  */
 export class LruCache<V> {
   private readonly store = new Map<string, { value: V; expiresAt: number }>();
+  /** In-flight loaders — concurrent misses for the same key share one Promise. */
+  private readonly inflight = new Map<string, Promise<V>>();
   constructor(
     private readonly max: number,
     private readonly ttlMs: number,
@@ -27,17 +29,26 @@ export class LruCache<V> {
       this.store.set(key, hit);
       return Promise.resolve(hit.value);
     }
-    return loader().then((value) => {
-      this.store.delete(key);
-      this.store.set(key, { value, expiresAt: now + this.ttlMs });
-      // Evict oldest if over cap.
-      while (this.store.size > this.max) {
-        const oldest = this.store.keys().next().value;
-        if (oldest === undefined) break;
-        this.store.delete(oldest);
-      }
-      return value;
-    });
+    const pending = this.inflight.get(key);
+    if (pending) return pending;
+
+    const promise = loader()
+      .then((value) => {
+        this.store.delete(key);
+        this.store.set(key, { value, expiresAt: Date.now() + this.ttlMs });
+        // Evict oldest if over cap.
+        while (this.store.size > this.max) {
+          const oldest = this.store.keys().next().value;
+          if (oldest === undefined) break;
+          this.store.delete(oldest);
+        }
+        return value;
+      })
+      .finally(() => {
+        this.inflight.delete(key);
+      });
+    this.inflight.set(key, promise);
+    return promise;
   }
 
   /** Drop a single key — used by mutation routes to invalidate reads. */

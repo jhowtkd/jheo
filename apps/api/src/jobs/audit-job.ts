@@ -9,6 +9,7 @@ import {
 import { prisma } from '../db.js';
 import { discoverSite } from '../site-discovery.js';
 import { buildGscSnapshotContext } from '../gsc-snapshot-context.js';
+import { fetchDedupKey } from '../fetch-dedup-key.js';
 
 export type FetchText = (
   url: string,
@@ -212,7 +213,7 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
         Promise<{ status: number; headers: Record<string, string>; text: string }>
       >();
       const fetchTextDedup: FetchText = (url, init) => {
-        const key = `${url}|${JSON.stringify(init?.headers ?? {})}`;
+        const key = fetchDedupKey(url, init);
         let p = inflight.get(key);
         if (!p) {
           p = opts.fetchText(url, init);

@@ -92,7 +92,7 @@ export function makeGenerateHandler(deps: {
           const vec = embeddings[i];
           if (!vec) return null;
           const literal = `[${vec.join(',')}]`;
-          return Prisma.sql`(${Prisma.raw(`'${m.id}'::text`)}, ${Prisma.raw(`'${literal}'::vector`)})`;
+          return Prisma.sql`(${m.id}, ${literal}::vector)`;
         })
         .filter((v): v is Prisma.Sql => v !== null);
       if (values.length > 0) {
@@ -165,6 +165,7 @@ export function makeGenerateHandler(deps: {
         // localeName (e.g. "pt-BR" → "Português (Brasil)") and emits the
         // plain-language system prompt.
         locale: generation.locale,
+        signal: AbortSignal.timeout(60_000),
       },
       providers,
     );

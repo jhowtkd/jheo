@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { createGeneration, listGenerations, listMaterials, listTemplates } from '../api.js';
@@ -19,13 +19,18 @@ export function GenerationComposer() {
     queryKey: ['generations', projectId],
     queryFn: () => listGenerations(projectId!),
     enabled: !!projectId,
-    refetchInterval: 4000,
+    refetchInterval: (query) => {
+      const rows = query.state.data;
+      if (!rows) return false;
+      return rows.some((g) => g.status === 'running' || g.status === 'queued') ? 4000 : false;
+    },
   });
 
   const activeTemplate = templates.data?.find((tt) => tt.isActive);
   const [templateId, setTemplateId] = useState<string>('');
   const [prompt, setPrompt] = useState('');
   const [materialIds, setMaterialIds] = useState<string[]>([]);
+  const selectedMaterialIds = useMemo(() => new Set(materialIds), [materialIds]);
   const [provider, setProvider] = useState<'openai' | 'anthropic' | 'openrouter'>('openai');
   const [model, setModel] = useState('MiniMax-M3');
   const [temperature, setTemperature] = useState(0.7);
@@ -129,7 +134,7 @@ export function GenerationComposer() {
                   <label key={m.id} className="row" style={{ gap: 'var(--space-2)', cursor: 'pointer' }}>
                     <input
                       type="checkbox"
-                      checked={materialIds.includes(m.id)}
+                      checked={selectedMaterialIds.has(m.id)}
                       onChange={(e) => {
                         setMaterialIds((cur) =>
                           e.target.checked ? [...cur, m.id] : cur.filter((x) => x !== m.id),

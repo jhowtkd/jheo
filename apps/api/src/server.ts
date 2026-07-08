@@ -14,6 +14,8 @@ import {
 import { loadEnv, ensureSecretKey } from './env.js';
 import { decrypt } from './crypto.js';
 import { guardedFetch } from './security/url-guard.js';
+import { withFetchTimeout } from './fetch-timeout.js';
+import { createTokenBucket } from './token-bucket.js';
 import { ensureDatabaseReady } from './db-bootstrap.js';
 import { responseCompressionPlugin } from './compress.js';
 import { healthRoutes } from './routes/health.js';
@@ -81,6 +83,8 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
   const env = loadEnv();
   const app = Fastify({
     logger: { level: env.LOG_LEVEL },
+    // Disable Fastify's built-in access lines; pino-http owns request logging.
+    disableRequestLogging: true,
     // Hard per-request body cap. The materials POST handler further trims
     // source per-type, but this is the outer guard against multi-MB JSON.
     bodyLimit: 1024 * 1024,
@@ -104,18 +108,12 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
   // --- In-process rate limiter ------------------------------------------
   // Token-bucket, keyed by `${ip}:${method}:${url}`. Routes opt in by
   // passing `config: { rateLimit: { max, windowMs } }`; everything else
-  // passes through untouched. Avoids pulling in @fastify/rate-limit just
-  // for the handful of routes that actually need it.
-  const buckets = new Map<string, { tokens: number; last: number }>();
-  const BURST = 20;
-  const REFILL_PER_SEC = 5;
-  // Track which routes opted in (registered in preParsing/onRequest prep).
+  // passes through untouched. Limiters are cached per (max, windowMs) and
+  // evict idle keys so the Maps stay bounded.
+  const rateLimiters = new Map<string, ReturnType<typeof createTokenBucket>>();
   app.addHook('onRoute', (routeOptions) => {
     const cfg = routeOptions.config as { rateLimit?: { max: number; windowMs: number } };
     if (cfg?.rateLimit) {
-      // No-op: just verifying config is captured. The actual rate check
-      // happens in onRequest after the route is matched (so routeOptions
-      // is populated and stable).
       routeOptions.config = { ...routeOptions.config, rateLimit: cfg.rateLimit };
     }
   });
@@ -123,19 +121,17 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
     const cfg = (req.routeOptions?.config ?? {}) as { rateLimit?: { max: number; windowMs: number } };
     const limit = cfg.rateLimit;
     if (!limit) return;
-    const key = `${req.ip}:${req.routeOptions.method}:${req.routeOptions.url}`;
-    const now = Date.now();
-    const b = buckets.get(key) ?? { tokens: BURST, last: now };
-    const elapsed = (now - b.last) / 1000;
-    b.tokens = Math.min(BURST, b.tokens + elapsed * REFILL_PER_SEC);
-    b.last = now;
-    if (b.tokens < 1) {
-      buckets.set(key, b);
-      reply.code(429);
-      return { error: 'rate limit exceeded' };
+    const limiterKey = `m${limit.max}:w${limit.windowMs}`;
+    let limiter = rateLimiters.get(limiterKey);
+    if (!limiter) {
+      limiter = createTokenBucket({ max: limit.max, windowMs: limit.windowMs, maxKeys: 20_000 });
+      rateLimiters.set(limiterKey, limiter);
     }
-    b.tokens -= 1;
-    buckets.set(key, b);
+    const result = limiter.check(`${req.ip}:${req.routeOptions.method}:${req.routeOptions.url}`);
+    if (!result.allowed) {
+      reply.header('retry-after', String(Math.ceil(result.retryAfterMs / 1000)));
+      return reply.code(429).send({ error: 'rate limit exceeded' });
+    }
   });
 
   // --- Security headers (in place of @fastify/helmet) -------------------
@@ -170,7 +166,7 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
         anthropic: new AnthropicProvider({ apiKey: '' }),
         openrouter: new OpenRouterProvider({ apiKey: '' }),
       },
-    fetchFn: globalThis.fetch,
+    fetchFn: withFetchTimeout(globalThis.fetch),
   });
   await app.register(suggestionRoutes, {
     prisma: defaultPrisma,
@@ -180,7 +176,7 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
         anthropic: new AnthropicProvider({ apiKey: '' }),
         openrouter: new OpenRouterProvider({ apiKey: '' }),
       },
-    fetchFn: globalThis.fetch,
+    fetchFn: withFetchTimeout(globalThis.fetch),
   });
   return app;
 }
@@ -252,8 +248,9 @@ if (isMain) {
   // audit-job uses `fetchText` (a normalized {status, headers, text} shape) for
   // its HTML fetching path — keep that as-is. For the generate worker, pass the
   // global fetch directly.
+  const timedFetch = withFetchTimeout(globalThis.fetch.bind(globalThis));
   const generateWorker = startGenerateWorkers(
-    globalThis.fetch.bind(globalThis),
+    timedFetch,
     embedProvider,
     llmProviders,
     defaultPrisma,
@@ -264,7 +261,7 @@ if (isMain) {
   const agent = new AgentPublisher();
   const publishWorker = startPublishWorkers({
     prisma: defaultPrisma,
-    fetchFn: globalThis.fetch.bind(globalThis),
+    fetchFn: timedFetch,
     publishers: { wordpress, http, agent },
     decrypt,
     aggregateState: aggregateReviewState,
@@ -295,7 +292,7 @@ if (isMain) {
     ? startGscWorkers({
         prisma: defaultPrisma,
         decrypt,
-        fetchFn: globalThis.fetch.bind(globalThis),
+        fetchFn: timedFetch,
         secretKey: env.JHEO_SECRET_KEY,
       })
     : null;

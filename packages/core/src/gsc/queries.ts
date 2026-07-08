@@ -75,6 +75,9 @@ export async function fetchSearchAnalyticsDay(
   return rows;
 }
 
+/** Max concurrent GSC day fetches (quota-friendly). */
+export const GSC_DAY_CONCURRENCY = 4;
+
 export async function fetchSearchAnalyticsRange(
   client: GscClient,
   projectId: string,
@@ -83,24 +86,36 @@ export async function fetchSearchAnalyticsRange(
     startDate: Date;
     endDate: Date;
     dataState?: 'final' | 'all';
+    concurrency?: number;
   },
 ): Promise<GscSnapshotRow[]> {
-  const all: GscSnapshotRow[] = [];
+  const days: string[] = [];
   const cursor = new Date(params.startDate);
   const end = new Date(params.endDate);
-
   while (cursor <= end) {
-    const day = formatGscDate(cursor);
-    const dayRows = await fetchSearchAnalyticsDay(client, projectId, {
-      siteUrl: params.siteUrl,
-      startDate: day,
-      endDate: day,
-      dimensions: [...SNAPSHOT_DIMENSIONS],
-      dataState: params.dataState ?? 'final',
-    });
-    all.push(...dayRows);
+    days.push(formatGscDate(cursor));
     cursor.setUTCDate(cursor.getUTCDate() + 1);
   }
 
+  const concurrency = Math.max(1, params.concurrency ?? GSC_DAY_CONCURRENCY);
+  const all: GscSnapshotRow[] = [];
+  let next = 0;
+
+  async function worker() {
+    while (next < days.length) {
+      const i = next++;
+      const day = days[i]!;
+      const dayRows = await fetchSearchAnalyticsDay(client, projectId, {
+        siteUrl: params.siteUrl,
+        startDate: day,
+        endDate: day,
+        dimensions: [...SNAPSHOT_DIMENSIONS],
+        dataState: params.dataState ?? 'final',
+      });
+      for (const row of dayRows) all.push(row);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, days.length) }, () => worker()));
   return all;
 }

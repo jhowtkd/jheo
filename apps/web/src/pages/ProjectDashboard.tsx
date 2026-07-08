@@ -41,21 +41,24 @@ export function ProjectDashboard() {
     queryKey: ['project', projectId],
     queryFn: () => getProject(projectId!),
     enabled: Boolean(projectId),
-    refetchInterval: 5000,
   });
+
+  // Phase 3 T7: live audit progress + cancel — poll only while work is active.
+  const lastAudit = project.data?.audits[0];
+  const auditLive = lastAudit?.status === 'queued' || lastAudit?.status === 'running';
 
   const health = useQuery({
     queryKey: ['project-health', projectId],
     queryFn: () => getProjectHealth(projectId!),
     enabled: Boolean(projectId),
-    refetchInterval: 5_000,
+    refetchInterval: auditLive ? 5_000 : false,
   });
 
   const pages = useQuery({
     queryKey: ['project-pages', projectId, apiFilter],
     queryFn: () => getProjectPages(projectId!, apiFilter ? { filter: apiFilter, limit: 200 } : { limit: 200 }),
     enabled: Boolean(projectId),
-    refetchInterval: 5_000,
+    refetchInterval: auditLive ? 5_000 : false,
   });
 
   // Materialized sections from F2/F3 — kept for backward compatibility
@@ -63,27 +66,28 @@ export function ProjectDashboard() {
     queryKey: ['materials', projectId],
     queryFn: () => listMaterials(projectId!),
     enabled: !!projectId,
-    refetchInterval: 8000,
   });
   const channels = useQuery({
     queryKey: ['channels', projectId],
     queryFn: () => listChannels(projectId!),
     enabled: !!projectId,
-    refetchInterval: 10000,
   });
   const generations = useQuery({
     queryKey: ['generations', projectId],
     queryFn: () => listGenerations(projectId!),
     enabled: !!projectId,
-    refetchInterval: 5000,
+    refetchInterval: (q) => {
+      const items = q.state.data ?? [];
+      const live = items.some((g) => g.status === 'queued' || g.status === 'running');
+      return live ? 5_000 : false;
+    },
   });
 
-  // Phase 3 T7: live audit progress + cancel
-  const lastAudit = project.data?.audits[0];
   const progress = useQuery({
     queryKey: ['audit-progress', lastAudit?.id],
     queryFn: () => getAuditProgress(lastAudit!.id),
-    enabled: Boolean(lastAudit) && (lastAudit?.status === 'queued' || lastAudit?.status === 'running'),
+    enabled: Boolean(lastAudit) && auditLive,
+    staleTime: 0,
     refetchInterval: 2_000,
   });
 

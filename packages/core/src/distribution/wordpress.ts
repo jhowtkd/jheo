@@ -109,7 +109,10 @@ export class WordPressPublisher implements Publisher {
         // Best-effort: a tag lookup/creation failure mustn't undo the
         // already-created post. Surface it via stderr so misconfigured WP
         // installs are diagnosable in production logs.
-        console.warn('[wp] tag resolution failed', { tag, err: String(e) });
+        // Best-effort: avoid console.* — surface once via structured stderr JSON.
+        process.stderr.write(
+          JSON.stringify({ level: 'warn', msg: 'wp tag resolution failed', tag, err: String(e) }) + '\n',
+        );
       }
     }
     for (const cat of fm.targetSites ?? []) {

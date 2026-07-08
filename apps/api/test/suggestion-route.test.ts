@@ -49,7 +49,14 @@ const fakePrisma = () => {
         return suggestions.find((s) => s.findingId === where.findingId && s.status === where.status) ?? null;
       },
       findUnique: async ({ where }: any) => suggestions.find((s) => s.id === where.id) ?? null,
-      findMany: async ({ where }: any) => suggestions.filter((s) => s.findingId === where.findingId),
+      findMany: async ({ where }: any) => {
+        if (where?.findingId) return suggestions.filter((s) => s.findingId === where.findingId);
+        if (where?.finding?.auditId) {
+          // Fake store has no audit linkage — return all for smoke coverage.
+          return suggestions;
+        }
+        return [];
+      },
       create: async ({ data }: any) => {
         const row = { id: 's' + (suggestions.length + 1), status: 'pending', createdAt: new Date(), updatedAt: new Date(), decidedAt: null, ...data };
         suggestions.push(row);
@@ -119,6 +126,17 @@ describe('GET /api/suggestions', () => {
     const res = await app.inject({ method: 'GET', url: '/api/suggestions?findingId=none' });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual([]);
+  });
+
+  it('lists suggestions by auditId', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/suggestions?auditId=a1' });
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.json())).toBe(true);
+  });
+
+  it('returns 400 when neither findingId nor auditId is set', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/suggestions' });
+    expect(res.statusCode).toBe(400);
   });
 });
 

@@ -1,5 +1,5 @@
 import type { Job } from 'bullmq';
-import type { PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import {
   createGscClient,
   fetchSearchAnalyticsRange,
@@ -17,46 +17,34 @@ function snapshotDateFromIso(date: string): Date {
   return new Date(`${date}T00:00:00.000Z`);
 }
 
+/**
+ * Bulk upsert via a single INSERT … ON CONFLICT per chunk.
+ * Far fewer round-trips than N Prisma upserts inside a transaction.
+ */
 async function upsertSnapshotRows(prisma: PrismaClient, rows: GscSnapshotRow[]): Promise<void> {
-  const chunkSize = 100;
+  const chunkSize = 500;
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
-    await prisma.$transaction(
-      chunk.map((row) =>
-        prisma.gscSnapshot.upsert({
-          where: {
-            projectId_date_query_page_device_country: {
-              projectId: row.projectId,
-              date: snapshotDateFromIso(row.date),
-              query: row.query,
-              page: row.page,
-              device: row.device,
-              country: row.country,
-            },
-          },
-          create: {
-            projectId: row.projectId,
-            date: snapshotDateFromIso(row.date),
-            query: row.query,
-            page: row.page,
-            device: row.device,
-            country: row.country,
-            clicks: row.clicks,
-            impressions: row.impressions,
-            ctr: row.ctr,
-            position: row.position,
-          },
-          update: {
-            clicks: row.clicks,
-            impressions: row.impressions,
-            ctr: row.ctr,
-            position: row.position,
-          },
-        }),
-      ),
+    if (chunk.length === 0) continue;
+    const values = chunk.map(
+      (row) =>
+        Prisma.sql`(${row.projectId}, ${snapshotDateFromIso(row.date)}, ${row.query}, ${row.page}, ${row.device}, ${row.country}, ${row.clicks}, ${row.impressions}, ${row.ctr}, ${row.position})`,
     );
+    await prisma.$executeRaw`
+      INSERT INTO "GscSnapshot" ("projectId", "date", "query", "page", "device", "country", "clicks", "impressions", "ctr", "position")
+      VALUES ${Prisma.join(values)}
+      ON CONFLICT ("projectId", "date", "query", "page", "device", "country")
+      DO UPDATE SET
+        "clicks" = EXCLUDED."clicks",
+        "impressions" = EXCLUDED."impressions",
+        "ctr" = EXCLUDED."ctr",
+        "position" = EXCLUDED."position"
+    `;
   }
 }
+
+/** @internal exported for unit tests */
+export { upsertSnapshotRows };
 
 async function pruneOldSnapshots(prisma: PrismaClient, projectId: string): Promise<void> {
   const cutoff = new Date();

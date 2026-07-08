@@ -79,24 +79,36 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     async (req, reply) => {
       const project = await prisma.project.findUnique({ where: { id: req.params.projectId } });
       if (!project) return reply.code(404).send({ error: 'project not found' });
-      const materials = await prisma.material.findMany({
-        where: { projectId: req.params.projectId },
-        orderBy: { createdAt: 'desc' },
-      });
-      return materials.map((m) => {
-        // `embedding` is `Unsupported("vector(1536)")?` in the schema, which is
-        // not surfaced on the generated Prisma client type. Cast narrowly so
-        // we can still surface its presence to API consumers.
-        const embedding = (m as unknown as { embedding?: unknown }).embedding;
-        return {
-          id: m.id,
-          type: m.type,
-          title: m.title,
-          embeddingStatus: embedding ? 'ready' : 'pending',
-          charCount: m.content.length,
-          createdAt: m.createdAt,
-        };
-      });
+      reply.header('cache-control', 'private, max-age=15');
+      const materials = await prisma.$queryRaw<
+        Array<{
+          id: string;
+          type: string;
+          title: string;
+          charCount: number;
+          createdAt: Date;
+          hasEmbedding: boolean;
+        }>
+      >`
+        SELECT
+          id,
+          type,
+          title,
+          char_length(content) AS "charCount",
+          "createdAt",
+          (embedding IS NOT NULL) AS "hasEmbedding"
+        FROM "Material"
+        WHERE "projectId" = ${req.params.projectId}
+        ORDER BY "createdAt" DESC
+      `;
+      return materials.map((m) => ({
+        id: m.id,
+        type: m.type,
+        title: m.title,
+        embeddingStatus: m.hasEmbedding ? ('ready' as const) : ('pending' as const),
+        charCount: m.charCount,
+        createdAt: m.createdAt,
+      }));
     },
   );
 

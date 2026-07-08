@@ -6,16 +6,10 @@ COPY apps/api/package.json apps/api/
 COPY packages/core/package.json packages/core/
 RUN pnpm install --frozen-lockfile --filter @jheo/api... --filter @jheo/core
 
-# Pin the Prisma schema to its own layer so `prisma generate` is only re-run
-# when the schema (not arbitrary source) changes.
-FROM deps AS prisma
+FROM deps AS build
 WORKDIR /repo
 COPY apps/api/prisma apps/api/prisma
 RUN pnpm --filter @jheo/api exec prisma generate
-
-FROM deps AS build
-WORKDIR /repo
-COPY --from=prisma /repo /repo
 COPY tsconfig.base.json ./
 COPY packages/core/src packages/core/src
 COPY packages/core/tsconfig.json packages/core/
@@ -24,28 +18,32 @@ RUN pnpm --filter @jheo/core build
 COPY apps/api/src apps/api/src
 RUN pnpm --filter @jheo/api build
 
-# Slim runner: only ships the compiled artifacts and the production node_modules.
-# No source tree, no devDependencies, no test scaffolding, no docs.
+# Production-only dependency tree + generated Prisma client for the runner.
+FROM node:20.11-bookworm-slim AS prod-deps
+WORKDIR /repo
+ENV NODE_ENV=production
+RUN corepack enable
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/api/package.json apps/api/
+COPY packages/core/package.json packages/core/
+RUN pnpm install --frozen-lockfile --prod --filter @jheo/api... --filter @jheo/core
+COPY apps/api/prisma apps/api/prisma
+# prisma CLI is a devDependency; generate via npx without leaving it installed.
+RUN cd apps/api && npx --yes prisma@5.18.0 generate
+
+# Slim runner: compiled artifacts + production node_modules only.
 FROM node:20.11-bookworm-slim AS runner
 WORKDIR /repo
 ENV NODE_ENV=production
-ENV DATABASE_URL=postgres://jheo:jheo@postgres:5432/jheo
 ENV WEB_PORT=8080
-RUN corepack enable \
- && apt-get update \
+RUN apt-get update \
  && apt-get install -y --no-install-recommends openssl ca-certificates curl \
  && rm -rf /var/lib/apt/lists/*
 
-# Pull prod node_modules from the deps stage (production-only resolution).
-COPY --from=deps /repo/node_modules /repo/node_modules
-COPY --from=deps /repo/apps/api/node_modules /repo/apps/api/node_modules
-COPY --from=deps /repo/packages/core/node_modules /repo/packages/core/node_modules
-# Overlay the @prisma/client generated artifacts from the prisma stage.
-# Without this, the runner imports the stub `default.js` that throws
-# "@prisma/client did not initialize yet — please run prisma generate".
-COPY --from=prisma /repo/node_modules /repo/node_modules
+COPY --from=prod-deps /repo/node_modules /repo/node_modules
+COPY --from=prod-deps /repo/apps/api/node_modules /repo/apps/api/node_modules
+COPY --from=prod-deps /repo/packages/core/node_modules /repo/packages/core/node_modules
 
-# Built artifacts only.
 COPY --from=build /repo/apps/api/dist /repo/apps/api/dist
 COPY --from=build /repo/packages/core/dist /repo/packages/core/dist
 COPY apps/api/prisma /repo/apps/api/prisma

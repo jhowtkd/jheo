@@ -50,6 +50,7 @@ export async function createPublishWithRotation(input: {
 export async function publishRoutes(app: FastifyInstance): Promise<void> {
   app.post<{ Params: { id: string } }>(
     '/api/generations/:id/publish',
+    { config: { rateLimit: { max: 10, windowMs: 60_000 } } },
     async (req, reply) => {
       const parsed = PublishBodySchema.safeParse(req.body);
       if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });

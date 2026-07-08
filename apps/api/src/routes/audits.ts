@@ -1,4 +1,4 @@
-import type { FastifyInstance } from 'fastify';
+import type { FastifyInstance, FastifyReply } from 'fastify';
 import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../db.js';
@@ -8,6 +8,27 @@ const CreateAuditBody = z.object({
   projectId: z.string().min(1),
   config: z.record(z.unknown()).default({}),
 });
+
+function setAuditReadCache(reply: FastifyReply, status: string): void {
+  reply.header(
+    'cache-control',
+    status === 'running' || status === 'queued' ? 'no-store' : 'private, max-age=10',
+  );
+}
+
+function tallyPageAudits(pageAudits: Array<{ status: string; projectPage: { url: string } }>) {
+  let completed = 0;
+  let failed = 0;
+  let skipped = 0;
+  const currentPages: string[] = [];
+  for (const p of pageAudits) {
+    if (p.status === 'completed') completed++;
+    else if (p.status === 'failed') failed++;
+    else if (p.status === 'skipped') skipped++;
+    else if (p.status === 'running' && currentPages.length < 5) currentPages.push(p.projectPage.url);
+  }
+  return { completed, failed, skipped, currentPages };
+}
 
 export async function auditRoutes(app: FastifyInstance): Promise<void> {
   app.post(
@@ -33,10 +54,17 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
       include: { findings: true },
     });
     if (!audit) return reply.code(404).send({ error: 'not found' });
+    setAuditReadCache(reply, audit.status);
     return audit;
   });
 
-  app.get<{ Params: { id: string } }>('/api/audits/:id/findings', async (req) => {
+  app.get<{ Params: { id: string } }>('/api/audits/:id/findings', async (req, reply) => {
+    const audit = await prisma.audit.findUnique({
+      where: { id: req.params.id },
+      select: { status: true },
+    });
+    if (!audit) return reply.code(404).send({ error: 'not found' });
+    setAuditReadCache(reply, audit.status);
     const findings = await prisma.finding.findMany({
       where: { auditId: req.params.id },
       orderBy: [{ severity: 'asc' }, { rule: 'asc' }],
@@ -54,13 +82,7 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
       select: { status: true, projectPage: { select: { url: true } } },
     });
     const total = pageAudits.length;
-    const completed = pageAudits.filter((p) => p.status === 'completed').length;
-    const failed = pageAudits.filter((p) => p.status === 'failed').length;
-    const skipped = pageAudits.filter((p) => p.status === 'skipped').length;
-    const currentPages = pageAudits
-      .filter((p) => p.status === 'running')
-      .slice(0, 5)
-      .map((p) => p.projectPage.url);
+    const { completed, failed, skipped, currentPages } = tallyPageAudits(pageAudits);
 
     return {
       status: audit.status,

@@ -122,6 +122,7 @@ model Finding {
   @@index([category])
   @@index([severity])
   @@index([pageAuditId])
+  @@index([auditId])
 }
 
 model DistributionChannel {

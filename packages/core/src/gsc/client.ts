@@ -21,8 +21,14 @@ async function authorizedFetch(
   init: RequestInit,
 ): Promise<Response> {
   const token = await deps.getAccessToken();
+  const signal =
+    init.signal ??
+    (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
+      ? AbortSignal.timeout(30_000)
+      : undefined);
   return deps.fetchFn(url, {
     ...init,
+    ...(signal ? { signal } : {}),
     headers: {
       ...(init.headers ?? {}),
       Authorization: `Bearer ${token}`,

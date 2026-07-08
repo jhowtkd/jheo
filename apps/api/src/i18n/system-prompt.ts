@@ -1,8 +1,8 @@
-import { LOCALE_NAMES, type SupportedLocale } from './locale.js';
+import { localeDisplayName, type SupportedLocale } from '@jheo/core';
 
 export function buildTranslationSystemPrompt(targetLocale: SupportedLocale): string {
   return [
-    `You are a translator from English to ${targetLocale} (${LOCALE_NAMES[targetLocale]}).`,
+    `You are a translator from English to ${targetLocale} (${localeDisplayName(targetLocale)}).`,
     'You translate content from a website-auditing tool.',
     'Render each line in plain language: short sentences, everyday words,',
     'no marketing jargon, no enterprise vocabulary, no "execute" / "leverage" / "utilize".',

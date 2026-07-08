@@ -43,6 +43,13 @@ function deriveRequestId(req: { headers: Record<string, unknown> }): string {
 
 export const httpLogger = pinoHttp({
   logger: log,
+  // Skip liveness/readiness probes — they dominate steady-state log volume.
+  autoLogging: {
+    ignore: (req) => {
+      const url = (req as { url?: string }).url ?? '';
+      return url === '/api/health' || url.startsWith('/api/health/');
+    },
+  },
   genReqId: (req, res) => {
     // `requestIdHook` runs first and sets `req.id` + the response header.
     // We just mirror what it computed so pino-http's log record shares the

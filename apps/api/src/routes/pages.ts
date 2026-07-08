@@ -17,7 +17,10 @@ function diffLabel(
 }
 
 export async function pageRoutes(app: FastifyInstance): Promise<void> {
-  app.post<{ Params: { id: string } }>('/api/pages/:id/audit', async (req, reply) => {
+  app.post<{ Params: { id: string } }>(
+    '/api/pages/:id/audit',
+    { config: { rateLimit: { max: 15, windowMs: 60_000 } } },
+    async (req, reply) => {
     const page = await prisma.projectPage.findUnique({ where: { id: req.params.id } });
     if (!page) return reply.code(404).send({ error: 'not found' });
 

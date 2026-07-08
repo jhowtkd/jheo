@@ -5,12 +5,19 @@ const API = '/api';
 // Wrapper that injects Accept-Language on every fetch from the SPA. We
 // resolve `globalThis.fetch` lazily so tests can stub it (e.g. the
 // useDataTranslations suite replaces `globalThis.fetch` with a mock).
+const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
+
 const localeFetch: typeof fetch = (input, init) => {
   const headers = new Headers(init?.headers);
   if (!headers.has('accept-language')) {
     headers.set('accept-language', i18n.language || 'en');
   }
-  return globalThis.fetch(input as RequestInfo | URL, { ...init, headers });
+  const signal =
+    init?.signal ??
+    (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
+      ? AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS)
+      : undefined);
+  return globalThis.fetch(input as RequestInfo | URL, { ...init, headers, ...(signal ? { signal } : {}) });
 };
 
 export type Project = { id: string; name: string; rootUrl: string; createdAt: string };
@@ -571,6 +578,11 @@ export async function createSuggestion(input: CreateSuggestionInput): Promise<Su
 
 export async function listSuggestions(findingId: string): Promise<Suggestion[]> {
   return (await localeFetch(`/api/suggestions?findingId=${encodeURIComponent(findingId)}`).then((r) => r.json())) as Suggestion[];
+}
+
+/** One round-trip for all suggestions belonging to findings of an audit. */
+export async function listSuggestionsByAudit(auditId: string): Promise<Suggestion[]> {
+  return (await localeFetch(`/api/suggestions?auditId=${encodeURIComponent(auditId)}`).then((r) => r.json())) as Suggestion[];
 }
 
 export async function getSuggestion(id: string): Promise<Suggestion> {

@@ -181,18 +181,35 @@ export async function fetchWithGuard(input: string, init?: RequestInit): Promise
   if (!(await isSafeOutboundUrl(input))) {
     throw new Error(`unsafe outbound url: ${input}`);
   }
-  const res = await fetch(input, init);
-  if (res.status >= 300 && res.status < 400) {
-    const loc = res.headers.get('location');
-    if (loc) {
-      // Resolve relative to input
-      const next = new URL(loc, input).toString();
-      if (!(await isSafeOutboundUrl(next))) {
-        throw new Error(`unsafe redirect target: ${next}`);
+  // Default timeout when callers omit signal (publish path historically hung forever).
+  const signal =
+    init?.signal ??
+    (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
+      ? AbortSignal.timeout(15_000)
+      : undefined);
+  try {
+    const res = await fetch(input, signal ? { ...init, signal } : init);
+    if (res.status >= 300 && res.status < 400) {
+      const loc = res.headers.get('location');
+      if (loc) {
+        // Resolve relative to input
+        const next = new URL(loc, input).toString();
+        if (!(await isSafeOutboundUrl(next))) {
+          throw new Error(`unsafe redirect target: ${next}`);
+        }
       }
     }
+    return res;
+  } catch (err) {
+    if (
+      signal?.aborted &&
+      err instanceof Error &&
+      (err.name === 'AbortError' || err.name === 'TimeoutError')
+    ) {
+      throw new SafeFetchTimeoutError();
+    }
+    throw err;
   }
-  return res;
 }
 
 export class SafeFetchTimeoutError extends Error {

@@ -2,6 +2,12 @@
 // consumed by apps/api and apps/web are re-exported — types from `./types.js`
 // are kept because they're part of the public inference surface.
 export * from './types.js';
+export {
+  LOCALE_NAMES,
+  negotiateLocale,
+  localeDisplayName,
+  type SupportedLocale,
+} from './i18n/locale.js';
 export { runAudit } from './audit/orchestrator.js';
 export {
   OpenAIProvider,

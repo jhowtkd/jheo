@@ -26,7 +26,6 @@ export default defineConfig({
           react: ['react', 'react-dom', 'react-router-dom'],
           query: ['@tanstack/react-query'],
           markdown: ['react-markdown'],
-          state: ['zustand'],
         },
       },
     },

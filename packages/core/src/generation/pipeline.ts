@@ -1,4 +1,5 @@
 import type { LLMProvider, LLMResponse, EmbeddingProvider, LLMRequest } from '../llm/types.js';
+import { localeDisplayName } from '../i18n/locale.js';
 import { parseMarkdownWithFrontmatter } from './parse.js';
 import type { ParsedMarkdown } from './schema.js';
 import { stringify as yamlStringify } from 'yaml';
@@ -41,30 +42,16 @@ export interface GenerationProviders {
 const PLACEHOLDER_RE = /\{\{(\w+)\}\}/g;
 
 /**
- * Human-readable names for locales we know about. Keep this list small and
- * intentional — adding a locale means committing to producing a clean
- * plain-language prompt for it. Unknown locales fall back to the bare tag
- * (e.g. "ja-JP"), which keeps the prompt well-formed without lying about
- * fluency. The keys are the same BCP-47 tags used on the wire.
- */
-const LOCALE_NAMES: Record<string, string> = {
-  en: 'English',
-  'pt-BR': 'Português (Brasil)',
-};
-
-/**
  * Build a system prompt that tells the LLM (a) which locale to write in and
  * (b) to use the project's plain-language register. The register text comes
  * verbatim from the F6 spec §4.4 and is the source of truth for the project's
  * voice — keep them in sync.
  *
- * This function lives in `@jheo/core` (not in `apps/api`) deliberately:
- * generation is core's responsibility, and a unit test for "what does the
- * system prompt look like in pt-BR?" belongs in core too. Core has no i18n
- * config dependency — it takes a locale string and returns a string.
+ * Locale display names live in `../i18n/locale.js` (shared with suggestion
+ * prompts and Accept-Language negotiation).
  */
 export function buildSystemPrompt(locale: string): string {
-  const localeName = LOCALE_NAMES[locale] ?? locale;
+  const localeName = localeDisplayName(locale);
   return `You are writing in ${localeName} (${locale}). Write in plain language: short sentences, everyday words, no marketing jargon, no enterprise vocabulary, no "execute" / "leverage" / "utilize". The content will be read by people with limited formal education, so clarity matters more than cleverness.`;
 }
 

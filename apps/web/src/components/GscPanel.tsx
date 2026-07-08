@@ -92,10 +92,12 @@ export function GscPanel({ projectId }: { projectId: string }) {
   const sync = useMutation({
     mutationFn: () => syncGsc(projectId),
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: ['gsc-connection', projectId] });
-      await qc.invalidateQueries({ queryKey: ['gsc-overview', projectId] });
-      await qc.invalidateQueries({ queryKey: ['gsc-queries', projectId] });
-      await qc.invalidateQueries({ queryKey: ['gsc-pages', projectId] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['gsc-connection', projectId] }),
+        qc.invalidateQueries({ queryKey: ['gsc-overview', projectId] }),
+        qc.invalidateQueries({ queryKey: ['gsc-queries', projectId] }),
+        qc.invalidateQueries({ queryKey: ['gsc-pages', projectId] }),
+      ]);
     },
   });
 
@@ -291,7 +293,7 @@ function GscTable({
           </thead>
           <tbody>
             {rows.map((row, i) => (
-              <tr key={i}>
+              <tr key={String(row.query ?? row.page ?? i)}>
                 {columns.map((col) => {
                   const raw = row[col.key];
                   const display = typeof raw === 'number' && col.format ? col.format(raw) : String(raw ?? '—');

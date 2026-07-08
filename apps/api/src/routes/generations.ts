@@ -93,7 +93,8 @@ export async function generationRoutes(app: FastifyInstance): Promise<void> {
 
   app.get<{ Params: { projectId: string } }>(
     '/api/projects/:projectId/generations',
-    async (req) => {
+    async (req, reply) => {
+      reply.header('cache-control', 'private, max-age=10');
       return prisma.generation.findMany({
         where: { projectId: req.params.projectId },
         orderBy: { createdAt: 'desc' },
@@ -104,6 +105,10 @@ export async function generationRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Params: { id: string } }>('/api/generations/:id', async (req, reply) => {
     const row = await prisma.generation.findUnique({ where: { id: req.params.id } });
     if (!row) return reply.code(404).send({ error: 'not found' });
+    reply.header(
+      'cache-control',
+      row.status === 'running' || row.status === 'queued' ? 'no-store' : 'private, max-age=10',
+    );
     return row;
   });
 

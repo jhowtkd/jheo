@@ -11,7 +11,7 @@ const validSa = {
 describe('gsc-job snapshot', () => {
   it('upserts snapshot rows and marks connection ok', async () => {
     const gscConnectionUpdate = vi.fn().mockResolvedValue({});
-    const gscSnapshotUpsert = vi.fn().mockResolvedValue({});
+    const executeRaw = vi.fn().mockResolvedValue(1);
     const gscSnapshotDeleteMany = vi.fn().mockResolvedValue({ count: 0 });
 
     const prisma = {
@@ -25,12 +25,9 @@ describe('gsc-job snapshot', () => {
         update: gscConnectionUpdate,
       },
       gscSnapshot: {
-        upsert: gscSnapshotUpsert,
         deleteMany: gscSnapshotDeleteMany,
       },
-      $transaction: vi.fn(async (ops: unknown[]) => {
-        for (const op of ops) await op;
-      }),
+      $executeRaw: executeRaw,
     };
 
     const fetchFn = vi.fn().mockImplementation(async () =>
@@ -68,7 +65,7 @@ describe('gsc-job snapshot', () => {
         data: expect.objectContaining({ syncStatus: 'syncing' }),
       }),
     );
-    expect(gscSnapshotUpsert).toHaveBeenCalled();
+    expect(executeRaw).toHaveBeenCalled();
     expect(gscSnapshotDeleteMany).toHaveBeenCalled();
     expect(gscConnectionUpdate).toHaveBeenCalledWith(
       expect.objectContaining({

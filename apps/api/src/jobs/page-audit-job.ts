@@ -3,6 +3,7 @@ import { runAudit, type Finding } from '@jheo/core';
 import type { PageAuditJobData } from '../queue.js';
 import { prisma } from '../db.js';
 import type { FetchText } from './audit-job.js';
+import { fetchDedupKey } from '../fetch-dedup-key.js';
 
 const PLAIN_TEXT = Symbol('jheo.audit.plainText');
 const JSONLD_BLOCKS = Symbol('jheo.audit.jsonLdBlocks');
@@ -20,21 +21,39 @@ export async function attachLineage(
   pageAuditId: string,
   projectPageId: string,
 ): Promise<Array<Omit<Finding, 'previousFindingId'> & { previousFindingId: string | null }>> {
-  const result: Array<Omit<Finding, 'previousFindingId'> & { previousFindingId: string | null }> = [];
-  for (const f of findings) {
-    const prior = await prisma.finding.findFirst({
-      where: {
-        url: f.url,
-        category: f.category,
-        rule: f.rule,
-        pageAudit: { projectPageId },
-        previousFindingId: null,
-      },
-      orderBy: { id: 'desc' },
-    });
-    result.push({ ...f, previousFindingId: prior?.id ?? null });
+  if (findings.length === 0) return [];
+
+  // One query for all prior heads on this page, then O(1) Map lookups.
+  // Keys are `${url}\0${category}\0${rule}` — same identity used by re-audit diff.
+  const priors = await prisma.finding.findMany({
+    where: {
+      pageAudit: { projectPageId },
+      previousFindingId: null,
+    },
+    orderBy: { id: 'desc' },
+    select: { id: true, url: true, category: true, rule: true },
+  });
+  const priorByKey = new Map<string, string>();
+  for (const p of priors) {
+    const key = `${p.url}\0${p.category}\0${p.rule}`;
+    if (!priorByKey.has(key)) priorByKey.set(key, p.id);
   }
-  return result;
+
+  return findings.map((f) => ({
+    ...f,
+    previousFindingId: priorByKey.get(`${f.url}\0${f.category}\0${f.rule}`) ?? null,
+  }));
+}
+
+/** Cap persisted HTML snapshots to bound worker RSS and Postgres row size. */
+export const HTML_SNAPSHOT_MAX_BYTES = 512 * 1024;
+
+export function truncateHtmlSnapshot(html: string, maxBytes = HTML_SNAPSHOT_MAX_BYTES): string {
+  if (Buffer.byteLength(html, 'utf8') <= maxBytes) return html;
+  // Slice by code units then back off to a valid UTF-8 boundary.
+  let end = Math.min(html.length, maxBytes);
+  while (end > 0 && Buffer.byteLength(html.slice(0, end), 'utf8') > maxBytes) end -= 1;
+  return html.slice(0, end);
 }
 
 export function makePageAuditHandler(opts: { fetchText: FetchText }) {
@@ -64,7 +83,7 @@ export function makePageAuditHandler(opts: { fetchText: FetchText }) {
 
     const inflight = new Map<string, Promise<{ status: number; headers: Record<string, string>; text: string }>>();
     const fetchTextDedup: FetchText = (url, init) => {
-      const key = `${url}|${JSON.stringify(init?.headers ?? {})}`;
+      const key = fetchDedupKey(url, init);
       let p = inflight.get(key);
       if (!p) {
         p = opts.fetchText(url, init);
@@ -116,7 +135,7 @@ export function makePageAuditHandler(opts: { fetchText: FetchText }) {
         }),
         prisma.projectPage.update({
           where: { id: projectPageId },
-          data: { lastAuditedAt: finishedAt, htmlSnapshot: htmlRes.text },
+          data: { lastAuditedAt: finishedAt, htmlSnapshot: truncateHtmlSnapshot(htmlRes.text) },
         }),
       ]);
     } catch (error) {

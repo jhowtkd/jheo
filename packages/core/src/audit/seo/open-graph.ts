@@ -1,12 +1,20 @@
 import type { AuditContext, Finding } from '../../types.js';
 
-const REQUIRED = ['og:title', 'og:description', 'og:image', 'og:url', 'og:type'];
+const REQUIRED = ['og:title', 'og:description', 'og:image', 'og:url', 'og:type'] as const;
+
+const OG_META_RE = new Map<string, RegExp>(
+  REQUIRED.map((prop) => [
+    prop,
+    new RegExp(`<meta\\s+[^>]*property=["']${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i'),
+  ]),
+);
+
+const TWITTER_CARD_RE = /<meta\s+[^>]*name=["']twitter:card["']/i;
 
 export async function checkOpenGraph(ctx: AuditContext): Promise<Finding[]> {
   const out: Finding[] = [];
   for (const prop of REQUIRED) {
-    const re = new RegExp(`<meta\\s+[^>]*property=["']${prop}["']`, 'i');
-    if (!re.test(ctx.html)) {
+    if (!OG_META_RE.get(prop)!.test(ctx.html)) {
       out.push({
         category: 'seo',
         severity: 'warning',
@@ -17,7 +25,7 @@ export async function checkOpenGraph(ctx: AuditContext): Promise<Finding[]> {
       });
     }
   }
-  if (!/<meta\s+[^>]*name=["']twitter:card["']/i.test(ctx.html)) {
+  if (!TWITTER_CARD_RE.test(ctx.html)) {
     out.push({
       category: 'seo',
       severity: 'info',

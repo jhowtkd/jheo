@@ -18,7 +18,14 @@ const CreateBody = z.object({
   locale: z.enum(['en', 'pt-BR']).optional(),
 });
 
-const ListQuery = z.object({ findingId: z.string().min(1) });
+const ListQuery = z
+  .object({
+    findingId: z.string().min(1).optional(),
+    auditId: z.string().min(1).optional(),
+  })
+  .refine((q) => Boolean(q.findingId || q.auditId), {
+    message: 'findingId or auditId is required',
+  });
 
 function pickProvider(llm: SuggestionDeps['llmProviders']): LLMProvider {
   // Prefer openai; fall back to first available.
@@ -81,7 +88,7 @@ export const suggestionRoutes: FastifyPluginAsync<SuggestionDeps> = async (
     let providerName: string;
     try {
       const provider = pickProvider(deps.llmProviders);
-      output = await runSuggestion(provider, context);
+      output = await runSuggestion(provider, context, deps.fetchFn);
       providerName = provider === deps.llmProviders.openai ? 'openai'
         : provider === deps.llmProviders.anthropic ? 'anthropic'
         : provider === deps.llmProviders.openrouter ? 'openrouter'
@@ -116,16 +123,24 @@ export const suggestionRoutes: FastifyPluginAsync<SuggestionDeps> = async (
     return reply.code(201).send(created);
   });
 
-  app.get<{ Querystring: { findingId?: string } }>('/api/suggestions', async (req, reply) => {
+  app.get<{ Querystring: { findingId?: string; auditId?: string } }>('/api/suggestions', async (req, reply) => {
     const q = ListQuery.safeParse(req.query);
     if (!q.success) return reply.code(400).send({ error: q.error.flatten() });
-    const list = await deps.prisma.suggestion.findMany({ where: { findingId: q.data.findingId } });
+    const { findingId, auditId } = q.data;
+    reply.header('cache-control', 'private, max-age=5');
+    const list = await deps.prisma.suggestion.findMany({
+      where: findingId
+        ? { findingId }
+        : { finding: { auditId: auditId! } },
+      orderBy: { createdAt: 'asc' },
+    });
     return reply.send(list);
   });
 
   app.get<{ Params: { id: string } }>('/api/suggestions/:id', async (req, reply) => {
     const s = await deps.prisma.suggestion.findUnique({ where: { id: req.params.id } });
     if (!s) return reply.code(404).send({ error: 'not found' });
+    reply.header('cache-control', 'private, max-age=5');
     return reply.send(s);
   });
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { listSuggestions, createSuggestion, acceptSuggestion, rejectSuggestion, type Suggestion, type Finding } from '../api.js';
+import { listSuggestionsByAudit, createSuggestion, acceptSuggestion, rejectSuggestion, type Suggestion, type Finding } from '../api.js';
 import { FixCard, type FindingLike } from '../components/fixes/FixCard.js';
 import { EmptyFixesState } from '../components/fixes/EmptyFixesState.js';
 
@@ -28,31 +28,37 @@ export function FixesPage() {
   useEffect(() => {
     let cancelled = false;
     async function load() {
-      if (!filter.auditId) { setLoading(false); setFindings([]); return; }
-      const r = await fetch(`/api/audits/${filter.auditId}/findings`);
-      if (!r.ok) { setLoading(false); return; }
-      const data: Finding[] = await r.json();
-      if (cancelled) return;
-      const list: FindingLike[] = data.map((f) => ({
-        id: f.id,
-        category: f.category,
-        severity: f.severity,
-        message: f.message,
-        url: f.url,
-      }));
-      setFindings(list);
-      // Pre-load any existing suggestions for each finding
-      const map: Record<string, Suggestion> = {};
-      for (const f of list) {
-        const sugList = await listSuggestions(f.id);
-        const latest = sugList[sugList.length - 1];
-        if (latest) map[f.id] = latest;
+      if (!filter.auditId) {
+        setLoading(false);
+        setFindings([]);
+        setSuggestions({});
+        return;
       }
-      if (cancelled) return;
-      setSuggestions(map);
-      setLoading(false);
+      setLoading(true);
+      try {
+        const r = await fetch(`/api/audits/${filter.auditId}/findings`);
+        if (!r.ok) return;
+        const data: Finding[] = await r.json();
+        if (cancelled) return;
+        const list: FindingLike[] = data.map((f) => ({
+          id: f.id,
+          category: f.category,
+          severity: f.severity,
+          message: f.message,
+          url: f.url,
+        }));
+        setFindings(list);
+        // One round-trip for all suggestions on this audit; keep latest per finding.
+        const sugList = await listSuggestionsByAudit(filter.auditId);
+        if (cancelled) return;
+        const map: Record<string, Suggestion> = {};
+        for (const s of sugList) map[s.findingId] = s;
+        setSuggestions(map);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     }
-    load();
+    void load();
     return () => { cancelled = true; };
   }, [filter.auditId]);
 
@@ -75,7 +81,7 @@ export function FixesPage() {
     setSuggestions((prev) => ({ ...prev, [s.findingId]: s }));
   }
 
-  const visible = findings.filter((f) => {
+  const visible = useMemo(() => findings.filter((f) => {
     if (filter.findingId && f.id !== filter.findingId) return false;
     if (filter.category && f.category !== filter.category) return false;
     if (filter.status) {
@@ -83,7 +89,7 @@ export function FixesPage() {
       if (!s || s.status !== filter.status) return false;
     }
     return true;
-  });
+  }), [findings, filter.findingId, filter.category, filter.status, suggestions]);
 
   return (
     <div className="fixes-page">

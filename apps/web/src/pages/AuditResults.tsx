@@ -30,10 +30,9 @@ export function AuditResults() {
   }
   const a = q.data;
   const isPending = a.status === 'running' || a.status === 'queued';
-  const findingsByCategory = groupByCategory(a.findings as Finding[]);
-  const errorCount = (a.findings as Finding[]).filter((f) => f.severity === 'error').length;
-  const warningCount = (a.findings as Finding[]).filter((f) => f.severity === 'warning').length;
-  const infoCount = (a.findings as Finding[]).filter((f) => f.severity === 'info').length;
+  const findings = a.findings as Finding[];
+  const findingsByCategory = groupByCategory(findings);
+  const { error: errorCount, warning: warningCount, info: infoCount } = tallySeverities(findings);
 
   return (
     <div className="page">
@@ -114,7 +113,7 @@ export function AuditResults() {
         </div>
       </div>
 
-      <FindingList findings={a.findings as Finding[]} byCategory={findingsByCategory} />
+      <FindingList findings={findings} byCategory={findingsByCategory} />
     </div>
   );
 }
@@ -124,4 +123,16 @@ function groupByCategory(findings: Finding[]): Record<string, Finding[]> {
     (acc[f.category] ??= []).push(f);
     return acc;
   }, {});
+}
+
+function tallySeverities(findings: Finding[]) {
+  let error = 0;
+  let warning = 0;
+  let info = 0;
+  for (const f of findings) {
+    if (f.severity === 'error') error++;
+    else if (f.severity === 'warning') warning++;
+    else if (f.severity === 'info') info++;
+  }
+  return { error, warning, info };
 }

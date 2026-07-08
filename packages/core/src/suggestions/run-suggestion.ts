@@ -41,6 +41,7 @@ function tryParseJson(text: string): unknown | undefined {
 export async function runSuggestion(
   provider: LLMProvider,
   ctx: SuggestionContext,
+  fetchFn: typeof fetch = globalThis.fetch,
 ): Promise<SuggestionOutput> {
   if (ctx.category === 'overall') throw new Error('CATEGORY_NOT_SUPPORTED');
   // Reference the unreachable stub so the dispatch table is exhaustive at
@@ -56,8 +57,9 @@ export async function runSuggestion(
   const req: LLMRequest = {
     prompt,
     config: { model: 'gpt-4o-mini' },
+    signal: AbortSignal.timeout(30_000),
   };
-  const res = await provider.complete(req, globalThis.fetch);
+  const res = await provider.complete(req, fetchFn);
   const parsed = tryParseJson(res.text);
   if (parsed === undefined) {
     throw new LlmOutputError(res.text, `LLM output is not JSON: ${res.text.slice(0, 200)}`);

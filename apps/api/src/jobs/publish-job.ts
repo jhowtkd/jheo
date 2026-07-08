@@ -1,7 +1,7 @@
 import type { Job } from 'bullmq';
 import { aggregateReviewState, type Publisher, type PublishStatus } from '@jheo/core';
 import { type PrismaClient } from '@prisma/client';
-import { fetchWithGuard } from '../security/url-guard.js';
+import { guardedFetch } from '../security/url-guard.js';
 import { withGenerationLock } from '../db.js';
 
 const BACKOFF_MS: readonly number[] = [0, 30_000, 300_000];
@@ -117,9 +117,9 @@ export function makePublishHandler(deps: {
     // injection invariant — wrapping happens at the API/worker boundary,
     // preserving the "core is infra-free" F3 rule.
     const guardedFetchFn: typeof fetch = (input, init) =>
-      fetchWithGuard(
+      guardedFetch(
         typeof input === 'string' ? input : input.toString(),
-        init,
+        { ...init, timeoutMs: 15_000 },
       ) as Promise<Response>;
 
     try {

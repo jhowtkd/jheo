@@ -102,6 +102,7 @@ export async function translateBatch(
       prompt: userPrompt,
       system,
       config: { model: 'gpt-4o-mini', temperature: 0.2 },
+      signal: AbortSignal.timeout(30_000),
     };
     const res = await provider.complete(req, deps.fetchFn);
     const translated = splitTranslations(res.text, toTranslate.length, deps.logFn);

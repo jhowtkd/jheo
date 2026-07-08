@@ -58,11 +58,16 @@ export async function fetchGscOverview(
   days: number,
 ) {
   const { start, end } = resolveSnapshotDateRange(days);
-  const agg = await prisma.gscSnapshot.aggregate({
-    where: { projectId, date: { gte: start, lte: end } },
-    _sum: { clicks: true, impressions: true },
-    _avg: { position: true },
-  });
+  const [agg, rowCount] = await Promise.all([
+    prisma.gscSnapshot.aggregate({
+      where: { projectId, date: { gte: start, lte: end } },
+      _sum: { clicks: true, impressions: true },
+      _avg: { position: true },
+    }),
+    prisma.gscSnapshot.count({
+      where: { projectId, date: { gte: start, lte: end } },
+    }),
+  ]);
 
   const clicks = agg._sum.clicks ?? 0;
   const impressions = agg._sum.impressions ?? 0;
@@ -73,9 +78,7 @@ export async function fetchGscOverview(
     impressions,
     ctr,
     position: agg._avg.position ?? 0,
-    rowCount: await prisma.gscSnapshot.count({
-      where: { projectId, date: { gte: start, lte: end } },
-    }),
+    rowCount,
   };
 }
 

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('../src/db.js', () => ({
   prisma: {
-    finding: { findFirst: vi.fn() },
+    finding: { findMany: vi.fn() },
   },
 }));
 
@@ -16,7 +16,7 @@ import { attachLineage } from '../src/jobs/page-audit-job.js';
 
 describe('attachLineage', () => {
   it('returns previousFindingId=null when no prior head exists', async () => {
-    (prisma.finding.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (prisma.finding.findMany as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([]);
     const findings = await attachLineage(
       [{ category: 'seo', severity: 'warning', rule: 'meta.missing', message: 'no meta', url: 'https://x.test/', evidence: {} }],
       'pa-new',
@@ -26,7 +26,9 @@ describe('attachLineage', () => {
   });
 
   it('returns the prior head id when one exists', async () => {
-    (prisma.finding.findFirst as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({ id: 'f-prior' });
+    (prisma.finding.findMany as unknown as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 'f-prior', url: 'https://x.test/', category: 'seo', rule: 'meta.missing' },
+    ]);
     const findings = await attachLineage(
       [{ category: 'seo', severity: 'error', rule: 'meta.missing', message: 'no meta', url: 'https://x.test/', evidence: {} }],
       'pa-new',

@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { Finding, FindingDiff } from '../api.js';
@@ -42,8 +43,9 @@ interface Props {
 
 export function FindingList({ findings, byCategory, fixed }: Props) {
   const { t } = useTranslation();
+  const messageTexts = useMemo(() => findings.map((f) => f.message), [findings]);
   const { translated, error } = useDataTranslations({
-    texts: findings.map((f) => f.message),
+    texts: messageTexts,
     sourceLocale: 'en',
     context: 'finding',
   });

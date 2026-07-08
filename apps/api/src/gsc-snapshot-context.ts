@@ -13,19 +13,20 @@ export async function buildGscSnapshotContext(
   const cutoff = new Date();
   cutoff.setUTCDate(cutoff.getUTCDate() - RECENT_DAYS);
 
-  const grouped = await prisma.gscSnapshot.groupBy({
-    by: ['page'],
-    where: { projectId, date: { gte: cutoff } },
-    _sum: { impressions: true, clicks: true },
-  });
+  const [grouped, queryRows] = await Promise.all([
+    prisma.gscSnapshot.groupBy({
+      by: ['page'],
+      where: { projectId, date: { gte: cutoff } },
+      _sum: { impressions: true, clicks: true },
+    }),
+    prisma.gscSnapshot.groupBy({
+      by: ['page', 'query'],
+      where: { projectId, date: { gte: cutoff } },
+      _sum: { impressions: true },
+      orderBy: { _sum: { impressions: 'desc' } },
+    }),
+  ]);
   if (grouped.length === 0) return undefined;
-
-  const queryRows = await prisma.gscSnapshot.groupBy({
-    by: ['page', 'query'],
-    where: { projectId, date: { gte: cutoff } },
-    _sum: { impressions: true },
-    orderBy: { _sum: { impressions: 'desc' } },
-  });
 
   const topQueryByPage = new Map<string, string>();
   for (const row of queryRows) {

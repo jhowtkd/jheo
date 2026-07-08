@@ -42,6 +42,7 @@ export async function discoverSite(
   const found = new Map<string, DiscoveredPage['discoveredVia']>([[root.toString(), 'root']]);
   const sitemapQueue = [new URL('/sitemap.xml', root).toString()];
   const seenSitemaps = new Set<string>();
+  let sitemapHead = 0;
 
   try {
     const robots = await fetchText(new URL('/robots.txt', root).toString());
@@ -53,8 +54,8 @@ export async function discoverSite(
     // /sitemap.xml remains the conventional fallback.
   }
 
-  while (sitemapQueue.length && (maxPages === 0 || found.size < maxPages) && seenSitemaps.size < 50) {
-    const sitemapUrl = sitemapQueue.shift()!;
+  while (sitemapHead < sitemapQueue.length && (maxPages === 0 || found.size < maxPages) && seenSitemaps.size < 50) {
+    const sitemapUrl = sitemapQueue[sitemapHead++]!;
     if (seenSitemaps.has(sitemapUrl)) continue;
     seenSitemaps.add(sitemapUrl);
     try {
@@ -82,8 +83,9 @@ export async function discoverSite(
   if (found.size === 1) {
     const crawlQueue = [root.toString()];
     const crawled = new Set<string>();
-    while (crawlQueue.length && (maxPages === 0 || found.size < maxPages)) {
-      const url = crawlQueue.shift()!;
+    let crawlHead = 0;
+    while (crawlHead < crawlQueue.length && (maxPages === 0 || found.size < maxPages)) {
+      const url = crawlQueue[crawlHead++]!;
       if (crawled.has(url)) continue;
       crawled.add(url);
       try {

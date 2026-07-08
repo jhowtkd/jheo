@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { deleteSetting, listSettings, upsertSetting } from '../api.js';
 
@@ -45,11 +45,16 @@ export function Settings() {
     onSuccess: async () => qc.invalidateQueries({ queryKey: ['settings'] }),
   });
 
-  const presets = PRESET_KEYS.map((pk) => ({
-    key: pk,
-    label: t(`settings.presets.${pk}.label`),
-    hint: t(`settings.presets.${pk}.hint`),
-  }));
+  const presets = useMemo(
+    () =>
+      PRESET_KEYS.map((pk) => ({
+        key: pk,
+        label: t(`settings.presets.${pk}.label`),
+        hint: t(`settings.presets.${pk}.hint`),
+      })),
+    [t],
+  );
+  const presetsByKey = useMemo(() => new Map(presets.map((p) => [p.key, p])), [presets]);
 
   return (
     <div className="page">
@@ -85,7 +90,7 @@ export function Settings() {
           {list.data && list.data.length > 0 && (
             <div className="col" style={{ gap: 'var(--space-2)' }}>
               {list.data.map((s) => {
-                const preset = isPresetKey(s.key) ? presets.find((p) => p.key === s.key) : undefined;
+                const preset = isPresetKey(s.key) ? presetsByKey.get(s.key) : undefined;
                 return (
                   <div key={s.key} className="card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
                     <div className="spread" style={{ marginBottom: 'var(--space-2)' }}>
@@ -150,7 +155,7 @@ export function Settings() {
                 </datalist>
                 {isPresetKey(key) && (
                   <span className="tiny muted" style={{ marginTop: 4 }}>
-                    {presets.find((p) => p.key === key)?.hint}
+                    {presetsByKey.get(key)?.hint}
                   </span>
                 )}
               </div>

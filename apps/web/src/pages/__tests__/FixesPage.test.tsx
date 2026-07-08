@@ -6,6 +6,7 @@ import { FixesPage } from '../FixesPage.js';
 vi.mock('../../api.js', () => ({
   createSuggestion: vi.fn(),
   listSuggestions: vi.fn(async () => []),
+  listSuggestionsByAudit: vi.fn(async () => []),
   acceptSuggestion: vi.fn(),
   rejectSuggestion: vi.fn(),
 }));
