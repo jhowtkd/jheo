@@ -15,14 +15,13 @@ export type FetchText = (
   init?: { headers?: Record<string, string>; signal?: AbortSignal },
 ) => Promise<{ status: number; headers: Record<string, string>; text: string }>;
 
-// Lazy-initialised FlowProducer + QueueEvents. Reusing a single instance
-// across audits keeps the Redis connection count constant in the server
-// process; lazy init means module load (e.g. unit tests that don't exercise
-// the flow path) does not eagerly open Redis connections.
+// Lazy-initialised FlowProducer. The QueueEvents used by the flow
+// orchestrator is *not* a module-level singleton — see withAuditPageQueueEvents
+// below for the rationale (each audit gets its own QueueEvents so a pub/sub
+// failure in one audit cannot leak state into the next).
 const REDIS_HOST = process.env.REDIS_HOST ?? '127.0.0.1';
 const REDIS_PORT = Number(process.env.REDIS_PORT ?? 6379);
 let _flowProducer: FlowProducer | undefined;
-let _auditPageQueueEvents: QueueEvents | undefined;
 function getFlowProducer(): FlowProducer {
   if (!_flowProducer) {
     _flowProducer = new FlowProducer({
@@ -31,13 +30,52 @@ function getFlowProducer(): FlowProducer {
   }
   return _flowProducer;
 }
-function getAuditPageQueueEvents(): QueueEvents {
-  if (!_auditPageQueueEvents) {
-    _auditPageQueueEvents = new QueueEvents('auditPage', {
-      connection: { host: REDIS_HOST, port: REDIS_PORT },
-    });
+
+/**
+ * Run `fn` with a fresh QueueEvents for the `auditPage` queue, guaranteeing
+ * the underlying ioredis pub/sub connection is closed when the callback
+ * resolves or throws. This is the lifecycle used by `runFlowOrchestrator`.
+ *
+ * Why per-call instead of a module-level singleton:
+ *   - The previous singleton (`getAuditPageQueueEvents()`) created one
+ *     QueueEvents per process and never recreated it. ioredis pub/sub
+ *     subscriptions can drop silently under burst load (e.g. 500 children
+ *     completing in quick succession), and the default
+ *     `maxRetriesPerRequest=20` lets the client give up reconnecting
+ *     permanently. A stale singleton then causes `waitUntilFinished` to
+ *     hang for the full 30-minute timeout, leaving the parent audit job
+ *     stuck in `running` even though every child has finished.
+ *   - Scoping the QueueEvents to a single audit means each one starts with
+ *     a clean ioredis client and pub/sub subscription, and any transient
+ *     blip is naturally contained — the next audit retries from scratch
+ *     with a fresh subscriber. The connection-count cost is one extra
+ *     pub/sub socket per audit (closed in `finally`), not per page.
+ *
+ * Connection options match the main worker (`queue.ts`): infinite retry on
+ * transient errors, no offline command queueing, 10s connect timeout. The
+ * pub/sub subscription is the long-lived thing here — ioredis must keep
+ * trying to reconnect, not give up after 20 failed commands.
+ */
+export async function withAuditPageQueueEvents<T>(
+  fn: (queueEvents: QueueEvents) => Promise<T>,
+): Promise<T> {
+  const queueEvents = new QueueEvents('auditPage', {
+    connection: {
+      host: REDIS_HOST,
+      port: REDIS_PORT,
+      maxRetriesPerRequest: null,
+      enableOfflineQueue: false,
+      connectTimeout: 10_000,
+    },
+  });
+  try {
+    return await fn(queueEvents);
+  } finally {
+    // `close()` may itself reject if the underlying socket is already gone
+    // (the typical failure mode we're guarding against). Swallow — the
+    // process exit / next audit's fresh subscriber is the real recovery.
+    await queueEvents.close().catch(() => {});
   }
-  return _auditPageQueueEvents;
 }
 
 /**
@@ -100,7 +138,14 @@ async function runFlowOrchestrator(
     data: { auditId },
     children,
   });
-  await group.job.waitUntilFinished(getAuditPageQueueEvents(), 30 * 60 * 1000);
+  // The QueueEvents is scoped to this audit via withAuditPageQueueEvents;
+  // it will be closed (and its pub/sub subscription torn down) when the
+  // callback resolves, the waitUntilFinished timeout fires, or the parent
+  // handler throws. See the helper's docstring for why we do not keep a
+  // module-level singleton.
+  await withAuditPageQueueEvents((queueEvents) =>
+    group.job.waitUntilFinished(queueEvents, 30 * 60 * 1000),
+  );
 }
 
 /**
