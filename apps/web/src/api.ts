@@ -1,4 +1,17 @@
+import { i18n } from './i18n';
+
 const API = '/api';
+
+// Wrapper that injects Accept-Language on every fetch from the SPA. We
+// resolve `globalThis.fetch` lazily so tests can stub it (e.g. the
+// useDataTranslations suite replaces `globalThis.fetch` with a mock).
+const localeFetch: typeof fetch = (input, init) => {
+  const headers = new Headers(init?.headers);
+  if (!headers.has('accept-language')) {
+    headers.set('accept-language', i18n.language || 'en');
+  }
+  return globalThis.fetch(input as RequestInfo | URL, { ...init, headers });
+};
 
 export type Project = { id: string; name: string; rootUrl: string; createdAt: string };
 export type Audit = {
@@ -26,11 +39,11 @@ export type Finding = {
 };
 
 export async function listProjects(): Promise<Project[]> {
-  const r = await fetch(`${API}/projects`);
+  const r = await localeFetch(`${API}/projects`);
   return r.json();
 }
 export async function createProject(input: { domain: string }): Promise<Project> {
-  const r = await fetch(`${API}/projects`, {
+  const r = await localeFetch(`${API}/projects`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -84,7 +97,7 @@ export type PageAuditDetail = {
 };
 
 export async function reAuditPage(pageId: string): Promise<{ pageAuditId: string }> {
-  const res = await fetch(`${API}/pages/${pageId}/audit`, { method: 'POST' });
+  const res = await localeFetch(`${API}/pages/${pageId}/audit`, { method: 'POST' });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.error ?? `Re-audit failed: ${res.status}`);
@@ -93,7 +106,7 @@ export async function reAuditPage(pageId: string): Promise<{ pageAuditId: string
 }
 
 export async function getPageAuditDetail(pageAuditId: string): Promise<PageAuditDetail> {
-  const res = await fetch(`${API}/page-audits/${pageAuditId}`);
+  const res = await localeFetch(`${API}/page-audits/${pageAuditId}`);
   if (!res.ok) throw new Error(`Failed to load page audit: ${res.status}`);
   return res.json();
 }
@@ -109,7 +122,7 @@ export type ProjectHealth = {
 
 export type ProjectDetail = Project & { audits: Audit[]; pages: ProjectPage[] };
 export async function getProject(id: string): Promise<ProjectDetail> {
-  return (await fetch(`${API}/projects/${id}`)).json();
+  return (await localeFetch(`${API}/projects/${id}`)).json();
 }
 export async function getProjectPages(
   id: string,
@@ -120,17 +133,17 @@ export async function getProjectPages(
   if (opts.offset !== undefined) params.set('offset', String(opts.offset));
   if (opts.filter) params.set('filter', opts.filter);
   const qs = params.toString();
-  const res = await fetch(`${API}/projects/${id}/pages${qs ? `?${qs}` : ''}`);
+  const res = await localeFetch(`${API}/projects/${id}/pages${qs ? `?${qs}` : ''}`);
   if (!res.ok) throw new Error(`Failed to load pages: ${res.status}`);
   return res.json();
 }
 export async function getProjectHealth(id: string): Promise<ProjectHealth> {
-  const res = await fetch(`${API}/projects/${id}/health`);
+  const res = await localeFetch(`${API}/projects/${id}/health`);
   if (!res.ok) throw new Error(`Failed to load health: ${res.status}`);
   return res.json();
 }
 export async function runAudit(projectId: string): Promise<Audit> {
-  const r = await fetch(`${API}/audits`, {
+  const r = await localeFetch(`${API}/audits`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ projectId, config: {} }),
@@ -138,7 +151,7 @@ export async function runAudit(projectId: string): Promise<Audit> {
   return r.json();
 }
 export async function getAudit(id: string): Promise<Audit & { findings: Finding[] }> {
-  const r = await fetch(`${API}/audits/${id}`);
+  const r = await localeFetch(`${API}/audits/${id}`);
   return r.json();
 }
 
@@ -152,13 +165,13 @@ export type AuditProgress = {
 };
 
 export async function getAuditProgress(auditId: string): Promise<AuditProgress> {
-  const res = await fetch(`${API}/audits/${auditId}/progress`);
+  const res = await localeFetch(`${API}/audits/${auditId}/progress`);
   if (!res.ok) throw new Error(`Failed to load progress: ${res.status}`);
   return res.json();
 }
 
 export async function cancelAudit(auditId: string): Promise<{ id: string; status: string }> {
-  const res = await fetch(`${API}/audits/${auditId}`, { method: 'DELETE' });
+  const res = await localeFetch(`${API}/audits/${auditId}`, { method: 'DELETE' });
   if (!res.ok) throw new Error(`Failed to cancel: ${res.status}`);
   return res.json();
 }
@@ -173,13 +186,13 @@ export type Material = {
   createdAt: string;
 };
 export async function listMaterials(projectId: string): Promise<Material[]> {
-  return (await fetch(`/api/projects/${projectId}/materials`)).json();
+  return (await localeFetch(`/api/projects/${projectId}/materials`)).json();
 }
 export async function createMaterial(
   projectId: string,
   input: { type: 'url' | 'file' | 'note'; title: string; source: string },
 ): Promise<{ id: string; deduped?: boolean }> {
-  const r = await fetch(`/api/projects/${projectId}/materials`, {
+  const r = await localeFetch(`/api/projects/${projectId}/materials`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -187,7 +200,7 @@ export async function createMaterial(
   return r.json();
 }
 export async function deleteMaterial(id: string): Promise<{ id: string }> {
-  return (await fetch(`/api/materials/${id}`, { method: 'DELETE' })).json();
+  return (await localeFetch(`/api/materials/${id}`, { method: 'DELETE' })).json();
 }
 
 // ---------- Templates ----------
@@ -201,17 +214,17 @@ export type GenerationTemplate = {
   createdAt: string;
 };
 export async function listTemplates(): Promise<GenerationTemplate[]> {
-  return (await fetch('/api/templates')).json();
+  return (await localeFetch('/api/templates')).json();
 }
 export async function getTemplate(id: string): Promise<GenerationTemplate> {
-  return (await fetch(`/api/templates/${id}`)).json();
+  return (await localeFetch(`/api/templates/${id}`)).json();
 }
 export async function createTemplate(input: {
   name: string;
   prompt: string;
   outputSchema: unknown;
 }): Promise<GenerationTemplate> {
-  const r = await fetch('/api/templates', {
+  const r = await localeFetch('/api/templates', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -222,7 +235,7 @@ export async function updateTemplate(
   id: string,
   input: { prompt: string; outputSchema: unknown },
 ): Promise<GenerationTemplate> {
-  const r = await fetch(`/api/templates/${id}`, {
+  const r = await localeFetch(`/api/templates/${id}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -230,7 +243,7 @@ export async function updateTemplate(
   return r.json();
 }
 export async function activateTemplate(id: string): Promise<GenerationTemplate> {
-  const r = await fetch(`/api/templates/${id}/active`, { method: 'PATCH' });
+  const r = await localeFetch(`/api/templates/${id}/active`, { method: 'PATCH' });
   return r.json();
 }
 
@@ -250,9 +263,11 @@ export type Generation = {
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string;
+  locale: string;
+  translatedTo?: string | null;
 };
 export async function listGenerations(projectId: string): Promise<Generation[]> {
-  return (await fetch(`/api/projects/${projectId}/generations`)).json();
+  return (await localeFetch(`/api/projects/${projectId}/generations`)).json();
 }
 export async function createGeneration(
   projectId: string,
@@ -263,7 +278,7 @@ export async function createGeneration(
     llmConfig: { provider: 'openai' | 'anthropic' | 'openrouter'; model: string; temperature?: number; maxTokens?: number };
   },
 ): Promise<Generation> {
-  const r = await fetch(`/api/projects/${projectId}/generations`, {
+  const r = await localeFetch(`/api/projects/${projectId}/generations`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -271,14 +286,14 @@ export async function createGeneration(
   return r.json();
 }
 export async function getGeneration(id: string): Promise<Generation> {
-  return (await fetch(`/api/generations/${id}`)).json();
+  return (await localeFetch(`/api/generations/${id}`)).json();
 }
 export async function reviewGeneration(
   id: string,
   action: 'send_to_review' | 'approve' | 'reject',
   notes?: string,
 ): Promise<Generation> {
-  const r = await fetch(`/api/generations/${id}/review`, {
+  const r = await localeFetch(`/api/generations/${id}/review`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ action, notes }),
@@ -286,7 +301,7 @@ export async function reviewGeneration(
   return r.json();
 }
 export async function editGenerationMarkdown(id: string, outputMarkdown: string): Promise<Generation> {
-  const r = await fetch(`/api/generations/${id}`, {
+  const r = await localeFetch(`/api/generations/${id}`, {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ outputMarkdown }),
@@ -297,10 +312,10 @@ export async function editGenerationMarkdown(id: string, outputMarkdown: string)
 // ---------- Settings ----------
 export type Setting = { key: string; updatedAt: string };
 export async function listSettings(): Promise<Setting[]> {
-  return (await fetch('/api/settings')).json();
+  return (await localeFetch('/api/settings')).json();
 }
 export async function upsertSetting(key: string, value: string): Promise<Setting> {
-  const r = await fetch(`/api/settings/${key}`, {
+  const r = await localeFetch(`/api/settings/${key}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ value }),
@@ -308,7 +323,7 @@ export async function upsertSetting(key: string, value: string): Promise<Setting
   return r.json();
 }
 export async function deleteSetting(key: string): Promise<{ key: string }> {
-  return (await fetch(`/api/settings/${key}`, { method: 'DELETE' })).json();
+  return (await localeFetch(`/api/settings/${key}`, { method: 'DELETE' })).json();
 }
 
 // ---------- Channels ----------
@@ -323,13 +338,13 @@ export type Channel = {
 };
 export type ChannelDetail = Channel & { config: unknown };
 export async function listChannels(projectId: string): Promise<Channel[]> {
-  return (await fetch(`/api/projects/${projectId}/channels`)).json();
+  return (await localeFetch(`/api/projects/${projectId}/channels`)).json();
 }
 export async function createChannel(
   projectId: string,
   input: { name: string; type: ChannelType; config: unknown; isActive?: boolean },
 ): Promise<{ id: string }> {
-  const r = await fetch(`/api/projects/${projectId}/channels`, {
+  const r = await localeFetch(`/api/projects/${projectId}/channels`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -337,13 +352,13 @@ export async function createChannel(
   return r.json();
 }
 export async function getChannel(id: string): Promise<ChannelDetail> {
-  return (await fetch(`/api/channels/${id}`)).json();
+  return (await localeFetch(`/api/channels/${id}`)).json();
 }
 export async function updateChannel(
   id: string,
   input: { name?: string; config?: unknown; isActive?: boolean },
 ): Promise<Channel> {
-  const r = await fetch(`/api/channels/${id}`, {
+  const r = await localeFetch(`/api/channels/${id}`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -351,7 +366,7 @@ export async function updateChannel(
   return r.json();
 }
 export async function deleteChannel(id: string): Promise<Channel> {
-  return (await fetch(`/api/channels/${id}`, { method: 'DELETE' })).json();
+  return (await localeFetch(`/api/channels/${id}`, { method: 'DELETE' })).json();
 }
 
 // ---------- Publishes ----------
@@ -380,10 +395,10 @@ export type Publish = {
   events?: PublishEvent[];
 };
 export async function listPublishes(generationId: string): Promise<Publish[]> {
-  return (await fetch(`/api/generations/${generationId}/publishes`)).json();
+  return (await localeFetch(`/api/generations/${generationId}/publishes`)).json();
 }
 export async function createPublishes(generationId: string, channelIds: string[]): Promise<{ publishes: string[] }> {
-  const r = await fetch(`/api/generations/${generationId}/publish`, {
+  const r = await localeFetch(`/api/generations/${generationId}/publish`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ channelIds }),
@@ -391,16 +406,16 @@ export async function createPublishes(generationId: string, channelIds: string[]
   return r.json();
 }
 export async function retryPublish(id: string): Promise<{ id: string }> {
-  return (await fetch(`/api/publishes/${id}/retry`, { method: 'POST' })).json();
+  return (await localeFetch(`/api/publishes/${id}/retry`, { method: 'POST' })).json();
 }
 export async function cancelPublish(id: string): Promise<{ id: string }> {
-  return (await fetch(`/api/publishes/${id}/cancel`, { method: 'POST' })).json();
+  return (await localeFetch(`/api/publishes/${id}/cancel`, { method: 'POST' })).json();
 }
 export async function getPublish(id: string): Promise<Publish> {
-  return (await fetch(`/api/publishes/${id}`)).json();
+  return (await localeFetch(`/api/publishes/${id}`)).json();
 }
 export async function getPublishFiles(id: string): Promise<{ dir: string; files: { name: string; content: string }[] }> {
-  return (await fetch(`/api/publishes/${id}/files`)).json();
+  return (await localeFetch(`/api/publishes/${id}/files`)).json();
 }
 
 // ---------- Google Search Console ----------
@@ -448,7 +463,7 @@ async function readJsonOrThrow<T>(r: Response): Promise<T> {
 }
 
 export async function getGscConnection(projectId: string): Promise<GscConnection | null> {
-  const r = await fetch(`/api/projects/${projectId}/gsc/connection`);
+  const r = await localeFetch(`/api/projects/${projectId}/gsc/connection`);
   if (r.status === 404) return null;
   return readJsonOrThrow<GscConnection>(r);
 }
@@ -457,7 +472,7 @@ export async function putGscConnection(
   projectId: string,
   input: { siteUrl: string; serviceAccountJson: unknown },
 ): Promise<GscConnection> {
-  const r = await fetch(`/api/projects/${projectId}/gsc/connection`, {
+  const r = await localeFetch(`/api/projects/${projectId}/gsc/connection`, {
     method: 'PUT',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -466,26 +481,49 @@ export async function putGscConnection(
 }
 
 export async function deleteGscConnection(projectId: string): Promise<{ projectId: string }> {
-  const r = await fetch(`/api/projects/${projectId}/gsc/connection`, { method: 'DELETE' });
+  const r = await localeFetch(`/api/projects/${projectId}/gsc/connection`, { method: 'DELETE' });
   return readJsonOrThrow(r);
 }
 
 export async function syncGsc(projectId: string): Promise<{ status: string; freshness: GscFreshness }> {
-  const r = await fetch(`/api/projects/${projectId}/gsc/sync`, { method: 'POST' });
+  const r = await localeFetch(`/api/projects/${projectId}/gsc/sync`, { method: 'POST' });
   return readJsonOrThrow(r);
 }
 
 export async function getGscOverview(projectId: string, days = 28): Promise<GscOverview> {
-  const r = await fetch(`/api/projects/${projectId}/gsc/overview?days=${days}`);
+  const r = await localeFetch(`/api/projects/${projectId}/gsc/overview?days=${days}`);
   return readJsonOrThrow<GscOverview>(r);
 }
 
 export async function getGscQueries(projectId: string, days = 28, limit = 10): Promise<{ rows: GscMetricRow[]; freshness: GscFreshness }> {
-  const r = await fetch(`/api/projects/${projectId}/gsc/queries?days=${days}&limit=${limit}`);
+  const r = await localeFetch(`/api/projects/${projectId}/gsc/queries?days=${days}&limit=${limit}`);
   return readJsonOrThrow(r);
 }
 
 export async function getGscPages(projectId: string, days = 28, limit = 10): Promise<{ rows: GscMetricRow[]; freshness: GscFreshness }> {
-  const r = await fetch(`/api/projects/${projectId}/gsc/pages?days=${days}&limit=${limit}`);
+  const r = await localeFetch(`/api/projects/${projectId}/gsc/pages?days=${days}&limit=${limit}`);
   return readJsonOrThrow(r);
+}
+
+export async function translateTexts(
+  texts: string[],
+  context: 'finding' | 'generation' | 'material' | 'help',
+): Promise<Array<{ original: string; translated: string; cached: boolean }>> {
+  if (texts.length === 0) return [];
+  const targetLocale = i18n.language === 'pt-BR' ? 'pt-BR' : 'en';
+  const res = await localeFetch('/api/translate', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'accept-language': targetLocale,
+    },
+    body: JSON.stringify({ texts, targetLocale, context }),
+  });
+  if (!res.ok) {
+    if (res.status === 503) throw new Error('no_llm_provider');
+    if (res.status === 429) throw new Error('rate_limited');
+    throw new Error(`translate failed: ${res.status}`);
+  }
+  const body = await res.json();
+  return body.translations;
 }

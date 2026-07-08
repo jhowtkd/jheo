@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { Finding, FindingDiff } from '../api.js';
+import { useDataTranslations } from '../i18n/useDataTranslations';
 
 const SEV_CLASS: Record<Finding['severity'], string> = {
   info: 'sev--info',
@@ -28,6 +29,11 @@ interface Props {
 
 export function FindingList({ findings, byCategory, fixed }: Props) {
   const { t } = useTranslation();
+  const { translated, error } = useDataTranslations({
+    texts: findings.map((f) => f.message),
+    sourceLocale: 'en',
+    context: 'finding',
+  });
   return (
     <div>
       {fixed && fixed.length > 0 && (
@@ -78,7 +84,13 @@ export function FindingList({ findings, byCategory, fixed }: Props) {
               </h3>
               <div className="finding-list">
                 {items.map((f) => (
-                  <FindingCard key={f.id} finding={f} />
+                  <FindingCard
+                    key={f.id}
+                    finding={f}
+                    translated={translated}
+                    error={error}
+                    translationUnavailableLabel={t('topbar.translationUnavailable')}
+                  />
                 ))}
               </div>
             </section>
@@ -87,7 +99,13 @@ export function FindingList({ findings, byCategory, fixed }: Props) {
       ) : (
         <div className="finding-list">
           {findings.map((f) => (
-            <FindingCard key={f.id} finding={f} />
+            <FindingCard
+              key={f.id}
+              finding={f}
+              translated={translated}
+              error={error}
+              translationUnavailableLabel={t('topbar.translationUnavailable')}
+            />
           ))}
         </div>
       )}
@@ -95,7 +113,17 @@ export function FindingList({ findings, byCategory, fixed }: Props) {
   );
 }
 
-function FindingCard({ finding }: { finding: FindingListItem }) {
+function FindingCard({
+  finding,
+  translated,
+  error,
+  translationUnavailableLabel,
+}: {
+  finding: FindingListItem;
+  translated: Map<string, string>;
+  error: 'no_llm_provider' | 'rate_limited' | null;
+  translationUnavailableLabel: string;
+}) {
   const url = (() => {
     try {
       return (
@@ -106,6 +134,7 @@ function FindingCard({ finding }: { finding: FindingListItem }) {
       return finding.url;
     }
   })();
+  const messageText = translated.get(finding.message) ?? finding.message;
   return (
     <article className="finding">
       <div className={'finding__sev ' + SEV_CLASS[finding.severity]}>
@@ -118,7 +147,12 @@ function FindingCard({ finding }: { finding: FindingListItem }) {
       </div>
       <div>
         <div className="finding__rule">{finding.rule}</div>
-        <div className="finding__msg">{finding.message}</div>
+        <div className="finding__msg">
+          {messageText}
+          {error && (
+            <span className="translation-unavailable" aria-label={translationUnavailableLabel}> ↻</span>
+          )}
+        </div>
       </div>
       <div className="finding__meta">
         <div>{finding.category}</div>

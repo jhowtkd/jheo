@@ -5,6 +5,8 @@ import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getGeneration, reviewGeneration, type Generation } from '../api.js';
 import { PublishActions } from '../components/PublishActions.js';
+import { useDataTranslations } from '../i18n/useDataTranslations';
+import type { SupportedLocale } from '../i18n';
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -49,6 +51,15 @@ export function GenerationReview() {
   const fm = (g.outputFrontMatter ?? {}) as Record<string, unknown>;
   const title = (fm.title as string) || t('generation.review.titleFallback', { id: g.id.slice(0, 8) });
 
+  const { translated: translatedBody, error: bodyError } = useDataTranslations({
+    texts: g.outputMarkdown ? [g.outputMarkdown] : [],
+    sourceLocale: (g.locale as SupportedLocale) ?? 'en',
+    context: 'generation',
+  });
+  const renderedBody = g.outputMarkdown
+    ? translatedBody.get(g.outputMarkdown) ?? g.outputMarkdown
+    : null;
+
   return (
     <div className="page">
       <div className="page__header">
@@ -87,7 +98,10 @@ export function GenerationReview() {
       {g.outputMarkdown && (
         <div className="gen-grid">
           <article className="gen-grid__body">
-            <ReactMarkdown>{g.outputMarkdown}</ReactMarkdown>
+            <ReactMarkdown>{renderedBody ?? ''}</ReactMarkdown>
+            {bodyError && (
+              <span className="translation-unavailable" aria-label={t('topbar.translationUnavailable')}> ↻</span>
+            )}
           </article>
 
           <aside className="col">
