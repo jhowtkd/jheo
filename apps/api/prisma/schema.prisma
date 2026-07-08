@@ -216,6 +216,8 @@ model Generation {
   startedAt         DateTime?
   finishedAt        DateTime?
   createdAt         DateTime           @default(now())
+  locale            String             @default("en")
+  translatedTo      String?
   publishes         Publish[]
 
   @@index([projectId])
@@ -234,4 +236,18 @@ model PublishEvent {
 
   @@index([publishId])
   @@index([createdAt])
+}
+
+model TranslationCache {
+  id           String   @id @default(cuid())
+  cacheKey     String   @unique
+  text         String
+  targetLocale String
+  context      String
+  translated   String
+  provider     String
+  model        String
+  createdAt    DateTime @default(now())
+
+  @@index([targetLocale, context])
 }
