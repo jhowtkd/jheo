@@ -27,6 +27,8 @@ import { channelRoutes } from './routes/channels.js';
 import { gscRoutes } from './routes/gsc.js';
 import { publishRoutes } from './routes/publishes.js';
 import { pageRoutes } from './routes/pages.js';
+import { translateRoutes } from './routes/translate.js';
+import type { TranslateDeps } from './i18n/translate.js';
 import {
   startWorkers,
   startGenerateWorkers,
@@ -74,7 +76,7 @@ export async function fetchText(
   };
 }
 
-export async function buildServer() {
+export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProviders'] }) {
   const env = loadEnv();
   const app = Fastify({
     logger: { level: env.LOG_LEVEL },
@@ -159,7 +161,36 @@ export async function buildServer() {
   await app.register(gscRoutes);
   await app.register(publishRoutes);
   await app.register(pageRoutes);
+  await app.register(translateRoutes, {
+    prisma: defaultPrisma,
+    llmProviders:
+      opts?.llmProviders ?? {
+        openai: new OpenAIProvider({ apiKey: '' }),
+        anthropic: new AnthropicProvider({ apiKey: '' }),
+        openrouter: new OpenRouterProvider({ apiKey: '' }),
+      },
+    fetchFn: globalThis.fetch,
+  });
   return app;
+}
+
+/**
+ * Construct the live-process LLM providers from env + resolved keys. Kept
+ * separate from `buildServer` so `buildServer({ llmProviders })` can be
+ * called from tests with stub providers without going through env parsing.
+ */
+function buildLlmProviders(
+  env: ReturnType<typeof loadEnv>,
+  keys: { openai?: string | undefined; anthropic?: string | undefined; openrouter?: string | undefined },
+) {
+  return {
+    openai: new OpenAIProvider({
+      apiKey: keys.openai ?? '',
+      ...(env.OPENAI_BASE_URL ? { baseUrl: env.OPENAI_BASE_URL } : {}),
+    }),
+    anthropic: new AnthropicProvider({ apiKey: keys.anthropic ?? '' }),
+    openrouter: new OpenRouterProvider({ apiKey: keys.openrouter ?? '' }),
+  };
 }
 
 const isMain = import.meta.url === `file://${process.argv[1]}`;
@@ -198,14 +229,11 @@ if (isMain) {
   // When OPENAI_BASE_URL is set (e.g. MiniMax), the OpenAIProvider used for
   // completion routes through it. The embedding provider stays on the real
   // OpenAI API via the separate `openai_embedding_api_key` slot.
-  const llmProviders = {
-    openai: new OpenAIProvider({
-      apiKey: openaiKey ?? '',
-      ...(env.OPENAI_BASE_URL ? { baseUrl: env.OPENAI_BASE_URL } : {}),
-    }),
-    anthropic: new AnthropicProvider({ apiKey: anthropicKey ?? '' }),
-    openrouter: new OpenRouterProvider({ apiKey: openrouterKey ?? '' }),
-  };
+  const llmProviders = buildLlmProviders(env, {
+    openai: openaiKey,
+    anthropic: anthropicKey,
+    openrouter: openrouterKey,
+  });
   const embedProvider = new OpenAIEmbeddingProvider({
     apiKey: embeddingKey ?? openaiKey ?? '',
   });
@@ -261,7 +289,7 @@ if (isMain) {
       })
     : null;
 
-  const app = await buildServer();
+  const app = await buildServer({ llmProviders });
 
   const gscCron = env.GSC_ENABLED
     ? startGscCron({
