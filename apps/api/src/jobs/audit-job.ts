@@ -307,8 +307,21 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
         data: { status: 'completed', finishedAt, score },
       });
     } catch (err) {
-      await prisma.audit.update({
-        where: { id: audit.id },
+      // Conditional update — only mark 'failed' if the audit is still
+      // 'running'. If a manual intervention (e.g. a SQL `UPDATE` from an
+      // operator, or another worker's retry) already moved it to a
+      // terminal state during this in-flight run, `updateMany` matches
+      // zero rows and we preserve the human-set outcome instead of
+      // clobbering 'completed' with 'failed'.
+      //
+      // Background: 2026-07-08 cenbrap audit got stuck in
+      // `waitUntilFinished`. Operator manually set status='completed'
+      // via SQL with the computed score. The 30-minute timeout then
+      // fired, the catch block ran, and an unconditional
+      // `prisma.audit.update` overwrote the manual 'completed' with
+      // 'failed'. This conditional update is the fix.
+      await prisma.audit.updateMany({
+        where: { id: audit.id, status: 'running' },
         data: { status: 'failed', finishedAt: new Date() },
       });
       throw err;

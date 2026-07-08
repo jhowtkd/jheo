@@ -14,7 +14,16 @@ vi.mock('../src/db.js', () => {
   const transaction = vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[]));
   return {
     prisma: {
-      audit: { findUnique: vi.fn(), update: vi.fn() },
+      audit: {
+        findUnique: vi.fn(),
+        update: vi.fn(),
+        // The catch path uses a conditional updateMany so it does not
+        // clobber a status an operator (or a concurrent worker) set during
+        // an in-flight run. Default the mock to "1 row matched" so the
+        // happy-path test still exercises the failure-write; tests that
+        // exercise the no-clobber path override this.
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
       project: { findUnique: vi.fn() },
       projectPage: {
         createMany: vi.fn(),
@@ -159,11 +168,23 @@ describe('runProjectAuditJob handler (orchestrator)', () => {
     const handler = makeAuditHandler({ fetchText });
     await expect(handler({ data: { auditId: 'a1' } } as never)).rejects.toThrow('boom');
 
-    // Last audit.update must be the failed-flush (NOT the earlier 'running'
-    // transition). The handler must not silently leave the audit 'running'
-    // when the orchestrator errors.
-    const updateCalls = (prisma.audit.update as unknown as ReturnType<typeof vi.fn>).mock.calls;
-    const lastUpdate = updateCalls.at(-1)?.[0];
-    expect(lastUpdate.data.status).toBe('failed');
+    // The catch path uses a conditional updateMany so a manual
+    // completion (or concurrent worker) cannot be clobbered with
+    // 'failed'. The handler must still flush 'failed' when the audit
+    // is still 'running' (the default mock returns count=1, so the
+    // conditional matches and the write happens).
+    const updateManyCalls = (prisma.audit.updateMany as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    const lastFlush = updateManyCalls.at(-1)?.[0];
+    expect(lastFlush).toBeDefined();
+    expect(lastFlush.where).toEqual({ id: 'a1', status: 'running' });
+    expect(lastFlush.data.status).toBe('failed');
+    // The unconditional `update` path must NOT be used for the failure
+    // flush (it was the bug — clobbered manual 'completed' on
+    // 2026-07-08).
+    const unconditionalUpdates = (prisma.audit.update as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    const flushedViaUnconditional = unconditionalUpdates.some(
+      (c) => c[0]?.data?.status === 'failed',
+    );
+    expect(flushedViaUnconditional).toBe(false);
   });
 });
