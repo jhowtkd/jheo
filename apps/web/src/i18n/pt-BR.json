@@ -1,0 +1,63 @@
+{
+  "app": { "name": "JHEO", "tagline": "GEO · SEO · conteúdo" },
+  "nav": { "projects": "Projetos", "templates": "Modelos", "settings": "Configurações" },
+  "topbar": {
+    "api": "API",
+    "down": "fora do ar",
+    "language": "Idioma",
+    "translationUnavailable": "Tradução indisponível"
+  },
+  "languages": { "en": "English", "pt-BR": "Português (Brasil)" },
+  "projects": {
+    "title": "Projetos",
+    "create": { "label": "Novo projeto", "placeholder": "exemplo.com.br", "submit": "Criar" },
+    "empty": "Nenhum projeto ainda. Adicione seu primeiro domínio para começar a auditar."
+  },
+  "audit": {
+    "title": "Auditoria",
+    "categories": {
+      "seo": "SEO",
+      "cwv": "Desempenho (CWV)",
+      "geo": "GEO · leitura por IA",
+      "a11y": "Acessibilidade",
+      "content": "Conteúdo",
+      "overall": "Geral"
+    },
+    "statuses": {
+      "queued": "Na fila",
+      "running": "Rodando…",
+      "completed": "Concluída",
+      "failed": "Falhou",
+      "cancelled": "Cancelada"
+    },
+    "actions": { "run": "Rodar auditoria", "cancel": "Cancelar", "view": "Ver resultados" }
+  },
+  "findings": {
+    "severities": { "info": "Aviso leve", "warning": "Atenção", "error": "Erro" },
+    "diff": {
+      "NEW": "Novo",
+      "UNCHANGED": "Sem mudança",
+      "IMPROVEMENT": "Melhorou",
+      "REGRESSION": "Piorou",
+      "FIXED": "Resolvido"
+    }
+  },
+  "help": {
+    "audit": "Uma auditoria analisa uma página e mostra o que pode melhorar para o Google e para IAs.",
+    "finding": "Um finding é um problema específico que a auditoria encontrou na página.",
+    "cwv": "Core Web Vitals — métrica do Google que mede a velocidade e a estabilidade da página.",
+    "geo": "GEO — otimização para mecanismos de IA, para que eles citem e recomendem seu conteúdo.",
+    "seo": "SEO — otimização para mecanismos de busca, para que sua página apareça mais alto no Google.",
+    "score": "Um número de 0 a 100 que resume a saúde da página.",
+    "plugin": "Uma verificação pequena que a auditoria faz na página (por exemplo, conferir se tem meta description).",
+    "crawl": "Seguir os links de uma página para descobrir mais páginas do site.",
+    "sitemap": "Um arquivo que o dono do site publica listando todas as páginas que quer indexadas.",
+    "generation": "Um rascunho de artigo escrito pela IA, baseado nos achados da sua auditoria.",
+    "publish": "Enviar uma geração aprovada para um canal (WordPress, um endpoint HTTP, ou um pacote de agente)."
+  },
+  "errors": {
+    "generic": "Algo deu errado. Tente de novo.",
+    "no_llm_provider": "Configure um provedor de IA em Configurações para ativar a tradução.",
+    "rate_limited": "Muitas requisições. Aguarde um instante."
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "app": { "name": "JHEO", "tagline": "GEO · SEO · content" },
+  "nav": { "projects": "Projects", "templates": "Templates", "settings": "Settings" },
+  "topbar": {
+    "api": "API",
+    "down": "down",
+    "language": "Language",
+    "translationUnavailable": "Translation unavailable"
+  },
+  "languages": { "en": "English", "pt-BR": "Português (Brasil)" },
+  "projects": {
+    "title": "Projects",
+    "create": { "label": "New project", "placeholder": "example.com", "submit": "Create" },
+    "empty": "No projects yet. Add your first domain to start auditing."
+  },
+  "audit": {
+    "title": "Audit",
+    "categories": {
+      "seo": "SEO",
+      "cwv": "Performance (CWV)",
+      "geo": "GEO · AI-readiness",
+      "a11y": "Accessibility",
+      "content": "Content",
+      "overall": "Overall"
+    },
+    "statuses": {
+      "queued": "Queued",
+      "running": "Running…",
+      "completed": "Completed",
+      "failed": "Failed",
+      "cancelled": "Cancelled"
+    },
+    "actions": { "run": "Run audit", "cancel": "Cancel", "view": "View results" }
+  },
+  "findings": {
+    "severities": { "info": "Info", "warning": "Warning", "error": "Error" },
+    "diff": {
+      "NEW": "New",
+      "UNCHANGED": "Unchanged",
+      "IMPROVEMENT": "Improvement",
+      "REGRESSION": "Regression",
+      "FIXED": "Fixed"
+    }
+  },
+  "help": {
+    "audit": "An audit checks a page for issues that affect how it ranks in search and how AI assistants read it.",
+    "finding": "A finding is a specific issue found during an audit.",
+    "cwv": "Core Web Vitals — Google's measure of how fast and stable a page feels.",
+    "geo": "Generative Engine Optimization — making content easy for AI assistants to quote and cite.",
+    "seo": "Search Engine Optimization — making the page rank higher in Google.",
+    "score": "A number from 0 to 100 that summarizes how healthy the page is.",
+    "plugin": "A small check the audit runs against the page (for example, a meta-description check).",
+    "crawl": "Following the links on a page to discover more pages of the site.",
+    "sitemap": "A file the site owner publishes to list every page they want indexed.",
+    "generation": "A draft article written by the LLM, grounded in your audit findings.",
+    "publish": "Sending an approved generation to a channel (WordPress, an HTTP endpoint, or an agent bundle)."
+  },
+  "errors": {
+    "generic": "Something went wrong. Please try again.",
+    "no_llm_provider": "Configure an LLM provider in Settings to enable translation.",
+    "rate_limited": "Too many requests. Please wait a moment."
+  }
+}
