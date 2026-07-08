@@ -44,6 +44,7 @@ import { makePageAuditHandler } from './jobs/page-audit-job.js';
 import { prisma as defaultPrisma } from './db.js';
 import { httpAccessLogHook, requestIdHook } from './log.js';
 import { startGscCron } from './gsc-cron.js';
+import { registerLocaleHook } from './i18n/hook.js';
 
 /**
  * Server-side HTML fetcher used by the audit pipeline. Routes every URL
@@ -90,6 +91,12 @@ export async function buildServer() {
   // and a structured access log line, regardless of what other plugins do.
   app.addHook('onRequest', requestIdHook);
   app.addHook('onRequest', httpAccessLogHook);
+
+  // --- Locale negotiation (F6) ------------------------------------------
+  // Registered after logging so logging always runs first, and before any
+  // route so every handler can read `req.locale`. The `onSend` hook echoes
+  // `Content-Language` unless a route already set it.
+  registerLocaleHook(app);
 
   // --- In-process rate limiter ------------------------------------------
   // Token-bucket, keyed by `${ip}:${method}:${url}`. Routes opt in by
