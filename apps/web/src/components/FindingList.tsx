@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { Finding, FindingDiff } from '../api.js';
 import { useDataTranslations } from '../i18n/useDataTranslations';
 
@@ -149,6 +150,7 @@ function FindingCard({
   })();
   const messageText = translated.get(finding.message) ?? finding.message;
   const errorText = error ? (t(errorKey(error), { defaultValue: translationUnavailableLabel })) : '';
+  const navigate = useNavigate();
   return (
     <article className="finding">
       <div className={'finding__sev ' + SEV_CLASS[finding.severity]}>
@@ -173,6 +175,12 @@ function FindingCard({
         <a href={finding.url} target="_blank" rel="noreferrer" title={finding.url}>
           {url.length > 38 ? url.slice(0, 38) + '…' : url} ↗
         </a>
+        <button
+          className="btn btn--sm btn--link"
+          onClick={() => navigate(`/fixes?findingId=${finding.id}`)}
+        >
+          {t('fixes.action.generate')}
+        </button>
       </div>
     </article>
   );
