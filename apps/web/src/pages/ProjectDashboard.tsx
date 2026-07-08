@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import {
   cancelAudit,
@@ -19,15 +20,6 @@ import { FindingList } from '../components/FindingList.js';
 
 type FilterValue = 'all' | 'not_audited' | 'with_error' | 'discovered_via:sitemap' | 'discovered_via:crawl' | 'discovered_via:root';
 
-const FILTER_OPTIONS: FilterOption<FilterValue>[] = [
-  { value: 'all', label: 'All' },
-  { value: 'not_audited', label: 'Not audited' },
-  { value: 'with_error', label: 'With error' },
-  { value: 'discovered_via:sitemap', label: 'Sitemap' },
-  { value: 'discovered_via:crawl', label: 'Crawl' },
-  { value: 'discovered_via:root', label: 'Root' },
-];
-
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString(undefined, {
@@ -39,6 +31,7 @@ function formatDate(iso: string): string {
 }
 
 export function ProjectDashboard() {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const [filter, setFilter] = useState<FilterValue>('all');
   const apiFilter = filter === 'all' ? undefined : filter;
@@ -131,13 +124,22 @@ export function ProjectDashboard() {
       </div>
     );
   }
-  if (project.isError) return <p>Failed to load project.</p>;
-  if (!project.data) return <p>Not found.</p>;
+  if (project.isError) return <p>{t('projects.dashboard.failedToLoad')}</p>;
+  if (!project.data) return <p>{t('common.notFound')}</p>;
 
   const h = health.data;
   const inFlight = (h?.pagesTotal ?? 0) - (h?.pagesAudited ?? 0) > 0;
   const p = project.data;
   const latest = p.audits[0];
+
+  const filterOptions: FilterOption<FilterValue>[] = [
+    { value: 'all', label: t('projects.dashboard.filters.all') },
+    { value: 'not_audited', label: t('projects.dashboard.filters.notAudited') },
+    { value: 'with_error', label: t('projects.dashboard.filters.withError') },
+    { value: 'discovered_via:sitemap', label: t('projects.dashboard.filters.sitemap') },
+    { value: 'discovered_via:crawl', label: t('projects.dashboard.filters.crawl') },
+    { value: 'discovered_via:root', label: t('projects.dashboard.filters.root') },
+  ];
 
   return (
     <div className="page col" style={{ gap: 'var(--space-6)' }}>
@@ -145,7 +147,7 @@ export function ProjectDashboard() {
       <header className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">Projects</Link>
+            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{p.name}</span>
           </div>
@@ -153,7 +155,7 @@ export function ProjectDashboard() {
           <p className="page__subtitle mono">{p.rootUrl}</p>
         </div>
         <Link to={`/projects/${projectId}/audit`} className="btn btn--primary">
-          Run audit
+          {t('projects.dashboard.runAudit')}
         </Link>
       </header>
 
@@ -163,18 +165,22 @@ export function ProjectDashboard() {
       {/* Phase 3 T7: Last audit progress + cancel */}
       {lastAudit && (
         <div className="card">
-          <h3>Last audit</h3>
+          <h3>{t('projects.dashboard.lastAudit')}</h3>
           <p>
-            Status: <strong>{lastAudit.status}</strong>
+            {t('projects.dashboard.statusLabel')}: <strong>{lastAudit.status}</strong>
           </p>
           {progress.data && (
             <>
               <p>
-                {progress.data.pagesCompleted} / {progress.data.pagesTotal} pages completed (
-                {progress.data.pagesFailed} failed, {progress.data.pagesSkipped} skipped)
+                {t('projects.dashboard.pagesCompleted', {
+                  completed: progress.data.pagesCompleted,
+                  total: progress.data.pagesTotal,
+                  failed: progress.data.pagesFailed,
+                  skipped: progress.data.pagesSkipped,
+                })}
               </p>
               {progress.data.currentPages.length > 0 && (
-                <p>In progress: {progress.data.currentPages.join(', ')}</p>
+                <p>{t('projects.dashboard.inProgress')}: {progress.data.currentPages.join(', ')}</p>
               )}
               <div
                 style={{
@@ -206,77 +212,25 @@ export function ProjectDashboard() {
               disabled={cancel.isPending}
               style={{ marginTop: 'var(--space-3)' }}
             >
-              {cancel.isPending ? 'Cancelling…' : 'Cancel audit'}
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Phase 3 T7: Last audit progress + cancel */}
-      {lastAudit && (
-        <div className="card">
-          <h3>Last audit</h3>
-          <p>
-            Status: <strong>{lastAudit.status}</strong>
-          </p>
-          {progress.data && (
-            <>
-              <p>
-                {progress.data.pagesCompleted} / {progress.data.pagesTotal} pages completed (
-                {progress.data.pagesFailed} failed, {progress.data.pagesSkipped} skipped)
-              </p>
-              {progress.data.currentPages.length > 0 && (
-                <p>In progress: {progress.data.currentPages.join(', ')}</p>
-              )}
-              <div
-                style={{
-                  height: '8px',
-                  background: 'var(--bg-elevated)',
-                  borderRadius: 'var(--radius-pill)',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    width: `${
-                      progress.data.pagesTotal
-                        ? (progress.data.pagesCompleted / progress.data.pagesTotal) * 100
-                        : 0
-                    }%`,
-                    height: '100%',
-                    background: 'var(--accent)',
-                    transition: 'width 200ms ease',
-                  }}
-                />
-              </div>
-            </>
-          )}
-          {(lastAudit.status === 'queued' || lastAudit.status === 'running') && (
-            <button
-              type="button"
-              onClick={() => cancel.mutate(lastAudit.id)}
-              disabled={cancel.isPending}
-              style={{ marginTop: 'var(--space-3)' }}
-            >
-              {cancel.isPending ? 'Cancelling…' : 'Cancel audit'}
+              {cancel.isPending ? t('projects.dashboard.cancelling') : t('projects.dashboard.cancelAudit')}
             </button>
           )}
         </div>
       )}
 
       {/* Filter bar */}
-      <FilterBar value={filter} onChange={setFilter} options={FILTER_OPTIONS} />
+      <FilterBar value={filter} onChange={setFilter} options={filterOptions} />
 
       {/* Pages table */}
       <div className="card" style={{ padding: 0, overflow: 'auto' }}>
         <table className="table">
           <thead>
             <tr>
-              <th>URL</th>
-              <th>Source</th>
-              <th>Last audited</th>
-              <th>Score</th>
-              <th>Action</th>
+              <th>{t('projects.dashboard.pagesTable.url')}</th>
+              <th>{t('projects.dashboard.pagesTable.source')}</th>
+              <th>{t('projects.dashboard.pagesTable.lastAudited')}</th>
+              <th>{t('projects.dashboard.pagesTable.score')}</th>
+              <th>{t('projects.dashboard.pagesTable.action')}</th>
             </tr>
           </thead>
           <tbody>
@@ -299,7 +253,7 @@ export function ProjectDashboard() {
                     onClick={() => reAudit.mutate(page.id)}
                     disabled={reAudit.isPending}
                   >
-                    {reAudit.isPending ? 'Queuing…' : 'Re-audit'}
+                    {reAudit.isPending ? t('projects.dashboard.pagesTable.queuing') : t('projects.dashboard.pagesTable.reAudit')}
                   </button>
                 </td>
               </tr>
@@ -307,7 +261,7 @@ export function ProjectDashboard() {
             {pages.data?.items.length === 0 && (
               <tr>
                 <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
-                  No pages match this filter.
+                  {t('projects.dashboard.pagesTable.noMatch')}
                 </td>
               </tr>
             )}
@@ -327,17 +281,17 @@ export function ProjectDashboard() {
             <button
               className="modal__close"
               onClick={() => setOpenPageAuditId(null)}
-              aria-label="Close"
+              aria-label={t('projects.dashboard.diffModal.close')}
             >
               ×
             </button>
             <h2 style={{ margin: 0, marginBottom: 'var(--space-2)', fontSize: 'var(--fs-lg)' }}>
-              Re-audit: {detail.data.url}
+              {t('projects.dashboard.diffModal.title')}: {detail.data.url}
             </h2>
             <p style={{ color: 'var(--text-muted)', margin: 0, marginBottom: 'var(--space-4)' }}>
-              Status: <strong style={{ color: 'var(--text)' }}>{detail.data.status}</strong>
+              {t('projects.dashboard.statusLabel')}: <strong style={{ color: 'var(--text)' }}>{detail.data.status}</strong>
               {detail.data.score && (
-                <> · Score: <strong style={{ color: 'var(--text)' }}>{detail.data.score.overall}</strong></>
+                <> · {t('projects.dashboard.diffModal.score')}: <strong style={{ color: 'var(--text)' }}>{detail.data.score.overall}</strong></>
               )}
             </p>
             <FindingList findings={detail.data.findings as unknown as Parameters<typeof FindingList>[0]["findings"]} fixed={detail.data.fixed} />
@@ -359,9 +313,9 @@ export function ProjectDashboard() {
         }}
       >
         <span className="mono">
-          {h?.pagesAudited ?? 0} / {h?.pagesTotal ?? 0} audited
+          {t('projects.dashboard.footerAudited', { audited: h?.pagesAudited ?? 0, total: h?.pagesTotal ?? 0 })}
         </span>
-        {inFlight && <span className="spinner" aria-label="In progress" />}
+        {inFlight && <span className="spinner" aria-label={t('common.inProgress')} />}
       </footer>
 
       {/* Stat tiles — restored from F1 */}
@@ -374,13 +328,13 @@ export function ProjectDashboard() {
           }}
         >
           <StatTile
-            label="Audits"
+            label={t('projects.dashboard.stats.audits')}
             value={p.audits.length}
             {...(latest?.status === 'completed' ? { accent: 'success' as const } : {})}
           />
-          <StatTile label="Materials" value={materials.data?.length ?? '—'} />
-          <StatTile label="Generations" value={generations.data?.length ?? '—'} />
-          <StatTile label="Channels" value={channels.data?.length ?? '—'} />
+          <StatTile label={t('projects.dashboard.stats.materials')} value={materials.data?.length ?? '—'} />
+          <StatTile label={t('projects.dashboard.stats.generations')} value={generations.data?.length ?? '—'} />
+          <StatTile label={t('projects.dashboard.stats.channels')} value={channels.data?.length ?? '—'} />
         </div>
       </section>
 
@@ -388,9 +342,9 @@ export function ProjectDashboard() {
       {latest?.score && (
         <section>
           <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
-            <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>Latest audit</h2>
+            <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>{t('projects.dashboard.latestAudit')}</h2>
             <Link to={`/audits/${latest.id}`} className="tiny">
-              Open full report →
+              {t('projects.dashboard.openFullReport')}
             </Link>
           </div>
           <div
@@ -406,7 +360,7 @@ export function ProjectDashboard() {
                 className="tiny"
                 style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 'var(--space-2)' }}
               >
-                Overall
+                {t('projects.dashboard.overall')}
               </div>
               <div
                 className="tabular"
@@ -437,14 +391,14 @@ export function ProjectDashboard() {
       {/* Audit history — restored from F1 */}
       {p.audits.length > 0 && (
         <section>
-          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>Audit history</h2>
+          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('projects.dashboard.auditHistory')}</h2>
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <table className="table">
               <thead>
                 <tr>
-                  <th>Status</th>
-                  <th>Started</th>
-                  <th style={{ textAlign: 'right' }}>Overall</th>
+                  <th>{t('projects.dashboard.historyStatus')}</th>
+                  <th>{t('projects.dashboard.historyStarted')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('projects.dashboard.overall')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -457,7 +411,7 @@ export function ProjectDashboard() {
                       {a.score?.overall ?? '—'}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <Link to={`/audits/${a.id}`} className="tiny">View →</Link>
+                      <Link to={`/audits/${a.id}`} className="tiny">{t('projects.dashboard.viewLink')}</Link>
                     </td>
                   </tr>
                 ))}
@@ -469,7 +423,7 @@ export function ProjectDashboard() {
 
       {/* Workspace quick links — preserved from F2/F3 (materials, channels, generations) */}
       <section>
-        <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>Workspace</h2>
+        <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('projects.dashboard.workspace')}</h2>
         <div
           style={{
             display: 'grid',
@@ -479,20 +433,20 @@ export function ProjectDashboard() {
         >
           <QuickLink
             to={`/projects/${projectId}/materials`}
-            label="Materials"
-            hint="Sources the generator uses for context (URLs, files, notes)"
+            label={t('projects.dashboard.quickLinks.materials')}
+            hint={t('projects.dashboard.quickLinks.materialsHint')}
             {...(materials.data ? { count: materials.data.length } : {})}
           />
           <QuickLink
             to={`/projects/${projectId}/compose`}
-            label="Generate"
-            hint="Compose a new generation from a template + materials"
+            label={t('projects.dashboard.quickLinks.generate')}
+            hint={t('projects.dashboard.quickLinks.generateHint')}
             {...(generations.data ? { count: generations.data.length } : {})}
           />
           <QuickLink
             to={`/projects/${projectId}/channels`}
-            label="Channels"
-            hint="Where approved generations are published (WordPress, HTTP, agent)"
+            label={t('projects.dashboard.quickLinks.channels')}
+            hint={t('projects.dashboard.quickLinks.channelsHint')}
             {...(channels.data ? { count: channels.data.length } : {})}
           />
         </div>

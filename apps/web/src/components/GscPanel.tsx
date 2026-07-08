@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   deleteGscConnection,
   getGscConnection,
@@ -27,6 +28,7 @@ function syncBadgeClass(status: string): string {
 }
 
 export function GscPanel({ projectId }: { projectId: string }) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const [siteUrl, setSiteUrl] = useState('');
   const [saJson, setSaJson] = useState('');
@@ -65,9 +67,9 @@ export function GscPanel({ projectId }: { projectId: string }) {
       try {
         parsed = JSON.parse(saJson);
       } catch {
-        throw new Error('Service Account JSON is not valid JSON');
+        throw new Error(t('gsc.errors.invalidJson'));
       }
-      if (!siteUrl.trim()) throw new Error('Site URL is required');
+      if (!siteUrl.trim()) throw new Error(t('gsc.errors.siteUrlRequired'));
       return putGscConnection(projectId, { siteUrl: siteUrl.trim(), serviceAccountJson: parsed });
     },
     onSuccess: async () => {
@@ -109,28 +111,27 @@ export function GscPanel({ projectId }: { projectId: string }) {
     return (
       <section style={{ marginBottom: 'var(--space-8)' }}>
         <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>
-          Google Search Console
+          {t('gsc.title')}
         </h2>
         <div className="card col" style={{ gap: 'var(--space-3)' }}>
           <p className="tiny muted" style={{ margin: 0 }}>
-            Connect a GSC property with a Service Account JSON key. JHEO stores encrypted
-            credentials and syncs search analytics daily.
+            {t('gsc.emptyHint')}
           </p>
           <label className="col" style={{ gap: 'var(--space-1)' }}>
-            <span className="tiny" style={{ fontWeight: 600 }}>Site URL (property)</span>
+            <span className="tiny" style={{ fontWeight: 600 }}>{t('gsc.siteUrlLabel')}</span>
             <input
               className="input"
-              placeholder="https://example.com/"
+              placeholder={t('gsc.siteUrlPlaceholder')}
               value={siteUrl}
               onChange={(e) => setSiteUrl(e.target.value)}
             />
           </label>
           <label className="col" style={{ gap: 'var(--space-1)' }}>
-            <span className="tiny" style={{ fontWeight: 600 }}>Service Account JSON</span>
+            <span className="tiny" style={{ fontWeight: 600 }}>{t('gsc.serviceAccountLabel')}</span>
             <textarea
               className="input"
               rows={6}
-              placeholder='{"type":"service_account",...}'
+              placeholder={t('gsc.serviceAccountPlaceholder')}
               value={saJson}
               onChange={(e) => setSaJson(e.target.value)}
               style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)' }}
@@ -144,7 +145,7 @@ export function GscPanel({ projectId }: { projectId: string }) {
               disabled={save.isPending}
               onClick={() => save.mutate()}
             >
-              {save.isPending ? 'Connecting…' : 'Connect GSC'}
+              {save.isPending ? t('gsc.connecting') : t('gsc.connect')}
             </button>
           </div>
         </div>
@@ -158,7 +159,7 @@ export function GscPanel({ projectId }: { projectId: string }) {
   return (
     <section style={{ marginBottom: 'var(--space-8)' }}>
       <div className="spread" style={{ marginBottom: 'var(--space-3)' }}>
-        <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>Google Search Console</h2>
+        <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>{t('gsc.title')}</h2>
         <div className="row" style={{ gap: 'var(--space-2)' }}>
           <button
             type="button"
@@ -166,7 +167,7 @@ export function GscPanel({ projectId }: { projectId: string }) {
             disabled={sync.isPending || conn.syncStatus === 'syncing'}
             onClick={() => sync.mutate()}
           >
-            {conn.syncStatus === 'syncing' ? 'Syncing…' : 'Sync now'}
+            {conn.syncStatus === 'syncing' ? t('gsc.syncing') : t('gsc.syncNow')}
           </button>
           <button
             type="button"
@@ -174,7 +175,7 @@ export function GscPanel({ projectId }: { projectId: string }) {
             disabled={remove.isPending}
             onClick={() => remove.mutate()}
           >
-            Disconnect
+            {t('gsc.disconnect')}
           </button>
         </div>
       </div>
@@ -184,7 +185,7 @@ export function GscPanel({ projectId }: { projectId: string }) {
           <div className="col" style={{ gap: 'var(--space-1)' }}>
             <span className="mono tiny">{conn.siteUrl}</span>
             {conn.clientEmail && (
-              <span className="tiny muted">Service account: {conn.clientEmail}</span>
+              <span className="tiny muted">{t('gsc.serviceAccountEmail', { email: conn.clientEmail })}</span>
             )}
           </div>
           <span className={`badge ${syncBadgeClass(conn.syncStatus)}`}>{conn.syncStatus}</span>
@@ -194,9 +195,9 @@ export function GscPanel({ projectId }: { projectId: string }) {
         )}
         {freshness && (
           <p className="tiny muted" style={{ margin: 0 }}>
-            Data through {freshness.dataThrough}
+            {t('gsc.dataThrough', { date: freshness.dataThrough })}
             {freshness.lastSyncedAt && (
-              <> · Last sync {new Date(freshness.lastSyncedAt).toLocaleString()}</>
+              <> · {t('gsc.lastSync', { date: new Date(freshness.lastSyncedAt).toLocaleString() })}</>
             )}
           </p>
         )}
@@ -211,22 +212,22 @@ export function GscPanel({ projectId }: { projectId: string }) {
             marginBottom: 'var(--space-3)',
           }}
         >
-          <MetricTile label="Clicks" value={formatNum(overview.data.clicks)} />
-          <MetricTile label="Impressions" value={formatNum(overview.data.impressions)} />
-          <MetricTile label="CTR" value={formatPct(overview.data.ctr)} />
-          <MetricTile label="Avg position" value={formatNum(overview.data.position)} />
+          <MetricTile label={t('gsc.metrics.clicks')} value={formatNum(overview.data.clicks)} />
+          <MetricTile label={t('gsc.metrics.impressions')} value={formatNum(overview.data.impressions)} />
+          <MetricTile label={t('gsc.metrics.ctr')} value={formatPct(overview.data.ctr)} />
+          <MetricTile label={t('gsc.metrics.avgPosition')} value={formatNum(overview.data.position)} />
         </div>
       )}
 
       {(queries.data?.rows.length ?? 0) > 0 && (
         <GscTable
-          title="Top queries"
+          title={t('gsc.tables.topQueries')}
           columns={[
-            { key: 'query', label: 'Query' },
-            { key: 'clicks', label: 'Clicks', align: 'right' },
-            { key: 'impressions', label: 'Impressions', align: 'right' },
-            { key: 'ctr', label: 'CTR', align: 'right', format: formatPct },
-            { key: 'position', label: 'Pos', align: 'right', format: formatNum },
+            { key: 'query', label: t('gsc.tables.columns.query') },
+            { key: 'clicks', label: t('gsc.tables.columns.clicks'), align: 'right' },
+            { key: 'impressions', label: t('gsc.tables.columns.impressions'), align: 'right' },
+            { key: 'ctr', label: t('gsc.tables.columns.ctr'), align: 'right', format: formatPct },
+            { key: 'position', label: t('gsc.tables.columns.pos'), align: 'right', format: formatNum },
           ]}
           rows={queries.data!.rows.map((r) => ({ ...r, query: r.query ?? '—' }))}
         />
@@ -234,13 +235,13 @@ export function GscPanel({ projectId }: { projectId: string }) {
 
       {(pages.data?.rows.length ?? 0) > 0 && (
         <GscTable
-          title="Top pages"
+          title={t('gsc.tables.topPages')}
           columns={[
-            { key: 'page', label: 'Page' },
-            { key: 'clicks', label: 'Clicks', align: 'right' },
-            { key: 'impressions', label: 'Impressions', align: 'right' },
-            { key: 'ctr', label: 'CTR', align: 'right', format: formatPct },
-            { key: 'position', label: 'Pos', align: 'right', format: formatNum },
+            { key: 'page', label: t('gsc.tables.columns.page') },
+            { key: 'clicks', label: t('gsc.tables.columns.clicks'), align: 'right' },
+            { key: 'impressions', label: t('gsc.tables.columns.impressions'), align: 'right' },
+            { key: 'ctr', label: t('gsc.tables.columns.ctr'), align: 'right', format: formatPct },
+            { key: 'position', label: t('gsc.tables.columns.pos'), align: 'right', format: formatNum },
           ]}
           rows={pages.data!.rows.map((r) => ({ ...r, page: r.page ?? '—' }))}
         />

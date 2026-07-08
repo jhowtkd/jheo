@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { createProject, listProjects } from '../api.js';
 
@@ -10,6 +11,7 @@ function formatDate(iso: string): string {
 }
 
 function EmptyState({ onNew }: { onNew: () => void }) {
+  const { t } = useTranslation();
   return (
     <div className="empty">
       <div className="empty__art">
@@ -23,13 +25,10 @@ function EmptyState({ onNew }: { onNew: () => void }) {
           <path d="M28 38h8" />
         </svg>
       </div>
-      <p className="empty__title">No projects yet</p>
-      <p className="empty__hint">
-        Create your first project to start auditing a site. Each project owns its audits,
-        materials, generations, and distribution channels.
-      </p>
+      <p className="empty__title">{t('projects.empty.title')}</p>
+      <p className="empty__hint">{t('projects.empty.hint')}</p>
       <button className="btn btn--primary empty__action" onClick={onNew}>
-        Create project
+        {t('projects.empty.action')}
       </button>
     </div>
   );
@@ -45,6 +44,7 @@ function LoadingSkeleton() {
 }
 
 export function ProjectsList() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const navigate = useNavigate();
   const projects = useQuery({ queryKey: ['projects'], queryFn: listProjects });
@@ -65,18 +65,15 @@ export function ProjectsList() {
     <div className="page">
       <div className="page__header">
         <div>
-          <h1 className="page__title">Projects</h1>
-          <p className="page__subtitle">
-            Audit, generate, and distribute GEO &amp; SEO content per site. Each project tracks its own
-            findings, materials, generations, and publish history.
-          </p>
+          <h1 className="page__title">{t('projects.title')}</h1>
+          <p className="page__subtitle">{t('projects.subtitle')}</p>
         </div>
       </div>
 
       <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
-        <div className="card__title">New project</div>
+        <div className="card__title">{t('projects.create.label')}</div>
         <p className="tiny" style={{ marginTop: 'var(--space-1)', marginBottom: 'var(--space-4)' }}>
-          Give it a name and the root URL to audit.
+          {t('projects.create.hint')}
         </p>
         <form
           className="form-row"
@@ -92,17 +89,17 @@ export function ProjectsList() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Acme Marketing"
+            placeholder={t('projects.create.namePlaceholder')}
           />
           <input
             className="input"
             required
             value={rootUrl}
             onChange={(e) => setRootUrl(e.target.value)}
-            placeholder="https://acme.com"
+            placeholder={t('projects.create.urlPlaceholder')}
           />
           <button className="btn btn--primary" type="submit" disabled={create.isPending}>
-            {create.isPending ? 'Creating…' : 'Create project'}
+            {create.isPending ? t('projects.create.creating') : t('projects.create.submit')}
           </button>
         </form>
         {create.isError && (
@@ -123,9 +120,9 @@ export function ProjectsList() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ width: '40%' }}>Name</th>
-                <th>Root URL</th>
-                <th style={{ width: 120, textAlign: 'right' }}>Created</th>
+                <th style={{ width: '40%' }}>{t('projects.table.name')}</th>
+                <th>{t('projects.table.rootUrl')}</th>
+                <th style={{ width: 120, textAlign: 'right' }}>{t('projects.table.created')}</th>
               </tr>
             </thead>
             <tbody>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { ProjectHealth } from '../api.js';
 
 interface Props {
@@ -7,17 +8,18 @@ interface Props {
 const CATEGORIES = ['seo', 'cwv', 'geo', 'a11y', 'content'] as const;
 
 export function ScoreCard({ health }: Props) {
+  const { t } = useTranslation();
   if (!health) {
     return (
       <div className="card">
-        <p style={{ color: 'var(--text-muted)', margin: 0 }}>No health data yet.</p>
+        <p style={{ color: 'var(--text-muted)', margin: 0 }}>{t('findings.scoreCard.noHealth')}</p>
       </div>
     );
   }
   return (
     <div className="card col" style={{ gap: 'var(--space-3)' }}>
       <div>
-        <h2 style={{ margin: 0 }}>Overall</h2>
+        <h2 style={{ margin: 0 }}>{t('findings.scoreCard.overall')}</h2>
         <p style={{ fontSize: 'var(--fs-2xl)', margin: 0 }}>{health.overall ?? '—'}</p>
       </div>
       <div className="col" style={{ gap: 'var(--space-2)' }}>

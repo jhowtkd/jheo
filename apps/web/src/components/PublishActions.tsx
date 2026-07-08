@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import {
   cancelPublish,
@@ -18,6 +19,7 @@ interface Props {
 }
 
 export function PublishActions({ generationId, projectId, reviewState }: Props) {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const channels = useQuery({ queryKey: ['channels', projectId], queryFn: () => listChannels(projectId) });
   const publishes = useQuery({
@@ -65,10 +67,10 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
 
   return (
     <section>
-      <h3>Publish</h3>
+      <h3>{t('publish.actionsPanel.title')}</h3>
       {reviewState === 'approved' && (
         <>
-          <p>Select channels:</p>
+          <p>{t('publish.actionsPanel.selectChannels')}</p>
           <ul>
             {activeChannels.map((c) => (
               <li key={c.id}>
@@ -84,13 +86,18 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
             ))}
           </ul>
           <button onClick={() => publish.mutate()} disabled={selected.size === 0}>
-            Publish to {selected.size} channel(s)
+            {t('publish.actionsPanel.publishTo', { count: selected.size })}
           </button>
         </>
       )}
       <table>
         <thead>
-          <tr><th>Channel</th><th>Status</th><th>External</th><th>Action</th></tr>
+          <tr>
+            <th>{t('publish.actionsPanel.tableChannel')}</th>
+            <th>{t('publish.actionsPanel.tableStatus')}</th>
+            <th>{t('publish.actionsPanel.tableExternal')}</th>
+            <th>{t('publish.actionsPanel.tableAction')}</th>
+          </tr>
         </thead>
         <tbody>
           {publishes.data?.map((p: Publish) => {
@@ -101,21 +108,26 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
             return (
               <tr key={p.id}>
                 <td>{ch?.name ?? p.channelId}</td>
-                <td>{p.status}{p.status === 'queued' && p.attempts > 0 ? ` (retry ${p.attempts})` : ''}</td>
+                <td>
+                  {p.status}
+                  {p.status === 'queued' && p.attempts > 0
+                    ? t('publish.actionsPanel.retrySuffix', { count: p.attempts })
+                    : ''}
+                </td>
                 <td>
                   {p.externalUrl ? (
-                    <a href={p.externalUrl} target="_blank" rel="noreferrer">link</a>
+                    <a href={p.externalUrl} target="_blank" rel="noreferrer">{t('publish.actionsPanel.link')}</a>
                   ) : (
                     p.lastError ? <code>{p.lastError}</code> : '—'
                   )}
-                  {p.channelId && <Link to={`/publishes/${p.id}`}> detail</Link>}
+                  {p.channelId && <Link to={`/publishes/${p.id}`}> {t('publish.actionsPanel.detail')}</Link>}
                 </td>
                 <td>
                   {(p.status === 'queued' || p.status === 'running') && (
-                    <button onClick={() => cancel.mutate(p.id)}>Cancel</button>
+                    <button onClick={() => cancel.mutate(p.id)}>{t('publish.actionsPanel.cancel')}</button>
                   )}
                   {(p.status === 'failed' || p.status === 'cancelled') && (
-                    <button onClick={() => retry.mutate(p.id)}>Retry</button>
+                    <button onClick={() => retry.mutate(p.id)}>{t('publish.actionsPanel.retry')}</button>
                   )}
                 </td>
               </tr>

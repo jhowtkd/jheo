@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { Finding, FindingDiff } from '../api.js';
 
 const SEV_CLASS: Record<Finding['severity'], string> = {
@@ -26,6 +27,7 @@ interface Props {
 }
 
 export function FindingList({ findings, byCategory, fixed }: Props) {
+  const { t } = useTranslation();
   return (
     <div>
       {fixed && fixed.length > 0 && (
@@ -34,7 +36,7 @@ export function FindingList({ findings, byCategory, fixed }: Props) {
           style={{ marginBottom: 'var(--space-4)', padding: 'var(--space-4)' }}
         >
           <h3 style={{ margin: 0, marginBottom: 'var(--space-3)', fontSize: 'var(--fs-md)' }}>
-            Fixed since last audit ({fixed.length})
+            {t('findings.list.fixedTitle')} ({fixed.length})
           </h3>
           <ul style={{ margin: 0, paddingLeft: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
             {fixed.map((f) => (
@@ -55,8 +57,8 @@ export function FindingList({ findings, byCategory, fixed }: Props) {
               <path d="M18 28l8 8 14-16" />
             </svg>
           </div>
-          <p className="empty__title">No findings</p>
-          <p className="empty__hint">The audit ran clean — nothing to fix here.</p>
+          <p className="empty__title">{t('findings.list.noFindings.title')}</p>
+          <p className="empty__hint">{t('findings.list.noFindings.hint')}</p>
         </div>
       ) : byCategory ? (
         <div className="col" style={{ gap: 'var(--space-6)' }}>

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { activateTemplate, listTemplates, type GenerationTemplate } from '../api.js';
 
@@ -8,6 +9,7 @@ function formatDate(iso: string): string {
 }
 
 export function TemplatesList() {
+  const { t } = useTranslation();
   const qc = useQueryClient();
   const templates = useQuery({ queryKey: ['templates'], queryFn: listTemplates });
   const activate = useMutation({
@@ -19,11 +21,8 @@ export function TemplatesList() {
     <div className="page">
       <div className="page__header">
         <div>
-          <h1 className="page__title">Templates</h1>
-          <p className="page__subtitle">
-            Versioned prompt + output schema pairs. Activate one to use as the default for new
-            generations.
-          </p>
+          <h1 className="page__title">{t('templates.title')}</h1>
+          <p className="page__subtitle">{t('templates.subtitle')}</p>
         </div>
       </div>
 
@@ -44,11 +43,8 @@ export function TemplatesList() {
               <path d="M16 30h16" />
             </svg>
           </div>
-          <p className="empty__title">No templates yet</p>
-          <p className="empty__hint">
-            A template defines the system prompt and output schema the generator fills in. Activate
-            one before running a generation.
-          </p>
+          <p className="empty__title">{t('templates.empty.title')}</p>
+          <p className="empty__hint">{t('templates.empty.hint')}</p>
         </div>
       )}
 
@@ -57,19 +53,19 @@ export function TemplatesList() {
           <table className="table">
             <thead>
               <tr>
-                <th style={{ width: '36%' }}>Name</th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Created</th>
+                <th style={{ width: '36%' }}>{t('templates.table.name')}</th>
+                <th>{t('templates.table.version')}</th>
+                <th>{t('templates.table.status')}</th>
+                <th>{t('templates.table.created')}</th>
                 <th style={{ width: 200, textAlign: 'right' }}></th>
               </tr>
             </thead>
             <tbody>
-              {templates.data.map((t) => (
+              {templates.data.map((tt) => (
                 <TemplateRow
-                  key={t.id}
-                  template={t}
-                  onActivate={() => activate.mutate(t.id)}
+                  key={tt.id}
+                  template={tt}
+                  onActivate={() => activate.mutate(tt.id)}
                   isActivating={activate.isPending}
                 />
               ))}
@@ -90,6 +86,7 @@ function TemplateRow({
   onActivate: () => void;
   isActivating: boolean;
 }) {
+  const { t } = useTranslation();
   return (
     <tr>
       <td>
@@ -101,16 +98,16 @@ function TemplateRow({
       <td className="tabular">v{template.version}</td>
       <td>
         {template.isActive ? (
-          <span className="badge badge--success">active</span>
+          <span className="badge badge--success">{t('common.active')}</span>
         ) : (
-          <span className="badge badge--neutral">inactive</span>
+          <span className="badge badge--neutral">{t('common.inactive')}</span>
         )}
       </td>
       <td className="tiny tabular muted">{formatDate(template.createdAt)}</td>
       <td style={{ textAlign: 'right' }}>
         <div className="actions" style={{ justifyContent: 'flex-end' }}>
           <Link to={`/templates/${template.id}`} className="btn btn--ghost btn--sm">
-            Edit
+            {t('common.edit')}
           </Link>
           {!template.isActive && (
             <button
@@ -118,7 +115,7 @@ function TemplateRow({
               onClick={onActivate}
               disabled={isActivating}
             >
-              Activate
+              {t('templates.activate')}
             </button>
           )}
         </div>

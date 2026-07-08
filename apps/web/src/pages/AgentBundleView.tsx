@@ -1,8 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { getPublishFiles } from '../api.js';
 
 export function AgentBundleView() {
+  const { t } = useTranslation();
   const { publishId } = useParams<{ publishId: string }>();
   const q = useQuery({
     queryKey: ['publish-files', publishId],
@@ -15,15 +17,12 @@ export function AgentBundleView() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={`/publishes/${publishId}`} className="muted tiny">Publish</Link>
+            <Link to={`/publishes/${publishId}`} className="muted tiny">{t('publish.title')}</Link>
             <span className="muted tiny">/</span>
-            <span className="tiny">bundle</span>
+            <span className="tiny">{t('publish.bundle.breadcrumb')}</span>
           </div>
-          <h1 className="page__title">Agent bundle</h1>
-          <p className="page__subtitle">
-            Files written by the agent publisher. Download the bundle and apply it manually
-            (e.g. via CMS upload or git PR).
-          </p>
+          <h1 className="page__title">{t('publish.bundle.title')}</h1>
+          <p className="page__subtitle">{t('publish.bundle.subtitle')}</p>
         </div>
       </div>
 
@@ -31,17 +30,15 @@ export function AgentBundleView() {
 
       {q.data && q.data.files.length === 0 && (
         <div className="empty">
-          <p className="empty__title">No files yet</p>
-          <p className="empty__hint">
-            The publisher hasn't written anything. The publish must be <code className="mono">completed</code> first.
-          </p>
+          <p className="empty__title">{t('publish.bundle.noFiles.title')}</p>
+          <p className="empty__hint">{t('publish.bundle.noFiles.hint')}</p>
         </div>
       )}
 
       {q.data && q.data.files.length > 0 && (
         <div className="col" style={{ gap: 'var(--space-3)' }}>
           <div className="card">
-            <div className="card__title">Bundle directory</div>
+            <div className="card__title">{t('publish.bundle.directoryTitle')}</div>
             <code className="mono tiny muted">{q.data.dir}</code>
           </div>
           {q.data.files.map((f) => (

@@ -5,16 +5,124 @@
     "api": "API",
     "down": "down",
     "language": "Language",
-    "translationUnavailable": "Translation unavailable"
+    "translationUnavailable": "Translation unavailable",
+    "breadcrumb": "Breadcrumb",
+    "filter": "Filter"
   },
   "languages": { "en": "English", "pt-BR": "Português (Brasil)" },
+  "common": {
+    "close": "Close",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "save": "Save",
+    "edit": "Edit",
+    "reveal": "Reveal",
+    "hide": "Hide",
+    "loading": "Loading…",
+    "notFound": "Not found.",
+    "inProgress": "In progress",
+    "autoRefreshing": "auto-refreshing · 2s",
+    "active": "active",
+    "inactive": "inactive",
+    "paused": "paused"
+  },
   "projects": {
     "title": "Projects",
-    "create": { "label": "New project", "placeholder": "example.com", "submit": "Create" },
-    "empty": "No projects yet. Add your first domain to start auditing."
+    "subtitle": "Audit, generate, and distribute GEO & SEO content per site. Each project tracks its own findings, materials, generations, and publish history.",
+    "create": {
+      "label": "New project",
+      "submit": "Create project",
+      "creating": "Creating…",
+      "namePlaceholder": "Acme Marketing",
+      "urlPlaceholder": "https://acme.com",
+      "hint": "Give it a name and the root URL to audit."
+    },
+    "empty": {
+      "title": "No projects yet",
+      "hint": "Create your first project to start auditing a site. Each project owns its audits, materials, generations, and distribution channels.",
+      "action": "Create project"
+    },
+    "table": {
+      "name": "Name",
+      "rootUrl": "Root URL",
+      "created": "Created"
+    },
+    "dashboard": {
+      "runAudit": "Run audit",
+      "lastAudit": "Last audit",
+      "statusLabel": "Status",
+      "pagesCompleted": "{completed} / {total} pages completed ({failed} failed, {skipped} skipped)",
+      "inProgress": "In progress",
+      "cancelAudit": "Cancel audit",
+      "cancelling": "Cancelling…",
+      "pagesTable": {
+        "url": "URL",
+        "source": "Source",
+        "lastAudited": "Last audited",
+        "score": "Score",
+        "action": "Action",
+        "reAudit": "Re-audit",
+        "queuing": "Queuing…",
+        "noMatch": "No pages match this filter."
+      },
+      "diffModal": {
+        "close": "Close",
+        "title": "Re-audit",
+        "score": "Score"
+      },
+      "footerAudited": "{audited} / {total} audited",
+      "stats": {
+        "audits": "Audits",
+        "materials": "Materials",
+        "generations": "Generations",
+        "channels": "Channels"
+      },
+      "latestAudit": "Latest audit",
+      "openFullReport": "Open full report →",
+      "overall": "Overall",
+      "auditHistory": "Audit history",
+      "historyStarted": "Started",
+      "historyStatus": "Status",
+      "viewLink": "View →",
+      "workspace": "Workspace",
+      "quickLinks": {
+        "materials": "Materials",
+        "materialsHint": "Sources the generator uses for context (URLs, files, notes)",
+        "generate": "Generate",
+        "generateHint": "Compose a new generation from a template + materials",
+        "channels": "Channels",
+        "channelsHint": "Where approved generations are published (WordPress, HTTP, agent)"
+      },
+      "failedToLoad": "Failed to load project.",
+      "filters": {
+        "all": "All",
+        "notAudited": "Not audited",
+        "withError": "With error",
+        "sitemap": "Sitemap",
+        "crawl": "Crawl",
+        "root": "Root"
+      }
+    }
   },
   "audit": {
     "title": "Audit",
+    "runner": {
+      "title": "Run audit",
+      "subtitle": "Launch the audit pipeline (Fastify API + BullMQ worker + Postgres + pgvector) on this project. Results appear on the report page once the worker finishes.",
+      "readyTitle": "Ready to audit",
+      "readyHint": "The audit crawls the root URL, then runs 26 plugins across SEO, performance/CWV, GEO/AI-readiness, accessibility, and content. Typical runtime: 5–15s.",
+      "start": "Start audit",
+      "starting": "Starting…"
+    },
+    "results": {
+      "title": "Audit report",
+      "breadcrumbAudit": "audit",
+      "findings": "Findings",
+      "error": "error",
+      "warning": "warning",
+      "info": "info",
+      "total": "total"
+    },
     "categories": {
       "seo": "SEO",
       "cwv": "Performance (CWV)",
@@ -40,6 +148,274 @@
       "IMPROVEMENT": "Improvement",
       "REGRESSION": "Regression",
       "FIXED": "Fixed"
+    },
+    "list": {
+      "fixedTitle": "Fixed since last audit",
+      "noFindings": {
+        "title": "No findings",
+        "hint": "The audit ran clean — nothing to fix here."
+      }
+    },
+    "scoreCard": {
+      "noHealth": "No health data yet.",
+      "overall": "Overall"
+    }
+  },
+  "materials": {
+    "title": "Materials",
+    "subtitle": "Sources the generator uses for context. They get embedded on the fly and retrieved by similarity when composing a new generation.",
+    "breadcrumb": "materials",
+    "add": "Add material",
+    "adding": "Adding…",
+    "generate": "Generate from materials",
+    "types": {
+      "note": { "label": "Note", "hint": "Inline text the generator uses as a source" },
+      "url": { "label": "URL", "hint": "Fetch and embed a webpage" },
+      "file": { "label": "File", "hint": "Upload a document (PDF / markdown)" }
+    },
+    "fields": {
+      "title": "Title",
+      "titlePlaceholder": "Apple facts",
+      "filename": "Filename",
+      "url": "URL",
+      "source": "Source",
+      "notePlaceholder": "Apples are red and crisp. The scientific name is Malus domestica.",
+      "urlPlaceholder": "https://example.com/blog/apples",
+      "filePlaceholder": "filename.pdf"
+    },
+    "empty": {
+      "title": "No materials yet",
+      "hint": "Add at least one source above before composing a generation. The generator retrieves the most semantically similar ones per prompt."
+    },
+    "table": {
+      "title": "Title",
+      "type": "Type",
+      "size": "Size",
+      "embedding": "Embedding",
+      "chars": "chars"
+    },
+    "deleteConfirm": "Delete material \"{title}\"?",
+    "deleteTitle": "Delete"
+  },
+  "templates": {
+    "title": "Templates",
+    "subtitle": "Versioned prompt + output schema pairs. Activate one to use as the default for new generations.",
+    "breadcrumb": "templates",
+    "empty": {
+      "title": "No templates yet",
+      "hint": "A template defines the system prompt and output schema the generator fills in. Activate one before running a generation."
+    },
+    "table": {
+      "name": "Name",
+      "version": "Version",
+      "status": "Status",
+      "created": "Created"
+    },
+    "activate": "Activate",
+    "editor": {
+      "promptTitle": "Prompt template",
+      "promptHint": "Use {{userPrompt}}, {{sources}}, and {{outputSchemaDescription}} as placeholders.",
+      "outputSchemaTitle": "Output schema",
+      "outputSchemaHint": "The model must emit a JSON object matching this shape, embedded in the post's frontmatter.",
+      "metadataTitle": "Metadata",
+      "idLabel": "ID",
+      "createdLabel": "Created"
+    }
+  },
+  "generation": {
+    "composer": {
+      "title": "Compose generation",
+      "subtitle": "Pick a template + materials, write a prompt, choose the LLM. The worker retrieves the top-K most similar materials by embedding and feeds them to the model.",
+      "breadcrumb": "compose",
+      "templateCard": "Template",
+      "activeOption": "Active · {name} (v{version})",
+      "selectTemplate": "Select a template",
+      "optionActive": " · active",
+      "promptCard": "Prompt",
+      "promptPlaceholder": "Write a short blog post about apples",
+      "materialsCard": "Materials",
+      "noMaterials": "None selected — generator will rely on the prompt alone.",
+      "selectedCount": "{count} selected.",
+      "noMaterialsEmpty": "No materials yet.",
+      "addMaterialsLink": "Add some →",
+      "modelCard": "Model",
+      "provider": "Provider",
+      "model": "Model",
+      "temperature": "Temperature",
+      "providerOpenai": "openai (OpenAI-compat)",
+      "providerAnthropic": "anthropic",
+      "providerOpenrouter": "openrouter",
+      "submit": "Compose generation",
+      "queueing": "Queueing…",
+      "recentTitle": "Recent generations",
+      "noGenerations": "No generations yet."
+    },
+    "review": {
+      "breadcrumb": "generation",
+      "progressTitle": "Generation in progress",
+      "progressHint": "Job status is {status}. The MiniMax model is composing a draft — this page auto-refreshes every 2s.",
+      "frontmatter": "Frontmatter",
+      "sources": "Sources",
+      "score": "score",
+      "usage": "Usage",
+      "providerModel": "Provider / model",
+      "promptTokens": "Prompt tokens",
+      "completionTokens": "Completion tokens",
+      "started": "Started",
+      "finished": "Finished",
+      "review": "Review",
+      "reviewNotes": "Optional notes for reviewers",
+      "sendToReview": "Send to review",
+      "approve": "Approve",
+      "reject": "Reject",
+      "titleFallback": "Generation {id}"
+    }
+  },
+  "channels": {
+    "title": "Channels",
+    "subtitle": "Where approved generations get published. Each channel type has a different config schema (WordPress credentials, an HTTP endpoint, or just an output directory).",
+    "breadcrumb": "channels",
+    "types": {
+      "wordpress": "WordPress",
+      "http": "HTTP",
+      "agent": "Agent bundle"
+    },
+    "typeDescriptions": {
+      "wordpress": "Publishes as a WP post via the REST API (app-password auth)",
+      "http": "POSTs the rendered markdown to any HTTPS endpoint",
+      "agent": "Writes a ZIP bundle the user downloads and pushes by hand"
+    },
+    "empty": {
+      "title": "No channels configured",
+      "hint": "Channels are managed per-channel via the API. Use the WordPress / HTTP / Agent adapters to route approved generations to a destination."
+    },
+    "deleteConfirm": "Delete channel \"{name}\"?",
+    "editor": {
+      "breadcrumb": "channel",
+      "configuration": "Configuration",
+      "configHint": "Encrypted at rest with JHEO_SECRET_KEY. The decrypted shape is documented per channel type.",
+      "metadataTitle": "Metadata",
+      "projectLabel": "Project",
+      "typeLabel": "Type",
+      "createdLabel": "Created"
+    }
+  },
+  "publish": {
+    "title": "Publish",
+    "breadcrumb": "publish",
+    "status": {
+      "queued": "Waiting for a worker slot.",
+      "running": "Worker is publishing to the channel.",
+      "completed": "Done — check the external URL.",
+      "failed": "All retries exhausted. Inspect lastError and retry.",
+      "cancelled": "Cancelled before completion."
+    },
+    "fields": {
+      "generation": "Generation",
+      "channel": "Channel",
+      "started": "Started",
+      "finished": "Finished",
+      "external": "External",
+      "attempts": "attempts {count}",
+      "lastError": "last error"
+    },
+    "actions": {
+      "retry": "Retry",
+      "retrying": "Retrying…",
+      "cancel": "Cancel",
+      "cancelling": "Cancelling…",
+      "openBundle": "Open bundle"
+    },
+    "auditTrail": "Audit trail",
+    "auditTrailHint": "Every status transition writes one immutable event row. {count} event(s).",
+    "actionsPanel": {
+      "title": "Publish",
+      "selectChannels": "Select channels:",
+      "publishTo": "Publish to {count} channel(s)",
+      "tableChannel": "Channel",
+      "tableStatus": "Status",
+      "tableExternal": "External",
+      "tableAction": "Action",
+      "link": "link",
+      "detail": "detail",
+      "retry": "Retry",
+      "cancel": "Cancel",
+      "retrySuffix": " (retry {count})"
+    },
+    "bundle": {
+      "breadcrumb": "bundle",
+      "title": "Agent bundle",
+      "subtitle": "Files written by the agent publisher. Download the bundle and apply it manually (e.g. via CMS upload or git PR).",
+      "noFiles": {
+        "title": "No files yet",
+        "hint": "The publisher hasn't written anything. The publish must be completed first."
+      },
+      "directoryTitle": "Bundle directory"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "API keys are encrypted at rest with JHEO_SECRET_KEY (AES-256-GCM). Values are write-only — the API never returns the plaintext over the wire.",
+    "storedKeysTitle": "Stored keys",
+    "addOrUpdateTitle": "Add or update",
+    "presets": {
+      "openai_api_key": { "label": "OpenAI API key", "hint": "Used for embeddings + as default completion provider" },
+      "openai_embedding_api_key": { "label": "OpenAI embedding key", "hint": "Separate slot when completion routes through an OpenAI-compatible third party (e.g. MiniMax)" },
+      "anthropic_api_key": { "label": "Anthropic API key", "hint": "Completion via Anthropic Claude" },
+      "openrouter_api_key": { "label": "OpenRouter API key", "hint": "Completion via OpenRouter (multi-model routing)" }
+    },
+    "customSetting": "Custom setting",
+    "updatedAt": "updated {date}",
+    "deleteConfirm": "Delete \"{key}\"?",
+    "empty": {
+      "title": "No keys stored yet",
+      "hint": "Add one below. The API will use env-var fallbacks if a key is missing, but encrypted Settings rows take precedence and survive across container restarts."
+    },
+    "addFields": {
+      "keyLabel": "Key",
+      "keyPlaceholder": "openai_api_key",
+      "valueLabel": "Value",
+      "valuePlaceholder": "sk-…",
+      "save": "Save key",
+      "saving": "Saving…"
+    }
+  },
+  "gsc": {
+    "title": "Google Search Console",
+    "emptyHint": "Connect a GSC property with a Service Account JSON key. JHEO stores encrypted credentials and syncs search analytics daily.",
+    "siteUrlLabel": "Site URL (property)",
+    "siteUrlPlaceholder": "https://example.com/",
+    "serviceAccountLabel": "Service Account JSON",
+    "serviceAccountPlaceholder": "{\"type\":\"service_account\",...}",
+    "connect": "Connect GSC",
+    "connecting": "Connecting…",
+    "syncNow": "Sync now",
+    "syncing": "Syncing…",
+    "disconnect": "Disconnect",
+    "serviceAccountEmail": "Service account: {email}",
+    "dataThrough": "Data through {date}",
+    "lastSync": "Last sync {date}",
+    "metrics": {
+      "clicks": "Clicks",
+      "impressions": "Impressions",
+      "ctr": "CTR",
+      "avgPosition": "Avg position"
+    },
+    "tables": {
+      "topQueries": "Top queries",
+      "topPages": "Top pages",
+      "columns": {
+        "query": "Query",
+        "page": "Page",
+        "clicks": "Clicks",
+        "impressions": "Impressions",
+        "ctr": "CTR",
+        "pos": "Pos"
+      }
+    },
+    "errors": {
+      "invalidJson": "Service Account JSON is not valid JSON",
+      "siteUrlRequired": "Site URL is required"
     }
   },
   "help": {
@@ -61,4 +437,3 @@
     "rate_limited": "Too many requests. Please wait a moment."
   }
 }
-

@@ -1,7 +1,14 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { ensureI18n, i18n } from '../src/i18n';
 import { ScoreCard } from '../src/components/ScoreCard.js';
 import type { ProjectHealth } from '../src/api.js';
+
+beforeEach(async () => {
+  window.localStorage.removeItem('jheo.locale');
+  await ensureI18n();
+  i18n.changeLanguage('en');
+});
 
 describe('ScoreCard', () => {
   it('renders the rounded overall value', () => {
@@ -19,6 +26,6 @@ describe('ScoreCard', () => {
 
   it('renders fallback when health is null', () => {
     render(<ScoreCard health={null} />);
-    expect(screen.getByText('No health data yet.')).toBeTruthy();
+    expect(screen.getByText(/no health data/i)).toBeTruthy();
   });
 });

@@ -1,9 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { createGeneration, listGenerations, listMaterials, listTemplates } from '../api.js';
 
 export function GenerationComposer() {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const qc = useQueryClient();
@@ -20,7 +22,7 @@ export function GenerationComposer() {
     refetchInterval: 4000,
   });
 
-  const activeTemplate = templates.data?.find((t) => t.isActive);
+  const activeTemplate = templates.data?.find((tt) => tt.isActive);
   const [templateId, setTemplateId] = useState<string>('');
   const [prompt, setPrompt] = useState('');
   const [materialIds, setMaterialIds] = useState<string[]>([]);
@@ -49,17 +51,14 @@ export function GenerationComposer() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">Projects</Link>
+            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
             <Link to={`/projects/${projectId}`} className="muted tiny">{projectId?.slice(0, 8)}</Link>
             <span className="muted tiny">/</span>
-            <span className="tiny">compose</span>
+            <span className="tiny">{t('generation.composer.breadcrumb')}</span>
           </div>
-          <h1 className="page__title">Compose generation</h1>
-          <p className="page__subtitle">
-            Pick a template + materials, write a prompt, choose the LLM. The worker retrieves the
-            top-K most similar materials by embedding and feeds them to the model.
-          </p>
+          <h1 className="page__title">{t('generation.composer.title')}</h1>
+          <p className="page__subtitle">{t('generation.composer.subtitle')}</p>
         </div>
       </div>
 
@@ -77,7 +76,7 @@ export function GenerationComposer() {
           style={{ gap: 'var(--space-4)' }}
         >
           <div className="card">
-            <div className="card__title">Template</div>
+            <div className="card__title">{t('generation.composer.templateCard')}</div>
             <div className="field" style={{ marginTop: 'var(--space-3)' }}>
               <select
                 className="select"
@@ -86,12 +85,12 @@ export function GenerationComposer() {
               >
                 <option value="">
                   {activeTemplate
-                    ? `Active · ${activeTemplate.name} (v${activeTemplate.version})`
-                    : 'Select a template'}
+                    ? t('generation.composer.activeOption', { name: activeTemplate.name, version: activeTemplate.version })
+                    : t('generation.composer.selectTemplate')}
                 </option>
-                {templates.data?.map((t) => (
-                  <option key={t.id} value={t.id}>
-                    {t.name} (v{t.version}){t.isActive ? ' · active' : ''}
+                {templates.data?.map((tt) => (
+                  <option key={tt.id} value={tt.id}>
+                    {tt.name} (v{tt.version}){tt.isActive ? t('generation.composer.optionActive') : ''}
                   </option>
                 ))}
               </select>
@@ -99,29 +98,30 @@ export function GenerationComposer() {
           </div>
 
           <div className="card">
-            <div className="card__title">Prompt</div>
+            <div className="card__title">{t('generation.composer.promptCard')}</div>
             <div className="field" style={{ marginTop: 'var(--space-3)' }}>
               <textarea
                 className="textarea"
                 required
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Write a short blog post about apples"
+                placeholder={t('generation.composer.promptPlaceholder')}
                 rows={3}
               />
             </div>
           </div>
 
           <div className="card">
-            <div className="card__title">Materials</div>
+            <div className="card__title">{t('generation.composer.materialsCard')}</div>
             <p className="tiny muted" style={{ marginTop: 'var(--space-1)', marginBottom: 'var(--space-3)' }}>
               {materialIds.length === 0
-                ? 'None selected — generator will rely on the prompt alone.'
-                : `${materialIds.length} selected.`}
+                ? t('generation.composer.noMaterials')
+                : t('generation.composer.selectedCount', { count: materialIds.length })}
             </p>
             {materials.data && materials.data.length === 0 ? (
               <p className="tiny muted">
-                No materials yet. <Link to={`/projects/${projectId}/materials`}>Add some →</Link>
+                {t('generation.composer.noMaterialsEmpty')}{' '}
+                <Link to={`/projects/${projectId}/materials`}>{t('generation.composer.addMaterialsLink')}</Link>
               </p>
             ) : (
               <div className="col" style={{ gap: 'var(--space-2)', maxHeight: 240, overflowY: 'auto' }}>
@@ -137,7 +137,7 @@ export function GenerationComposer() {
                       }}
                     />
                     <span style={{ flex: 1 }}>{m.title}</span>
-                    <span className="tiny tabular muted">{m.charCount} chars</span>
+                    <span className="tiny tabular muted">{m.charCount} {t('materials.table.chars')}</span>
                   </label>
                 ))}
               </div>
@@ -145,7 +145,7 @@ export function GenerationComposer() {
           </div>
 
           <div className="card">
-            <div className="card__title">Model</div>
+            <div className="card__title">{t('generation.composer.modelCard')}</div>
             <div
               style={{
                 display: 'grid',
@@ -155,15 +155,15 @@ export function GenerationComposer() {
               }}
             >
               <div className="field">
-                <label className="field__label">Provider</label>
+                <label className="field__label">{t('generation.composer.provider')}</label>
                 <select className="select" value={provider} onChange={(e) => setProvider(e.target.value as 'openai' | 'anthropic' | 'openrouter')}>
-                  <option value="openai">openai (OpenAI-compat)</option>
-                  <option value="anthropic">anthropic</option>
-                  <option value="openrouter">openrouter</option>
+                  <option value="openai">{t('generation.composer.providerOpenai')}</option>
+                  <option value="anthropic">{t('generation.composer.providerAnthropic')}</option>
+                  <option value="openrouter">{t('generation.composer.providerOpenrouter')}</option>
                 </select>
               </div>
               <div className="field">
-                <label className="field__label">Model</label>
+                <label className="field__label">{t('generation.composer.model')}</label>
                 <input
                   className="input"
                   value={model}
@@ -172,7 +172,7 @@ export function GenerationComposer() {
                 />
               </div>
               <div className="field">
-                <label className="field__label">Temperature</label>
+                <label className="field__label">{t('generation.composer.temperature')}</label>
                 <input
                   className="input"
                   type="number"
@@ -193,16 +193,16 @@ export function GenerationComposer() {
               </span>
             )}
             <button type="submit" className="btn btn--primary" disabled={submitDisabled}>
-              {create.isPending ? 'Queueing…' : 'Compose generation'}
+              {create.isPending ? t('generation.composer.queueing') : t('generation.composer.submit')}
             </button>
           </div>
         </form>
 
         <aside className="card">
-          <div className="card__title">Recent generations</div>
-          {generations.isLoading && <p className="tiny muted">Loading…</p>}
+          <div className="card__title">{t('generation.composer.recentTitle')}</div>
+          {generations.isLoading && <p className="tiny muted">{t('common.loading')}</p>}
           {generations.data && generations.data.length === 0 && (
-            <p className="tiny muted">No generations yet.</p>
+            <p className="tiny muted">{t('generation.composer.noGenerations')}</p>
           )}
           {generations.data && generations.data.length > 0 && (
             <div className="col" style={{ gap: 0 }}>

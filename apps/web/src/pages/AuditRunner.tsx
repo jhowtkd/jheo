@@ -1,8 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { runAudit } from '../api.js';
 
 export function AuditRunner() {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
   const run = useMutation({
@@ -14,26 +16,22 @@ export function AuditRunner() {
     <div className="page">
       <div className="page__header">
         <div>
-          <h1 className="page__title">Run audit</h1>
-          <p className="page__subtitle">
-            Launch the audit pipeline (Fastify API + BullMQ worker + Postgres + pgvector) on this
-            project. Results appear on the report page once the worker finishes.
-          </p>
+          <h1 className="page__title">{t('audit.runner.title')}</h1>
+          <p className="page__subtitle">{t('audit.runner.subtitle')}</p>
         </div>
       </div>
 
       <div className="card" style={{ maxWidth: 560 }}>
-        <div className="card__title">Ready to audit</div>
+        <div className="card__title">{t('audit.runner.readyTitle')}</div>
         <p className="tiny muted" style={{ marginTop: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
-          The audit crawls the root URL, then runs 26 plugins across SEO, performance/CWV,
-          GEO/AI-readiness, accessibility, and content. Typical runtime: 5–15s.
+          {t('audit.runner.readyHint')}
         </p>
         <button
           className="btn btn--primary btn--lg"
           onClick={() => run.mutate()}
           disabled={run.isPending}
         >
-          {run.isPending ? 'Starting…' : 'Start audit'}
+          {run.isPending ? t('audit.runner.starting') : t('audit.runner.start')}
         </button>
         {run.isError && (
           <p className="tiny" style={{ color: 'var(--danger)', marginTop: 'var(--space-3)' }}>

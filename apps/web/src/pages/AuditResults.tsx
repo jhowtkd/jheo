@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
 import { FindingList } from '../components/FindingList.js';
 import { ScoreCard } from '../components/ScoreCard.js';
 import { getAudit, type Finding, type ProjectHealth } from '../api.js';
 
 export function AuditResults() {
+  const { t } = useTranslation();
   const { auditId } = useParams<{ auditId: string }>();
   const q = useQuery({
     queryKey: ['audit', auditId],
@@ -38,20 +40,20 @@ export function AuditResults() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">Projects</Link>
+            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
             <Link to={`/projects/${a.projectId}`} className="muted tiny">
               {a.projectId.slice(0, 8)}
             </Link>
             <span className="muted tiny">/</span>
-            <span className="tiny">audit</span>
+            <span className="tiny">{t('audit.results.breadcrumbAudit')}</span>
           </div>
-          <h1 className="page__title">Audit report</h1>
+          <h1 className="page__title">{t('audit.results.title')}</h1>
           <p className="page__subtitle mono tiny">{a.id}</p>
         </div>
         <div className="status-meta">
           <span className={`badge badge--${a.status}`}>{a.status}</span>
-          {isPending && <span className="tiny tabular">auto-refreshing · 2s</span>}
+          {isPending && <span className="tiny tabular">{t('common.autoRefreshing')}</span>}
         </div>
       </div>
 
@@ -88,19 +90,19 @@ export function AuditResults() {
         }}
       >
         <span className="tiny" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
-          Findings
+          {t('audit.results.findings')}
         </span>
         <div className="row" style={{ gap: 'var(--space-5)' }}>
           <span className="row" style={{ gap: 'var(--space-2)' }}>
-            <span className="finding__sev sev--error" style={{ paddingTop: 0 }}>error</span>
+            <span className="finding__sev sev--error" style={{ paddingTop: 0 }}>{t('audit.results.error')}</span>
             <span className="tabular" style={{ fontWeight: 600 }}>{errorCount}</span>
           </span>
           <span className="row" style={{ gap: 'var(--space-2)' }}>
-            <span className="finding__sev sev--warning" style={{ paddingTop: 0 }}>warning</span>
+            <span className="finding__sev sev--warning" style={{ paddingTop: 0 }}>{t('audit.results.warning')}</span>
             <span className="tabular" style={{ fontWeight: 600 }}>{warningCount}</span>
           </span>
           <span className="row" style={{ gap: 'var(--space-2)' }}>
-            <span className="finding__sev sev--info" style={{ paddingTop: 0 }}>info</span>
+            <span className="finding__sev sev--info" style={{ paddingTop: 0 }}>{t('audit.results.info')}</span>
             <span className="tabular" style={{ fontWeight: 600 }}>{infoCount}</span>
           </span>
         </div>
@@ -108,7 +110,7 @@ export function AuditResults() {
           <span className="tabular" style={{ fontSize: 'var(--fs-xl)', fontWeight: 700 }}>
             {a.findings.length}
           </span>
-          <span className="tiny muted" style={{ marginLeft: 'var(--space-2)' }}>total</span>
+          <span className="tiny muted" style={{ marginLeft: 'var(--space-2)' }}>{t('audit.results.total')}</span>
         </div>
       </div>
 

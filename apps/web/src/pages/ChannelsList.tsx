@@ -1,26 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { deleteChannel, listChannels, type Channel, type ChannelType } from '../api.js';
 
-const TYPE_LABEL: Record<ChannelType, string> = {
-  wordpress: 'WordPress',
-  http: 'HTTP',
-  agent: 'Agent bundle',
-};
-
-const TYPE_DESC: Record<ChannelType, string> = {
-  wordpress: 'Publishes as a WP post via the REST API (app-password auth)',
-  http: 'POSTs the rendered markdown to any HTTPS endpoint',
-  agent: 'Writes a ZIP bundle the user downloads and pushes by hand',
-};
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short', day: 'numeric', year: 'numeric',
-  });
-}
-
 export function ChannelsList() {
+  const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const qc = useQueryClient();
   const channels = useQuery({
@@ -38,17 +22,14 @@ export function ChannelsList() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">Projects</Link>
+            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
             <Link to={`/projects/${projectId}`} className="muted tiny">{projectId?.slice(0, 8)}</Link>
             <span className="muted tiny">/</span>
-            <span className="tiny">channels</span>
+            <span className="tiny">{t('channels.breadcrumb')}</span>
           </div>
-          <h1 className="page__title">Channels</h1>
-          <p className="page__subtitle">
-            Where approved generations get published. Each channel type has a different config
-            schema (WordPress credentials, an HTTP endpoint, or just an output directory).
-          </p>
+          <h1 className="page__title">{t('channels.title')}</h1>
+          <p className="page__subtitle">{t('channels.subtitle')}</p>
         </div>
       </div>
 
@@ -68,11 +49,8 @@ export function ChannelsList() {
               <circle cx="28" cy="28" r="20" />
             </svg>
           </div>
-          <p className="empty__title">No channels configured</p>
-          <p className="empty__hint">
-            Channels are managed per-channel via the API. Use the WordPress / HTTP / Agent
-            adapters to route approved generations to a destination.
-          </p>
+          <p className="empty__title">{t('channels.empty.title')}</p>
+          <p className="empty__hint">{t('channels.empty.hint')}</p>
         </div>
       )}
 
@@ -83,7 +61,7 @@ export function ChannelsList() {
               key={c.id}
               channel={c}
               onRemove={() => {
-                if (confirm(`Delete channel "${c.name}"?`)) remove.mutate(c.id);
+                if (confirm(t('channels.deleteConfirm', { name: c.name }))) remove.mutate(c.id);
               }}
             />
           ))}
@@ -94,6 +72,7 @@ export function ChannelsList() {
 }
 
 function ChannelRow({ channel, onRemove }: { channel: Channel; onRemove: () => void }) {
+  const { t } = useTranslation();
   return (
     <Link
       to={`/channels/${channel.id}`}
@@ -103,14 +82,14 @@ function ChannelRow({ channel, onRemove }: { channel: Channel; onRemove: () => v
       <div className="spread">
         <div>
           <div style={{ fontWeight: 600 }}>{channel.name}</div>
-          <div className="tiny muted" style={{ marginTop: 2 }}>{TYPE_DESC[channel.type]}</div>
+          <div className="tiny muted" style={{ marginTop: 2 }}>{t(`channels.typeDescriptions.${channel.type}`)}</div>
         </div>
         <div className="row">
-          <span className="badge badge--neutral">{TYPE_LABEL[channel.type]}</span>
+          <span className="badge badge--neutral">{t(`channels.types.${channel.type}`)}</span>
           {channel.isActive ? (
-            <span className="badge badge--success">active</span>
+            <span className="badge badge--success">{t('common.active')}</span>
           ) : (
-            <span className="badge badge--neutral">paused</span>
+            <span className="badge badge--neutral">{t('common.paused')}</span>
           )}
         </div>
       </div>
@@ -123,9 +102,15 @@ function ChannelRow({ channel, onRemove }: { channel: Channel; onRemove: () => v
           className="btn btn--ghost btn--sm"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
         >
-          Delete
+          {t('common.delete')}
         </button>
       </div>
     </Link>
   );
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
 }

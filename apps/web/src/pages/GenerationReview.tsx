@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { getGeneration, reviewGeneration, type Generation } from '../api.js';
@@ -17,6 +18,7 @@ function formatDate(iso: string | null | undefined): string {
 }
 
 export function GenerationReview() {
+  const { t } = useTranslation();
   const { generationId } = useParams<{ generationId: string }>();
   const q = useQuery({
     queryKey: ['generation', generationId],
@@ -45,20 +47,20 @@ export function GenerationReview() {
   }
   const g = q.data;
   const fm = (g.outputFrontMatter ?? {}) as Record<string, unknown>;
-  const title = (fm.title as string) || `Generation ${g.id.slice(0, 8)}`;
+  const title = (fm.title as string) || t('generation.review.titleFallback', { id: g.id.slice(0, 8) });
 
   return (
     <div className="page">
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">Projects</Link>
+            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
             <Link to={`/projects/${g.projectId}`} className="muted tiny">
               {g.projectId.slice(0, 8)}
             </Link>
             <span className="muted tiny">/</span>
-            <span className="tiny">generation</span>
+            <span className="tiny">{t('generation.review.breadcrumb')}</span>
           </div>
           <h1 className="page__title">{title}</h1>
           <p className="page__subtitle">{g.prompt}</p>
@@ -77,11 +79,8 @@ export function GenerationReview() {
               <path d="M28 16v12l8 4" />
             </svg>
           </div>
-          <p className="empty__title">Generation in progress</p>
-          <p className="empty__hint">
-            Job status is {g.status}. The MiniMax model is composing a draft — this page
-            auto-refreshes every 2s.
-          </p>
+          <p className="empty__title">{t('generation.review.progressTitle')}</p>
+          <p className="empty__hint">{t('generation.review.progressHint', { status: g.status })}</p>
         </div>
       )}
 
@@ -93,7 +92,7 @@ export function GenerationReview() {
 
           <aside className="col">
             <div className="card">
-              <div className="card__title">Frontmatter</div>
+              <div className="card__title">{t('generation.review.frontmatter')}</div>
               <dl className="fm-table">
                 {Object.entries(fm).map(([k, v]) => (
                   <div key={k}>
@@ -106,7 +105,7 @@ export function GenerationReview() {
 
             {g.sources && g.sources.length > 0 && (
               <div className="card">
-                <div className="card__title">Sources</div>
+                <div className="card__title">{t('generation.review.sources')}</div>
                 <div className="col" style={{ gap: 0 }}>
                   {g.sources.map((s, i) => (
                     <div
@@ -119,7 +118,7 @@ export function GenerationReview() {
                       <div className="spread">
                         <span className="mono tiny muted">{s.id.slice(0, 12)}…</span>
                         <span className="tiny tabular" style={{ color: 'var(--accent-bright)' }}>
-                          score {s.score.toFixed(3)}
+                          {t('generation.review.score')} {s.score.toFixed(3)}
                         </span>
                       </div>
                       <p className="tiny muted" style={{ margin: '4px 0 0', lineHeight: 1.5 }}>{s.excerpt}</p>
@@ -131,29 +130,29 @@ export function GenerationReview() {
 
             {g.usage && (
               <div className="card">
-                <div className="card__title">Usage</div>
+                <div className="card__title">{t('generation.review.usage')}</div>
                 <dl className="fm-table">
-                  <dt>Provider / model</dt>
+                  <dt>{t('generation.review.providerModel')}</dt>
                   <dd>{g.usage.provider}/{g.usage.model}</dd>
-                  <dt>Prompt tokens</dt>
+                  <dt>{t('generation.review.promptTokens')}</dt>
                   <dd className="tabular">{g.usage.promptTokens.toLocaleString()}</dd>
-                  <dt>Completion tokens</dt>
+                  <dt>{t('generation.review.completionTokens')}</dt>
                   <dd className="tabular">{g.usage.completionTokens.toLocaleString()}</dd>
-                  <dt>Started</dt>
+                  <dt>{t('generation.review.started')}</dt>
                   <dd>{formatDate(g.startedAt)}</dd>
-                  <dt>Finished</dt>
+                  <dt>{t('generation.review.finished')}</dt>
                   <dd>{formatDate(g.finishedAt)}</dd>
                 </dl>
               </div>
             )}
 
             <div className="card">
-              <div className="card__title">Review</div>
+              <div className="card__title">{t('generation.review.review')}</div>
               <textarea
                 className="textarea"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                placeholder="Optional notes for reviewers"
+                placeholder={t('generation.review.reviewNotes')}
                 rows={3}
                 style={{ marginBottom: 'var(--space-3)' }}
               />
@@ -163,21 +162,21 @@ export function GenerationReview() {
                   onClick={() => review.mutate('send_to_review')}
                   disabled={g.reviewState !== 'draft' || review.isPending}
                 >
-                  Send to review
+                  {t('generation.review.sendToReview')}
                 </button>
                 <button
                   className="btn btn--primary btn--sm"
                   onClick={() => review.mutate('approve')}
                   disabled={g.reviewState !== 'in_review' || review.isPending}
                 >
-                  Approve
+                  {t('generation.review.approve')}
                 </button>
                 <button
                   className="btn btn--danger btn--sm"
                   onClick={() => review.mutate('reject')}
                   disabled={g.reviewState === 'approved' || review.isPending}
                 >
-                  Reject
+                  {t('generation.review.reject')}
                 </button>
               </div>
               <div style={{ marginTop: 'var(--space-4)' }}>

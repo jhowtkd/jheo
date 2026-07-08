@@ -1,3 +1,5 @@
+import { useTranslation } from 'react-i18next';
+
 export type FilterOption<T extends string> = { value: T; label: string };
 
 interface Props<T extends string> {
@@ -7,8 +9,9 @@ interface Props<T extends string> {
 }
 
 export function FilterBar<T extends string>({ value, onChange, options }: Props<T>) {
+  const { t } = useTranslation();
   return (
-    <div className="filter-bar" role="tablist" aria-label="Filter">
+    <div className="filter-bar" role="tablist" aria-label={t('topbar.filter')}>
       {options.map((opt) => (
         <button
           key={opt.value}

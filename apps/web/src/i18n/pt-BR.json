@@ -5,16 +5,124 @@
     "api": "API",
     "down": "fora do ar",
     "language": "Idioma",
-    "translationUnavailable": "Tradução indisponível"
+    "translationUnavailable": "Tradução indisponível",
+    "breadcrumb": "Trilha",
+    "filter": "Filtro"
   },
   "languages": { "en": "English", "pt-BR": "Português (Brasil)" },
+  "common": {
+    "close": "Fechar",
+    "cancel": "Cancelar",
+    "delete": "Excluir",
+    "save": "Salvar",
+    "edit": "Editar",
+    "reveal": "Mostrar",
+    "hide": "Ocultar",
+    "loading": "Carregando…",
+    "notFound": "Não encontrado.",
+    "inProgress": "Em andamento",
+    "autoRefreshing": "atualizando sozinho · 2s",
+    "active": "ativo",
+    "inactive": "inativo",
+    "paused": "pausado"
+  },
   "projects": {
     "title": "Projetos",
-    "create": { "label": "Novo projeto", "placeholder": "exemplo.com.br", "submit": "Criar" },
-    "empty": "Nenhum projeto ainda. Adicione seu primeiro domínio para começar a auditar."
+    "subtitle": "Faça auditoria, gere e distribua conteúdo de GEO e SEO por site. Cada projeto guarda suas auditorias, materiais, gerações e histórico de publicação.",
+    "create": {
+      "label": "Novo projeto",
+      "submit": "Criar projeto",
+      "creating": "Criando…",
+      "namePlaceholder": "Marketing da Acme",
+      "urlPlaceholder": "https://acme.com.br",
+      "hint": "Dê um nome e a URL raiz para auditar."
+    },
+    "empty": {
+      "title": "Nenhum projeto ainda",
+      "hint": "Crie seu primeiro projeto para começar a auditar um site. Cada projeto tem suas auditorias, materiais, gerações e canais de distribuição.",
+      "action": "Criar projeto"
+    },
+    "table": {
+      "name": "Nome",
+      "rootUrl": "URL raiz",
+      "created": "Criado em"
+    },
+    "dashboard": {
+      "runAudit": "Rodar auditoria",
+      "lastAudit": "Última auditoria",
+      "statusLabel": "Status",
+      "pagesCompleted": "{completed} / {total} páginas concluídas ({failed} falharam, {skipped} puladas)",
+      "inProgress": "Em andamento",
+      "cancelAudit": "Cancelar auditoria",
+      "cancelling": "Cancelando…",
+      "pagesTable": {
+        "url": "URL",
+        "source": "Origem",
+        "lastAudited": "Última auditoria",
+        "score": "Score",
+        "action": "Ação",
+        "reAudit": "Reauditar",
+        "queuing": "Na fila…",
+        "noMatch": "Nenhuma página bate com esse filtro."
+      },
+      "diffModal": {
+        "close": "Fechar",
+        "title": "Reauditoria",
+        "score": "Score"
+      },
+      "footerAudited": "{audited} / {total} auditadas",
+      "stats": {
+        "audits": "Auditorias",
+        "materials": "Materiais",
+        "generations": "Gerações",
+        "channels": "Canais"
+      },
+      "latestAudit": "Última auditoria",
+      "openFullReport": "Abrir relatório completo →",
+      "overall": "Geral",
+      "auditHistory": "Histórico de auditorias",
+      "historyStarted": "Iniciada em",
+      "historyStatus": "Status",
+      "viewLink": "Ver →",
+      "workspace": "Espaço de trabalho",
+      "quickLinks": {
+        "materials": "Materiais",
+        "materialsHint": "Fontes que o gerador usa de contexto (URLs, arquivos, notas)",
+        "generate": "Gerar",
+        "generateHint": "Compor uma nova geração a partir de um modelo e materiais",
+        "channels": "Canais",
+        "channelsHint": "Onde as gerações aprovadas são publicadas (WordPress, HTTP, agente)"
+      },
+      "failedToLoad": "Falha ao carregar o projeto.",
+      "filters": {
+        "all": "Tudo",
+        "notAudited": "Não auditada",
+        "withError": "Com erro",
+        "sitemap": "Sitemap",
+        "crawl": "Crawl",
+        "root": "Raiz"
+      }
+    }
   },
   "audit": {
     "title": "Auditoria",
+    "runner": {
+      "title": "Rodar auditoria",
+      "subtitle": "Dispara o pipeline de auditoria (API Fastify + worker BullMQ + Postgres + pgvector) neste projeto. Os resultados aparecem na página de relatório quando o worker termina.",
+      "readyTitle": "Pronto para auditar",
+      "readyHint": "A auditoria rastreia a URL raiz e roda 26 plugins de SEO, performance/CWV, GEO/leitura por IA, acessibilidade e conteúdo. Tempo típico: 5–15s.",
+      "start": "Iniciar auditoria",
+      "starting": "Iniciando…"
+    },
+    "results": {
+      "title": "Relatório de auditoria",
+      "breadcrumbAudit": "auditoria",
+      "findings": "Findings",
+      "error": "erro",
+      "warning": "atenção",
+      "info": "aviso leve",
+      "total": "total"
+    },
     "categories": {
       "seo": "SEO",
       "cwv": "Desempenho (CWV)",
@@ -40,6 +148,274 @@
       "IMPROVEMENT": "Melhorou",
       "REGRESSION": "Piorou",
       "FIXED": "Resolvido"
+    },
+    "list": {
+      "fixedTitle": "Resolvidos desde a última auditoria",
+      "noFindings": {
+        "title": "Nenhum finding",
+        "hint": "A auditoria passou limpa — nada para corrigir aqui."
+      }
+    },
+    "scoreCard": {
+      "noHealth": "Ainda sem dados de saúde.",
+      "overall": "Geral"
+    }
+  },
+  "materials": {
+    "title": "Materiais",
+    "subtitle": "Fontes que o gerador usa como contexto. Eles são embutidos na hora e recuperados por similaridade ao compor uma nova geração.",
+    "breadcrumb": "materiais",
+    "add": "Adicionar material",
+    "adding": "Adicionando…",
+    "generate": "Gerar a partir dos materiais",
+    "types": {
+      "note": { "label": "Nota", "hint": "Texto curto que o gerador usa como fonte" },
+      "url": { "label": "URL", "hint": "Buscar e embutir uma página" },
+      "file": { "label": "Arquivo", "hint": "Subir um documento (PDF / markdown)" }
+    },
+    "fields": {
+      "title": "Título",
+      "titlePlaceholder": "Fatos sobre maçãs",
+      "filename": "Nome do arquivo",
+      "url": "URL",
+      "source": "Fonte",
+      "notePlaceholder": "Maçãs são vermelhas e crocantes. O nome científico é Malus domestica.",
+      "urlPlaceholder": "https://exemplo.com.br/blog/macas",
+      "filePlaceholder": "arquivo.pdf"
+    },
+    "empty": {
+      "title": "Nenhum material ainda",
+      "hint": "Adicione pelo menos uma fonte acima antes de compor uma geração. O gerador recupera as mais parecidas por similaridade semântica."
+    },
+    "table": {
+      "title": "Título",
+      "type": "Tipo",
+      "size": "Tamanho",
+      "embedding": "Embedding",
+      "chars": "caracteres"
+    },
+    "deleteConfirm": "Excluir material \"{title}\"?",
+    "deleteTitle": "Excluir"
+  },
+  "templates": {
+    "title": "Modelos",
+    "subtitle": "Pares versionados de prompt + schema de saída. Ative um para usar como padrão nas novas gerações.",
+    "breadcrumb": "modelos",
+    "empty": {
+      "title": "Nenhum modelo ainda",
+      "hint": "Um modelo define o system prompt e o schema de saída que o gerador preenche. Ative um antes de rodar uma geração."
+    },
+    "table": {
+      "name": "Nome",
+      "version": "Versão",
+      "status": "Status",
+      "created": "Criado em"
+    },
+    "activate": "Ativar",
+    "editor": {
+      "promptTitle": "Modelo de prompt",
+      "promptHint": "Use {{userPrompt}}, {{sources}} e {{outputSchemaDescription}} como placeholders.",
+      "outputSchemaTitle": "Schema de saída",
+      "outputSchemaHint": "O modelo deve devolver um JSON no formato abaixo, embutido no frontmatter do post.",
+      "metadataTitle": "Metadados",
+      "idLabel": "ID",
+      "createdLabel": "Criado em"
+    }
+  },
+  "generation": {
+    "composer": {
+      "title": "Compor geração",
+      "subtitle": "Escolha um modelo + materiais, escreva o prompt e escolha a IA. O worker busca os top-K materiais mais parecidos por embedding e manda para o modelo.",
+      "breadcrumb": "compor",
+      "templateCard": "Modelo",
+      "activeOption": "Ativo · {name} (v{version})",
+      "selectTemplate": "Selecione um modelo",
+      "optionActive": " · ativo",
+      "promptCard": "Prompt",
+      "promptPlaceholder": "Escreva um post curto sobre maçãs",
+      "materialsCard": "Materiais",
+      "noMaterials": "Nenhum selecionado — o gerador vai depender só do prompt.",
+      "selectedCount": "{count} selecionados.",
+      "noMaterialsEmpty": "Nenhum material ainda.",
+      "addMaterialsLink": "Adicionar alguns →",
+      "modelCard": "Modelo de IA",
+      "provider": "Provider",
+      "model": "Modelo",
+      "temperature": "Temperatura",
+      "providerOpenai": "openai (compatível com OpenAI)",
+      "providerAnthropic": "anthropic",
+      "providerOpenrouter": "openrouter",
+      "submit": "Compor geração",
+      "queueing": "Na fila…",
+      "recentTitle": "Gerações recentes",
+      "noGenerations": "Nenhuma geração ainda."
+    },
+    "review": {
+      "breadcrumb": "geração",
+      "progressTitle": "Geração em andamento",
+      "progressHint": "O status do job é {status}. O modelo MiniMax está escrevendo um rascunho — esta página atualiza sozinha a cada 2s.",
+      "frontmatter": "Frontmatter",
+      "sources": "Fontes",
+      "score": "score",
+      "usage": "Uso",
+      "providerModel": "Provider / modelo",
+      "promptTokens": "Tokens do prompt",
+      "completionTokens": "Tokens da resposta",
+      "started": "Iniciada em",
+      "finished": "Finalizada em",
+      "review": "Revisão",
+      "reviewNotes": "Notas opcionais para os revisores",
+      "sendToReview": "Enviar para revisão",
+      "approve": "Aprovar",
+      "reject": "Rejeitar",
+      "titleFallback": "Geração {id}"
+    }
+  },
+  "channels": {
+    "title": "Canais",
+    "subtitle": "Onde as gerações aprovadas são publicadas. Cada tipo de canal tem um schema de configuração diferente (credenciais WordPress, endpoint HTTP, ou só um diretório de saída).",
+    "breadcrumb": "canais",
+    "types": {
+      "wordpress": "WordPress",
+      "http": "HTTP",
+      "agent": "Pacote de agente"
+    },
+    "typeDescriptions": {
+      "wordpress": "Publica como post no WP via REST API (auth por app-password)",
+      "http": "Faz POST do markdown renderizado para qualquer endpoint HTTPS",
+      "agent": "Escreve um ZIP que o usuário baixa e publica manualmente"
+    },
+    "empty": {
+      "title": "Nenhum canal configurado",
+      "hint": "Canais são gerenciados por canal via API. Use os adaptadores WordPress / HTTP / Agent para mandar as gerações aprovadas a um destino."
+    },
+    "deleteConfirm": "Excluir canal \"{name}\"?",
+    "editor": {
+      "breadcrumb": "canal",
+      "configuration": "Configuração",
+      "configHint": "Criptografado em repouso com JHEO_SECRET_KEY. O formato descriptografado está documentado por tipo de canal.",
+      "metadataTitle": "Metadados",
+      "projectLabel": "Projeto",
+      "typeLabel": "Tipo",
+      "createdLabel": "Criado em"
+    }
+  },
+  "publish": {
+    "title": "Publicação",
+    "breadcrumb": "publicação",
+    "status": {
+      "queued": "Aguardando uma vaga no worker.",
+      "running": "O worker está publicando no canal.",
+      "completed": "Pronto — confira a URL externa.",
+      "failed": "Acabaram as tentativas. Veja o lastError e tente de novo.",
+      "cancelled": "Cancelado antes de terminar."
+    },
+    "fields": {
+      "generation": "Geração",
+      "channel": "Canal",
+      "started": "Iniciada em",
+      "finished": "Finalizada em",
+      "external": "Externo",
+      "attempts": "tentativas {count}",
+      "lastError": "último erro"
+    },
+    "actions": {
+      "retry": "Tentar de novo",
+      "retrying": "Tentando…",
+      "cancel": "Cancelar",
+      "cancelling": "Cancelando…",
+      "openBundle": "Abrir pacote"
+    },
+    "auditTrail": "Trilha de auditoria",
+    "auditTrailHint": "Cada mudança de status grava uma linha de evento imutável. {count} evento(s).",
+    "actionsPanel": {
+      "title": "Publicar",
+      "selectChannels": "Selecione os canais:",
+      "publishTo": "Publicar em {count} canal(is)",
+      "tableChannel": "Canal",
+      "tableStatus": "Status",
+      "tableExternal": "Externo",
+      "tableAction": "Ação",
+      "link": "link",
+      "detail": "detalhe",
+      "retry": "Tentar de novo",
+      "cancel": "Cancelar",
+      "retrySuffix": " (tentativa {count})"
+    },
+    "bundle": {
+      "breadcrumb": "pacote",
+      "title": "Pacote do agente",
+      "subtitle": "Arquivos escritos pelo publisher de agente. Baixe o pacote e aplique manualmente (por upload no CMS ou PR no git, por exemplo).",
+      "noFiles": {
+        "title": "Nenhum arquivo ainda",
+        "hint": "O publisher ainda não escreveu nada. A publicação precisa estar concluída primeiro."
+      },
+      "directoryTitle": "Diretório do pacote"
+    }
+  },
+  "settings": {
+    "title": "Configurações",
+    "subtitle": "As API keys são criptografadas em repouso com JHEO_SECRET_KEY (AES-256-GCM). Os valores são write-only — a API nunca devolve o plaintext pela rede.",
+    "storedKeysTitle": "Chaves salvas",
+    "addOrUpdateTitle": "Adicionar ou atualizar",
+    "presets": {
+      "openai_api_key": { "label": "API key da OpenAI", "hint": "Usada para embeddings + provider padrão de completion" },
+      "openai_embedding_api_key": { "label": "API key de embedding da OpenAI", "hint": "Slot separado quando o completion passa por um terceiro compatível com OpenAI (ex.: MiniMax)" },
+      "anthropic_api_key": { "label": "API key da Anthropic", "hint": "Completion via Anthropic Claude" },
+      "openrouter_api_key": { "label": "API key da OpenRouter", "hint": "Completion via OpenRouter (roteamento multi-modelo)" }
+    },
+    "customSetting": "Configuração personalizada",
+    "updatedAt": "atualizada em {date}",
+    "deleteConfirm": "Excluir \"{key}\"?",
+    "empty": {
+      "title": "Nenhuma chave salva ainda",
+      "hint": "Adicione uma abaixo. A API usa fallback de env var quando a chave não está salva, mas as linhas criptografadas em Settings têm prioridade e sobrevivem a restart do container."
+    },
+    "addFields": {
+      "keyLabel": "Chave",
+      "keyPlaceholder": "openai_api_key",
+      "valueLabel": "Valor",
+      "valuePlaceholder": "sk-…",
+      "save": "Salvar chave",
+      "saving": "Salvando…"
+    }
+  },
+  "gsc": {
+    "title": "Google Search Console",
+    "emptyHint": "Conecte uma propriedade do GSC com uma Service Account JSON. O JHEO guarda as credenciais criptografadas e sincroniza as métricas de busca todo dia.",
+    "siteUrlLabel": "URL do site (propriedade)",
+    "siteUrlPlaceholder": "https://exemplo.com.br/",
+    "serviceAccountLabel": "Service Account JSON",
+    "serviceAccountPlaceholder": "{\"type\":\"service_account\",...}",
+    "connect": "Conectar GSC",
+    "connecting": "Conectando…",
+    "syncNow": "Sincronizar agora",
+    "syncing": "Sincronizando…",
+    "disconnect": "Desconectar",
+    "serviceAccountEmail": "Service account: {email}",
+    "dataThrough": "Dados até {date}",
+    "lastSync": "Última sync {date}",
+    "metrics": {
+      "clicks": "Cliques",
+      "impressions": "Impressões",
+      "ctr": "CTR",
+      "avgPosition": "Posição média"
+    },
+    "tables": {
+      "topQueries": "Top consultas",
+      "topPages": "Top páginas",
+      "columns": {
+        "query": "Consulta",
+        "page": "Página",
+        "clicks": "Cliques",
+        "impressions": "Impressões",
+        "ctr": "CTR",
+        "pos": "Pos."
+      }
+    },
+    "errors": {
+      "invalidJson": "O JSON da Service Account não é válido",
+      "siteUrlRequired": "A URL do site é obrigatória"
     }
   },
   "help": {
@@ -61,4 +437,3 @@
     "rate_limited": "Muitas requisições. Aguarde um instante."
   }
 }
-
