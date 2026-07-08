@@ -6,10 +6,11 @@ export const LOCALE_NAMES: Record<SupportedLocale, string> = {
 };
 
 const PRIMARY = ['en', 'pt-BR'] as const;
-const PREFIX_MAP: Record<string, SupportedLocale> = {
+const PREFIX_MAP = {
   en: 'en',
   pt: 'pt-BR',
-};
+} as const satisfies Record<string, SupportedLocale>;
+type Prefix = keyof typeof PREFIX_MAP;
 
 /**
  * Parse an Accept-Language header (or null) and pick the best matching
@@ -32,7 +33,7 @@ export function negotiateLocale(header: string | null | undefined): SupportedLoc
 
   for (const { tag } of tags) {
     const primary = tag.split('-')[0];
-    if (primary && primary in PREFIX_MAP) return PREFIX_MAP[primary];
+    if (primary && (primary as Prefix) in PREFIX_MAP) return PREFIX_MAP[primary as Prefix];
   }
   return 'en';
 }
