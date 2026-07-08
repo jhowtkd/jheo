@@ -23,15 +23,39 @@ function ipToBigInt(ip: string): bigint {
   if (isIP(ip) === 4) {
     return ip.split('.').reduce((acc, oct) => (acc << 8n) + BigInt(oct), 0n);
   }
-  // IPv6
-  const parts = ip.split(':');
-  const full: string[] = [];
-  for (const p of parts) {
-    if (p === '') continue;
-    full.push(p.padStart(4, '0'));
+  // IPv6 — eight 16-bit groups of hex, separated by `:`. The `::`
+  // shorthand encodes one or more implicit zero groups and may appear
+  // at the start, end, or middle (e.g. `::1`, `fc00::`, `2606:..10::ac42:..`).
+  // Split on `::` so the implicit groups can be filled in correctly,
+  // otherwise the resulting BigInt lands at the wrong bit positions and
+  // `cidrContainsV6` matches the wrong ranges.
+  const doubleColon = ip.indexOf('::');
+  const pad = (s: string) => s.padStart(4, '0');
+  let groups: string[];
+  if (doubleColon === -1) {
+    // No compression: exactly 8 explicit groups.
+    groups = ip.split(':').map(pad);
+  } else {
+    const head = ip.slice(0, doubleColon);
+    const tail = ip.slice(doubleColon + 2);
+    const headParts = head === '' ? [] : head.split(':');
+    const tailParts = tail === '' ? [] : tail.split(':');
+    if (headParts.length + tailParts.length >= 8) {
+      // `::` must encode at least one zero group; if the explicit parts
+      // already fill 8 groups the address is malformed. Fall back to the
+      // pre-fix behaviour so the call site gets a "deny" instead of a
+      // silent misread.
+      return 0n;
+    }
+    const implicit = 8 - (headParts.length + tailParts.length);
+    groups = [
+      ...headParts.map(pad),
+      ...Array(implicit).fill('0000'),
+      ...tailParts.map(pad),
+    ];
   }
   let acc = 0n;
-  for (const p of full) acc = (acc << 16n) + BigInt(parseInt(p, 16));
+  for (const g of groups) acc = (acc << 16n) + BigInt(parseInt(g, 16));
   return acc;
 }
 
