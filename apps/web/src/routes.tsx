@@ -24,6 +24,9 @@ const MaterialsList = lazy(() =>
 const TemplatesList = lazy(() =>
   import('./pages/TemplatesList.js').then((m) => ({ default: m.TemplatesList })),
 );
+const FixesPage = lazy(() =>
+  import('./pages/FixesPage.js').then((m) => ({ default: m.FixesPage })),
+);
 const TemplateEditor = lazy(() =>
   import('./pages/TemplateEditor.js').then((m) => ({ default: m.TemplateEditor })),
 );
@@ -67,6 +70,7 @@ export function AppRoutes() {
           <Route path="/projects/:projectId/compose" element={<GenerationComposer />} />
           <Route path="/templates" element={<TemplatesList />} />
           <Route path="/templates/:templateId" element={<TemplateEditor />} />
+          <Route path="/fixes" element={<FixesPage />} />
           <Route path="/generations/:generationId" element={<GenerationReview />} />
           <Route path="/projects/:projectId/channels" element={<ChannelsList />} />
           <Route path="/channels/:channelId" element={<ChannelEditor />} />

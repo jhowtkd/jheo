@@ -19,12 +19,9 @@
  * non-jsdom test environment), the localStorage re-install is a no-op.
  */
 import '@testing-library/jest-dom/vitest';
-import { afterEach } from 'vitest';
+import { afterEach, beforeAll } from 'vitest';
 import { cleanup } from '@testing-library/react';
-
-afterEach(() => {
-  cleanup();
-});
+import { ensureI18n } from '../src/i18n';
 
 const jsdomWindow = (
   globalThis as { jsdom?: { window?: Window & typeof globalThis } }
@@ -44,3 +41,19 @@ if (jsdomWindow) {
     });
   }
 }
+
+// Initialize i18n before any test renders components that depend on
+// react-i18next translations. Without this, `useTranslation` returns the
+// raw key (e.g. "fixes.empty") instead of the translated string and tests
+// using translated text assertions fail.
+beforeAll(async () => {
+  await ensureI18n();
+  // Default to pt-BR for assertion strings used in tests (e.g. "nenhum
+  // achado"). Per-test changes can override via i18n.changeLanguage().
+  const { i18n } = await import('../src/i18n');
+  await i18n.changeLanguage('pt-BR');
+});
+
+afterEach(() => {
+  cleanup();
+});

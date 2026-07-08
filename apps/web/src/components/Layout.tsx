@@ -103,6 +103,16 @@ export function Layout() {
       ),
     },
     {
+      to: '/fixes',
+      labelKey: 'nav.fixes',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 12l4 4 14-14" />
+          <path d="M3 18l4 4 14-14" />
+        </svg>
+      ),
+    },
+    {
       to: '/settings',
       labelKey: 'nav.settings',
       icon: (
