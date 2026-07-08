@@ -101,3 +101,60 @@ After the final whole-branch review (2 Critical + 4 Important + 7 Minor), the 2 
 - typecheck clean across 3 workspaces
 - apps/api 41/19, packages/core 104/104, apps/web 2/2, **0 failures**
 - 7 Minors (M-001..M-007) recorded in the carryover ledger (not addressed this milestone)
+
+---
+
+## F6 — i18n (pt-BR/en) + Plain-Language
+
+**Plan:** `docs/superpowers/plans/2026-07-08-jheo-f6-i18n.md` (12 tasks, TDD)
+**Spec:** `docs/superpowers/specs/2026-07-08-jheo-f6-i18n-design.md`
+**Branch:** main (per user opt-out of worktree)
+**Status:** starting
+
+
+| Task | Status | Commit | Notes |
+|------|--------|--------|-------|
+| 1 | ✅ DONE (review Approved) | a73f8d8 | Schema + migration. `prisma migrate dev` blocked by pre-existing baseline (F2 `PublishEvent` migration references `Publish` which only exists from `db push`, not migrations); implementer used `prisma migrate diff` to hand-author the equivalent SQL, verified via `migrate deploy`. **Follow-up: add a foundation baseline migration** so future devs can run `migrate dev` cleanly. Pre-existing test failure `test/jobs/generate-job.test.ts` flagged but confirmed unrelated to F6 (last touched by F2/F3 work). |
+| 2 | ✅ DONE (review Approved; chore fix 44b35d8) | 1469953 | negotiateLocale + LOCALE_NAMES. Implementer hit Node 25 localStorage stub shadowing jsdom and added a guarded `apps/web/test/setup.ts` + 3-line `vite.config.ts` wiring. Reviewer flagged as out-of-scope; I accepted because it unblocks every future web test. Reviewer also asked to pin Node/vitest/jsdom versions in the shim header — done in chore commit 44b35d8. |
+| 3 | ✅ DONE (review Approved; chore fixes 44b35d8, f835b37) | 0e484a5 | registerLocaleHook. Reviewer flagged trailing newlines as Minor; fixed in chore f835b37 (also caught Task 2's locale.ts which had the same issue). Test deviation: brief tried to register route inside `it` block but Fastify 4.28.1 locks the router after `app.ready()`. Implementer moved the route into `beforeAll` — minimum change, behavior unchanged. |
+| 4 | ✅ DONE (review pending) | aa493c1 + fix 951c86c | buildTranslationSystemPrompt. Implementer flagged a pre-existing typecheck error in Task 2's `locale.ts` under `noUncheckedIndexedAccess: true`. Fixed in 951c86c with `as const satisfies` pattern (the same fix applied to both api and web). Task 4 deliverable landed cleanly; typecheck green. |
+| 5 | ✅ DONE (reviewer flagged; fixed 886f21a) | a4235be + fix 886f21a | translateBatch. Reviewer caught a real latent bug — `result.findIndex(r.original === t.text)` would race on duplicate input strings (two findings with the same message), leaving the second slot at `translated: ''`. Fixed by tracking the input slot index on each toTranslate item and addressing `result[t.slotIdx]` directly. Added a regression test that fails without the fix and passes with it. Reviewer's other notes were Minor (stale doc comment, `as any` casts in tests) — not addressed (not worth a separate commit). |
+| 6 | ✅ DONE (review Approved) | 238de0f | POST /api/translate + rate limit + server refactor. Reviewer confirmed all spec requirements (400/429/503, 10 req/min/IP, route passes through translateBatch). The one literal deviation (route registered after pageRoutes instead of between publish+page) is cosmetic — Fastify matches by URL. `buildLlmProviders` refactor preserves runtime behavior (same keys, same OPENAI_BASE_URL, same order). |
+| 7 | ✅ DONE (review Approved) | 4f78d30 + a3436f7 | Generation.locale + system prompt. Brief assumed an F2 system prompt existed; it didn't. User approved Option A: add real system prompt to `@jheo/core`'s `runGeneration` with `locale` and `localeName` slots and the plain-language register from spec §4.4. Core purity preserved (`buildSystemPrompt` lives in core with its own `LOCALE_NAMES` lookup, no infra imports). Two clean commits: core first (adds buildSystemPrompt + generationContext.locale), then api (route + worker plumbing + tests). 7 core tests + 4 api tests pass. |
+| 8 | ✅ DONE (review Approved; chore fix c37efed) | 9699ff8 | i18next init + en/pt-BR catalogs + parity test. Reviewer flagged trailing newlines; fixed in chore c37efed. (Side note: branch in this checkout is `automatizacao-seo`, not `main` — the user's working branch. All F6 commits linear and clean.) |
+| 9 | ✅ DONE (review Approved) | 2fb65bf | LanguageToggle + persistence. Brief's verbatim test code required `@testing-library/jest-dom` (not installed) and a `SupportedLocale` re-export from `i18n/index.ts` (not in brief). Both fixes are real and minimal. Commit bundles 13 files (4 infra + 5 feature + 2 en/pt-BR topbar.language keys + 2 other small changes) — defensibly bundled because every change is required to make the brief's verbatim code pass. Reviewer retracted implementer's incorrect Concern B (topbar.language key was already in catalogs). |
+| 10 | ✅ DONE (review Approved) | 3b97a19 | Chrome translation pass — 14 pages + 5 components + 2 catalogs + 1 test, 1179 insertions, 473 deletions. All const-map removals are forced by the i18n migration (they held hardcoded English). The pre-existing ProjectDashboard duplicate "Last audit" block was a merge mistake; removing it is dead-code cleanup, not a refactor. Reviewer flagged 5 minor observations (cross-namespace key reuse, `sync` vs `Sincronização` choice, etc.) — all sensible follow-up polish, not blocking. Task 11 follow-up: breadcrumbs live under per-page namespaces; could consolidate later. |
+| 11 | ✅ DONE (review Approved) | 40411c9 | HelpTip + useDataTranslations + wire-up in FindingList and GenerationReview. 5 brief deviations, all well-justified: lazy `localeFetch` (so test mock works), `TranslateError` rename (avoid self-referential type), `?` prefix in HelpTip `aria-label` (so test can match), `Generation.locale` field added to web type, `FindingCard` props extended (existing decomposition preserved). 8 new tests (4+4) + 16 pre-existing = 24/24. typecheck green. |
+| 12 | ✅ DONE (gate passed) | (no commit; verification only) | Final integration: typecheck green end-to-end (core+api+web). Full test suite: 121/121 core + 24/24 web + 106/153 api (46 skipped, 1 pre-existing `generate-job.test.ts` Redis failure unrelated to F6). End-to-end smoke against compiled server (`node apps/api/dist/smoke.mjs`): 11/11 pass — `/api/health` echoes `Content-Language`, 404 echoes it, `POST /api/translate` validates body (400 on empty/oversize/bad-context) and short-circuits on en. Prettier config drift: 27-30 files in each package fail `pnpm lint` (whole-repo pre-existing issue, not F6-introduced — F6 files follow the same style as the rest of the repo). |
+
+## F6 — Whole-branch review (post-whole-branch)
+
+Whole-branch reviewer verdict: **Ready to merge: Yes, with one follow-up.**
+
+3 Importants, 12 Minors. Importants fixed in 7e4278b:
+1. **Sidebar chrome in Layout.tsx translated** — moved NAV array inside component, added 3 new keys (`sidebar.workspace`, `sidebar.userName`, `sidebar.userMeta`) to both en.json and pt-BR.json.
+2. **Orphan `errors.*` keys used** — `FindingList` and `GenerationReview` now render `t(\`errors.${error}\`)` when the LLM hook reports a specific error, with `topbar.translationUnavailable` as fallback.
+3. **`splitTranslations` silent fallback** — added regression test for the LLM-returns-fewer-lines case; function now accepts an optional `log` callback (defaults to `console.warn`) so the truncation is visible in logs.
+
+12 Minors recorded for follow-up (not blocking):
+- M-001: `buckets` Map in rate-limit grows unboundedly (single-user local tool — fine for now)
+- M-002: provider ordering hard-codes OpenAI first (key-availability, not user preference)
+- M-003: `targetLocale` ternary in api.ts won't scale to 3rd locale
+- M-004: `ensureI18n` has no error path (will hang on malformed catalog)
+- M-005: `buildSystemPrompt` returns the locale tag verbatim for unknown locales (could produce bad prompts)
+- M-006: `translated` flag confusion when `targetLocale === req.locale`
+- M-007: spec doesn't mention `useDataTranslations` or `HelpTip` (documentation drift)
+- M-008: `test-types.d.ts` is a non-obvious pattern
+- M-009: cross-namespace key reuse (e.g. `projects.dashboard.statusLabel` used by PublishDetail)
+- M-010: `sync` vs `Sincronização` jargon in pt-BR
+- M-011: `useDataTranslations` cache is per-instance
+- M-012: breadcrumbs live under per-page namespaces instead of a shared `breadcrumbs.*` namespace
+
+## F6 — Final state
+
+**Branch:** `automatizacao-seo` (user's working branch)
+**Commits:** 19 total F6 commits (1 docs plan + 17 feature/fix/chore + 1 review-fix)
+**Typecheck:** clean end-to-end
+**Tests:** 24/24 web, 121/121 core, 36/36 F6-specific api, 107/153 full api (1 pre-existing generate-job Redis fail, 46 skipped)
+**End-to-end smoke:** 11/11 against compiled server
+**Reviewer verdict:** Ready to merge
