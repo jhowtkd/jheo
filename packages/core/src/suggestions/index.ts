@@ -5,3 +5,4 @@ export {
   type SuggestionContextInput,
   type SuggestionCategory,
 } from './context.js';
+export { runSuggestion, LlmOutputError } from './run-suggestion.js';
