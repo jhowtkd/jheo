@@ -113,4 +113,39 @@ describe('translateBatch', () => {
     expect(out.translations[1].cached).toBe(false);
     expect(provider.complete).toHaveBeenCalledTimes(1);
   });
+
+  it('preserves input slot order when input strings repeat', async () => {
+    // Three input slots, two of which are duplicates. The LLM is called once
+    // with the three miss-texts in order, and the result must be projected
+    // back to the *original* input positions (not just unique positions).
+    // Before the slotIdx fix, result[2] was being addressed via
+    // findIndex(r.original === t.text), which matched slot 0 instead.
+    const provider = spyProvider('A1\nB1\nA2');
+    const out = await translateBatch(deps(prisma, provider), {
+      texts: ['First unique', 'Second unique', 'First unique'],
+      targetLocale: 'pt-BR',
+      context: 'finding',
+    });
+    expect(out.translations).toHaveLength(3);
+    expect(provider.complete).toHaveBeenCalledTimes(1);
+    // Slot 0 = 'First unique' → 'A1'
+    expect(out.translations[0]).toEqual({
+      original: 'First unique',
+      translated: 'A1',
+      cached: false,
+    });
+    // Slot 1 = 'Second unique' → 'B1'
+    expect(out.translations[1]).toEqual({
+      original: 'Second unique',
+      translated: 'B1',
+      cached: false,
+    });
+    // Slot 2 = 'First unique' (duplicate) → 'A2' (the LLM's third line, not
+    // slot 0's translation). This is the key invariant.
+    expect(out.translations[2]).toEqual({
+      original: 'First unique',
+      translated: 'A2',
+      cached: false,
+    });
+  });
 });

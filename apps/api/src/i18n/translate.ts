@@ -58,7 +58,9 @@ export async function translateBatch(
   const cachedByKey = new Map(cached.map((c) => [c.cacheKey, c]));
 
   const result: TranslateOutput['translations'] = [];
-  const toTranslate: Array<{ text: string; cacheKey: string }> = [];
+  // Track slot indices so duplicate input strings each get the right
+  // translation in their own slot (findIndex on `original` would race).
+  const toTranslate: Array<{ text: string; cacheKey: string; slotIdx: number }> = [];
 
   texts.forEach((text, i) => {
     const key = keys[i]!;
@@ -67,7 +69,7 @@ export async function translateBatch(
       result.push({ original: text, translated: hit.translated, cached: true });
     } else {
       result.push({ original: text, translated: '', cached: false });
-      toTranslate.push({ text, cacheKey: key });
+      toTranslate.push({ text, cacheKey: key, slotIdx: i });
     }
   });
 
@@ -105,11 +107,9 @@ export async function translateBatch(
             model: res.model,
           },
         });
-        // Backfill the result in original order
-        const resultIdx = result.findIndex((r) => r.original === t.text);
-        if (resultIdx >= 0) {
-          result[resultIdx] = { original: t.text, translated: translatedText, cached: false };
-        }
+        // Backfill by the original input slot so duplicate input strings
+        // each land in their own result slot.
+        result[t.slotIdx] = { original: t.text, translated: translatedText, cached: false };
       }),
     );
   }
