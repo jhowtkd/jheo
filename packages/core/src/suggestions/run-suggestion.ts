@@ -53,10 +53,12 @@ export async function runSuggestion(
   // choice the caller (api layer) supplies. The api layer threads the real
   // model name into the persisted `Suggestion.model` field after the call
   // returns. Here we send a default that the provider may ignore; OpenAI
-  // for example uses `req.config.model` as the deployment name.
+  // (and MiniMax-compatible) use `req.config.model` as the deployment name.
+  // Allow override via env so MiniMax deployments can supply e.g.
+  // `JHEO_SUGGESTION_MODEL=MiniMax-M3` without changing source.
   const req: LLMRequest = {
     prompt,
-    config: { model: 'gpt-4o-mini' },
+    config: { model: process.env.JHEO_SUGGESTION_MODEL ?? 'gpt-4o-mini' },
     signal: AbortSignal.timeout(30_000),
   };
   const res = await provider.complete(req, fetchFn);

@@ -77,7 +77,10 @@ export function ProjectDashboard() {
     queryFn: () => listGenerations(projectId!),
     enabled: !!projectId,
     refetchInterval: (q) => {
-      const items = q.state.data ?? [];
+      // When the underlying request errors, `state.data` is the parsed error
+      // envelope (an object), not the list. Guard with Array.isArray so a
+      // transient 5xx doesn't tear the dashboard down.
+      const items = Array.isArray(q.state.data) ? q.state.data : [];
       const live = items.some((g) => g.status === 'queued' || g.status === 'running');
       return live ? 5_000 : false;
     },

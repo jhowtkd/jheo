@@ -7,6 +7,7 @@ import { SuggestionActions } from './SuggestionActions.js';
 
 export type FindingLike = {
   id: string;
+  rule: string;
   category: string;
   severity: string;
   message: string;

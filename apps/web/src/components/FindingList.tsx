@@ -179,7 +179,8 @@ function FindingCard({
         </a>
         <button
           className="btn btn--sm btn--link"
-          onClick={() => navigate(`/fixes?findingId=${finding.id}`)}
+          onClick={() => navigate(`/fixes?auditId=${finding.auditId}&findingId=${finding.id}`)}
+          title={t('fixes.action.generate')}
         >
           {t('fixes.action.generate')}
         </button>

@@ -1,6 +1,14 @@
 {
-  "app": { "name": "JHEO", "tagline": "GEO · SEO · content" },
-  "nav": { "projects": "Projects", "templates": "Templates", "settings": "Settings", "fixes": "Fixes" },
+  "app": {
+    "name": "JHEO",
+    "tagline": "GEO · SEO · content"
+  },
+  "nav": {
+    "projects": "Projects",
+    "templates": "Templates",
+    "settings": "Settings",
+    "fixes": "Fixes"
+  },
   "sidebar": {
     "workspace": "Workspace",
     "userName": "Local user",
@@ -14,7 +22,10 @@
     "breadcrumb": "Breadcrumb",
     "filter": "Filter"
   },
-  "languages": { "en": "English", "pt-BR": "Português (Brasil)" },
+  "languages": {
+    "en": "English",
+    "pt-BR": "Português (Brasil)"
+  },
   "common": {
     "close": "Close",
     "cancel": "Cancel",
@@ -56,7 +67,7 @@
       "runAudit": "Run audit",
       "lastAudit": "Last audit",
       "statusLabel": "Status",
-      "pagesCompleted": "{completed} / {total} pages completed ({failed} failed, {skipped} skipped)",
+      "pagesCompleted": "{{completed}} / {{total}} pages completed ({{failed}} failed, {{skipped}} skipped)",
       "inProgress": "In progress",
       "cancelAudit": "Cancel audit",
       "cancelling": "Cancelling…",
@@ -75,7 +86,7 @@
         "title": "Re-audit",
         "score": "Score"
       },
-      "footerAudited": "{audited} / {total} audited",
+      "footerAudited": "{{audited}} / {{total}} audited",
       "stats": {
         "audits": "Audits",
         "materials": "Materials",
@@ -143,10 +154,18 @@
       "failed": "Failed",
       "cancelled": "Cancelled"
     },
-    "actions": { "run": "Run audit", "cancel": "Cancel", "view": "View results" }
+    "actions": {
+      "run": "Run audit",
+      "cancel": "Cancel",
+      "view": "View results"
+    }
   },
   "findings": {
-    "severities": { "info": "Info", "warning": "Warning", "error": "Error" },
+    "severities": {
+      "info": "Info",
+      "warning": "Warning",
+      "error": "Error"
+    },
     "diff": {
       "NEW": "New",
       "UNCHANGED": "Unchanged",
@@ -174,9 +193,18 @@
     "adding": "Adding…",
     "generate": "Generate from materials",
     "types": {
-      "note": { "label": "Note", "hint": "Inline text the generator uses as a source" },
-      "url": { "label": "URL", "hint": "Fetch and embed a webpage" },
-      "file": { "label": "File", "hint": "Upload a document (PDF / markdown)" }
+      "note": {
+        "label": "Note",
+        "hint": "Inline text the generator uses as a source"
+      },
+      "url": {
+        "label": "URL",
+        "hint": "Fetch and embed a webpage"
+      },
+      "file": {
+        "label": "File",
+        "hint": "Upload a document (PDF / markdown)"
+      }
     },
     "fields": {
       "title": "Title",
@@ -199,7 +227,7 @@
       "embedding": "Embedding",
       "chars": "chars"
     },
-    "deleteConfirm": "Delete material \"{title}\"?",
+    "deleteConfirm": "Delete material \"{{title}}\"?",
     "deleteTitle": "Delete"
   },
   "templates": {
@@ -233,14 +261,14 @@
       "subtitle": "Pick a template + materials, write a prompt, choose the LLM. The worker retrieves the top-K most similar materials by embedding and feeds them to the model.",
       "breadcrumb": "compose",
       "templateCard": "Template",
-      "activeOption": "Active · {name} (v{version})",
+      "activeOption": "Active · {{name}} (v{{version}})",
       "selectTemplate": "Select a template",
       "optionActive": " · active",
       "promptCard": "Prompt",
       "promptPlaceholder": "Write a short blog post about apples",
       "materialsCard": "Materials",
       "noMaterials": "None selected — generator will rely on the prompt alone.",
-      "selectedCount": "{count} selected.",
+      "selectedCount": "{{count}} selected.",
       "noMaterialsEmpty": "No materials yet.",
       "addMaterialsLink": "Add some →",
       "modelCard": "Model",
@@ -258,7 +286,7 @@
     "review": {
       "breadcrumb": "generation",
       "progressTitle": "Generation in progress",
-      "progressHint": "Job status is {status}. The MiniMax model is composing a draft — this page auto-refreshes every 2s.",
+      "progressHint": "Job status is {{status}}. The MiniMax model is composing a draft — this page auto-refreshes every 2s.",
       "frontmatter": "Frontmatter",
       "sources": "Sources",
       "score": "score",
@@ -273,7 +301,7 @@
       "sendToReview": "Send to review",
       "approve": "Approve",
       "reject": "Reject",
-      "titleFallback": "Generation {id}"
+      "titleFallback": "Generation {{id}}"
     }
   },
   "channels": {
@@ -294,7 +322,7 @@
       "title": "No channels configured",
       "hint": "Channels are managed per-channel via the API. Use the WordPress / HTTP / Agent adapters to route approved generations to a destination."
     },
-    "deleteConfirm": "Delete channel \"{name}\"?",
+    "deleteConfirm": "Delete channel \"{{name}}\"?",
     "editor": {
       "breadcrumb": "channel",
       "configuration": "Configuration",
@@ -321,7 +349,7 @@
       "started": "Started",
       "finished": "Finished",
       "external": "External",
-      "attempts": "attempts {count}",
+      "attempts": "attempts {{count}}",
       "lastError": "last error"
     },
     "actions": {
@@ -332,11 +360,11 @@
       "openBundle": "Open bundle"
     },
     "auditTrail": "Audit trail",
-    "auditTrailHint": "Every status transition writes one immutable event row. {count} event(s).",
+    "auditTrailHint": "Every status transition writes one immutable event row. {{count}} event(s).",
     "actionsPanel": {
       "title": "Publish",
       "selectChannels": "Select channels:",
-      "publishTo": "Publish to {count} channel(s)",
+      "publishTo": "Publish to {{count}} channel(s)",
       "tableChannel": "Channel",
       "tableStatus": "Status",
       "tableExternal": "External",
@@ -345,7 +373,7 @@
       "detail": "detail",
       "retry": "Retry",
       "cancel": "Cancel",
-      "retrySuffix": " (retry {count})"
+      "retrySuffix": " (retry {{count}})"
     },
     "bundle": {
       "breadcrumb": "bundle",
@@ -364,14 +392,26 @@
     "storedKeysTitle": "Stored keys",
     "addOrUpdateTitle": "Add or update",
     "presets": {
-      "openai_api_key": { "label": "OpenAI API key", "hint": "Used for embeddings + as default completion provider" },
-      "openai_embedding_api_key": { "label": "OpenAI embedding key", "hint": "Separate slot when completion routes through an OpenAI-compatible third party (e.g. MiniMax)" },
-      "anthropic_api_key": { "label": "Anthropic API key", "hint": "Completion via Anthropic Claude" },
-      "openrouter_api_key": { "label": "OpenRouter API key", "hint": "Completion via OpenRouter (multi-model routing)" }
+      "openai_api_key": {
+        "label": "OpenAI API key",
+        "hint": "Used for embeddings + as default completion provider"
+      },
+      "openai_embedding_api_key": {
+        "label": "OpenAI embedding key",
+        "hint": "Separate slot when completion routes through an OpenAI-compatible third party (e.g. MiniMax)"
+      },
+      "anthropic_api_key": {
+        "label": "Anthropic API key",
+        "hint": "Completion via Anthropic Claude"
+      },
+      "openrouter_api_key": {
+        "label": "OpenRouter API key",
+        "hint": "Completion via OpenRouter (multi-model routing)"
+      }
     },
     "customSetting": "Custom setting",
-    "updatedAt": "updated {date}",
-    "deleteConfirm": "Delete \"{key}\"?",
+    "updatedAt": "updated {{date}}",
+    "deleteConfirm": "Delete \"{{key}}\"?",
     "empty": {
       "title": "No keys stored yet",
       "hint": "Add one below. The API will use env-var fallbacks if a key is missing, but encrypted Settings rows take precedence and survive across container restarts."
@@ -397,9 +437,9 @@
     "syncNow": "Sync now",
     "syncing": "Syncing…",
     "disconnect": "Disconnect",
-    "serviceAccountEmail": "Service account: {email}",
-    "dataThrough": "Data through {date}",
-    "lastSync": "Last sync {date}",
+    "serviceAccountEmail": "Service account: {{email}}",
+    "dataThrough": "Data through {{date}}",
+    "lastSync": "Last sync {{date}}",
     "metrics": {
       "clicks": "Clicks",
       "impressions": "Impressions",
@@ -476,6 +516,31 @@
       "pageHtmlMissing": "The page has no HTML snapshot. Re-audit the page first.",
       "llmInvalid": "The LLM returned an invalid response. Try regenerating.",
       "rateLimited": "Too many requests. Wait a minute and try again."
+    },
+    "chooseProject": {
+      "title": "Pick a project",
+      "hint": "Fixes are scoped to a project. Open the one you want to review.",
+      "viewFixes": "View fixes",
+      "lastAudit": "Last audit",
+      "noAudits": "No audits yet — run one first.",
+      "goProjects": "Go to projects",
+      "noProjects": "You don't have any projects yet."
+    },
+    "group": {
+      "toggle": "Group by rule",
+      "count_one": "{{count}} occurrence",
+      "count_other": "{{count}} occurrences",
+      "expand": "See {{count}} more",
+      "collapse": "Hide",
+      "openFinding": "Open finding",
+      "withoutSuggestion": "no suggestion"
+    },
+    "stats": {
+      "label": "Summary",
+      "rules": "Rules",
+      "findings": "Findings",
+      "pending": "Pending",
+      "accepted": "Accepted"
     }
   }
 }
