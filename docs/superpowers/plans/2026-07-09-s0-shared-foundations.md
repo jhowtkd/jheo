@@ -17,7 +17,7 @@
 - Vitest runs with `globals: false` — import `describe/it/expect` from `'vitest'`.
 - Tests default to **pt-BR** (`test/setup.ts` calls `i18n.changeLanguage('pt-BR')`); assertion strings must match pt-BR catalog values.
 - No `QueryClientProvider` test wrapper exists in the repo today — this plan introduces one at `apps/web/test/queryClientWrapper.tsx`.
-- Commands run from repo root; `pnpm --filter @jheo/web test --run <pkg-relative-path>` (paths are relative to `apps/web`, not repo root).
+- Commands run from repo root; `pnpm --filter @jheo/web test <pkg-relative-path>` (paths are relative to `apps/web`, not repo root).
 
 ## File Structure
 
@@ -99,7 +99,7 @@ In `apps/web/src/i18n/pt-BR.json`, add to the `"common"` object:
 
 - [ ] **Step 4: Run the parity test to verify both catalogs match**
 
-Run: `pnpm --filter @jheo/web test --run src/i18n/parity.test.ts`
+Run: `pnpm --filter @jheo/web test src/i18n/parity.test.ts`
 Expected: PASS — 3 tests (key equality, no empty en, no empty pt-BR). If it fails with "missing" or "extra" keys, the two catalogs diverged; fix before continuing.
 
 - [ ] **Step 5: Commit**
@@ -193,7 +193,7 @@ describe('humanError', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --filter @jheo/web test --run src/api/errors.test.ts`
+Run: `pnpm --filter @jheo/web test src/api/errors.test.ts`
 Expected: FAIL — `Cannot find module './errors'` or `humanError is not a function`.
 
 - [ ] **Step 3: Write the implementation**
@@ -286,7 +286,7 @@ it('maps the backend_unavailable sentinel to errors.backend_down', () => {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --filter @jheo/web test --run src/api/errors.test.ts`
+Run: `pnpm --filter @jheo/web test src/api/errors.test.ts`
 Expected: PASS — all 10 tests.
 
 - [ ] **Step 5: Re-export from api.ts**
@@ -428,7 +428,7 @@ describe('ErrorState', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --filter @jheo/web test --run src/components/states/__tests__/ErrorState.test.tsx`
+Run: `pnpm --filter @jheo/web test src/components/states/__tests__/ErrorState.test.tsx`
 Expected: FAIL — `Cannot find module '../ErrorState'`.
 
 - [ ] **Step 3: Implement `<ErrorState>`**
@@ -484,7 +484,7 @@ Note: this references `common.retry`, which was added to both catalogs in Task 1
 
 - [ ] **Step 4: Run the `<ErrorState>` test to verify it passes**
 
-Run: `pnpm --filter @jheo/web test --run src/components/states/__tests__/ErrorState.test.tsx`
+Run: `pnpm --filter @jheo/web test src/components/states/__tests__/ErrorState.test.tsx`
 Expected: PASS — all 5 tests.
 
 - [ ] **Step 5: Write the failing `<EmptyState>` test**
@@ -533,7 +533,7 @@ describe('EmptyState', () => {
 
 - [ ] **Step 6: Run the test to verify it fails**
 
-Run: `pnpm --filter @jheo/web test --run src/components/states/__tests__/EmptyState.test.tsx`
+Run: `pnpm --filter @jheo/web test src/components/states/__tests__/EmptyState.test.tsx`
 Expected: FAIL — `Cannot find module '../EmptyState'`.
 
 - [ ] **Step 7: Implement `<EmptyState>`**
@@ -577,7 +577,7 @@ export function EmptyState({ titleKey, hintKey, cta, children, className }: Empt
 
 - [ ] **Step 8: Run the `<EmptyState>` test to verify it passes**
 
-Run: `pnpm --filter @jheo/web test --run src/components/states/__tests__/EmptyState.test.tsx`
+Run: `pnpm --filter @jheo/web test src/components/states/__tests__/EmptyState.test.tsx`
 Expected: PASS — all 4 tests.
 
 - [ ] **Step 9: Create the barrel and commit**
@@ -664,7 +664,7 @@ describe('useBackendReachable', () => {
 
 - [ ] **Step 2: Run the test to verify it fails**
 
-Run: `pnpm --filter @jheo/web test --run src/hooks/__tests__/useBackendReachable.test.tsx`
+Run: `pnpm --filter @jheo/web test src/hooks/__tests__/useBackendReachable.test.tsx`
 Expected: FAIL — `Cannot find module '../useBackendReachable'`.
 
 - [ ] **Step 3: Implement the hook**
@@ -725,7 +725,7 @@ export function useBackendReachable(): BackendReachable {
 
 - [ ] **Step 4: Run the test to verify it passes**
 
-Run: `pnpm --filter @jheo/web test --run src/hooks/__tests__/useBackendReachable.test.tsx`
+Run: `pnpm --filter @jheo/web test src/hooks/__tests__/useBackendReachable.test.tsx`
 Expected: PASS — all 3 tests. If the "network down" case hangs, the `retry: false` in the wrapper is not taking effect — verify Task 3's wrapper.
 
 - [ ] **Step 5: Commit**
@@ -835,7 +835,7 @@ After this step, the `focusNew` function (line 62) is unused — delete it.
 Run: `pnpm --filter @jheo/web exec tsc --noEmit`
 Expected: PASS — no type errors, no unused-variable warnings on `focusNew`.
 
-Run: `pnpm --filter @jheo/web test --run`
+Run: `pnpm --filter @jheo/web test`
 Expected: PASS — full suite green. If a ProjectsList test asserts the old raw-error string, update it to assert the new `ErrorState`-rendered text.
 
 - [ ] **Step 6: Commit**
@@ -894,7 +894,7 @@ function HealthIndicator() {
 Run: `pnpm --filter @jheo/web exec tsc --noEmit`
 Expected: PASS. If `useState`/`useEffect` are now unused imports, the TS config may warn — remove them from the import if so.
 
-Run: `pnpm --filter @jheo/web test --run`
+Run: `pnpm --filter @jheo/web test`
 Expected: PASS — full suite green.
 
 - [ ] **Step 4: Commit**
@@ -914,7 +914,7 @@ Confirms the 7 done-criterion points from the spec.
 
 - [ ] **Step 1: Run the full test suite**
 
-Run: `pnpm --filter @jheo/web test --run`
+Run: `pnpm --filter @jheo/web test`
 Expected: PASS — all tests, including the new `errors.test.ts`, `ErrorState.test.tsx`, `EmptyState.test.tsx`, `useBackendReachable.test.tsx`, and the existing parity + FixesPage + FixCard tests.
 
 - [ ] **Step 2: Run the production build**
