@@ -161,6 +161,37 @@
       "run": "Run audit",
       "cancel": "Cancel",
       "view": "View results"
+    },
+    "executive": {
+      "tabExecutive": "Executive",
+      "tabTechnical": "Technical",
+      "generating": "Generating executive report...",
+      "failed": "Failed to generate report",
+      "retry": "Retry",
+      "exportHtml": "Export HTML",
+      "impactHigh": "High",
+      "impactMedium": "Medium",
+      "impactLow": "Low",
+      "gscEmpty": "Connect Google Search Console to see search performance data.",
+      "pagesAudited": "Pages audited",
+      "pagesTotal": "Pages total",
+      "pagesFailed": "Pages failed",
+      "overallScore": "Overall score",
+      "generatedAt": "Generated at",
+      "model": "Model",
+      "clicks": "Clicks",
+      "impressions": "Impressions",
+      "ctr": "CTR",
+      "lowCtrQueries": "Low CTR queries",
+      "sections": {
+        "summary": "Executive Summary",
+        "scores": "Category Scores",
+        "severity": "Issue Severity",
+        "topIssues": "Top Issues",
+        "gsc": "Search Performance",
+        "scenarios": "What-if Scenarios",
+        "recommendations": "Recommendations"
+      }
     }
   },
   "findings": {

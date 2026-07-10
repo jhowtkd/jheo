@@ -161,6 +161,37 @@
       "run": "Rodar auditoria",
       "cancel": "Cancelar",
       "view": "Ver resultados"
+    },
+    "executive": {
+      "tabExecutive": "Executivo",
+      "tabTechnical": "Técnico",
+      "generating": "Gerando relatório executivo...",
+      "failed": "Falha ao gerar relatório",
+      "retry": "Tentar novamente",
+      "exportHtml": "Exportar HTML",
+      "impactHigh": "Alto",
+      "impactMedium": "Médio",
+      "impactLow": "Baixo",
+      "gscEmpty": "Conecte o Google Search Console para ver dados de desempenho de pesquisa.",
+      "pagesAudited": "Páginas auditadas",
+      "pagesTotal": "Total de páginas",
+      "pagesFailed": "Páginas com falha",
+      "overallScore": "Score geral",
+      "generatedAt": "Gerado em",
+      "model": "Modelo",
+      "clicks": "Cliques",
+      "impressions": "Impressões",
+      "ctr": "CTR",
+      "lowCtrQueries": "Consultas com baixo CTR",
+      "sections": {
+        "summary": "Resumo Executivo",
+        "scores": "Pontuações por Categoria",
+        "severity": "Severidade dos Problemas",
+        "topIssues": "Principais Problemas",
+        "gsc": "Desempenho de Pesquisa",
+        "scenarios": "Cenários Hipotéticos",
+        "recommendations": "Recomendações"
+      }
     }
   },
   "findings": {
