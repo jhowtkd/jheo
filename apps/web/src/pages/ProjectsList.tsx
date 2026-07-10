@@ -2,8 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { createProject, humanError, listProjects } from '../api';
-import { EmptyState, ErrorState } from '../components/states';
+import { createProject, humanError, listProjects } from '../api.js';
+import { EmptyState, ErrorState } from '../components/states/index.js';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
