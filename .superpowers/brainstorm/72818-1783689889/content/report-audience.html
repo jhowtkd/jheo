@@ -1,0 +1,67 @@
+<h2>Para quem é esse relatório?</h2>
+<p class="subtitle">Isso define tom, gráficos, estimativas e se precisa de export. Clique na opção que mais combina.</p>
+
+<div class="options">
+  <div class="option" data-choice="operator" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Operador técnico (você)</h3>
+      <p>Dashboard interativo na SPA — drill-down em achados, filtros, link para Correções.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Vista técnica</div>
+        <div class="mockup-body" style="font-size:11px;line-height:1.4">
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+            <div class="placeholder" style="height:36px;padding:4px">Score 88</div>
+            <div class="placeholder" style="height:36px;padding:4px">996 páginas</div>
+            <div class="placeholder" style="height:36px;padding:4px">142 erros</div>
+          </div>
+          <div class="placeholder" style="height:48px;margin-bottom:6px">Gráfico severidade × categoria</div>
+          <div style="border:1px dashed #555;padding:6px;border-radius:4px">
+            <strong>meta.missing-description</strong> · 312 URLs · <span style="color:#f59e0b">warning</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="stakeholder" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Stakeholders (gestor / cliente)</h3>
+      <p>Relatório exportável em linguagem simples — impacto no negócio, prioridades, sem jargão técnico.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Vista executiva (PDF / link)</div>
+        <div class="mockup-body" style="font-size:11px;line-height:1.5">
+          <p style="margin:0 0 6px"><strong>Resumo:</strong> O site está bem em SEO técnico, mas perde visibilidade por metadados incompletos.</p>
+          <div class="placeholder" style="height:40px;margin-bottom:6px">▮▮▮▮▮▮▮▮░░ Score por área</div>
+          <p style="margin:0"><span style="color:#ef4444">●</span> <strong>Alto impacto:</strong> 312 páginas sem meta description → menos cliques no Google</p>
+          <p style="margin:4px 0 0"><span style="color:#22c55e">↑</span> <strong>Estimativa:</strong> corrigir top 20 pode elevar score de 88 → 93</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="both" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Os dois (recomendado)</h3>
+      <p>Mesmos dados, duas camadas: executivo para apresentar + técnico para agir. Botão “Exportar relatório”.</p>
+      <div class="mockup" style="margin-top:12px">
+        <div class="mockup-header">Abas: Executivo | Técnico</div>
+        <div class="mockup-body" style="display:flex;gap:8px;font-size:10px">
+          <div style="flex:1;border:2px solid #6366f1;border-radius:4px;padding:6px">
+            <strong>Executivo</strong><br/>Impactos · gráficos · estimativas
+          </div>
+          <div style="flex:1;border:1px dashed #555;border-radius:4px;padding:6px;opacity:.7">
+            <strong>Técnico</strong><br/>Rules · URLs · evidence
+          </div>
+        </div>
+        <div style="margin-top:8px;text-align:right">
+          <span class="mock-button" style="display:inline-block;font-size:10px">Exportar PDF</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<p class="label" style="margin-top:24px">Próximo passo depois da sua escolha: definir quais gráficos e como calcular estimativas.</p>

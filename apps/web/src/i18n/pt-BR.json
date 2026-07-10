@@ -5,6 +5,7 @@
   },
   "nav": {
     "projects": "Projetos",
+    "reports": "Relatórios",
     "templates": "Modelos",
     "settings": "Configurações",
     "fixes": "Correções"
@@ -98,6 +99,7 @@
       "openFullReport": "Abrir relatório completo →",
       "overall": "Geral",
       "auditHistory": "Histórico de auditorias",
+      "viewAllReports": "Ver todos os relatórios →",
       "historyStarted": "Iniciada em",
       "historyStatus": "Status",
       "viewLink": "Ver →",
@@ -485,6 +487,29 @@
     "server": "O servidor retornou um erro ({{status}}). Tente novamente.",
     "backend_down": "O servidor está indisponível. Tente novamente em instantes.",
     "notFound": "O recurso solicitado não foi encontrado."
+  },
+  "reports": {
+    "title": "Relatórios",
+    "subtitle": "Relatórios de auditorias concluídas em todos os projetos. Abra qualquer um para ver scores e achados.",
+    "filterProject": "Projeto",
+    "allProjects": "Todos os projetos",
+    "filteredBy": "Mostrando relatórios de {{name}}.",
+    "openProject": "Abrir projeto →",
+    "openReport": "Abrir relatório →",
+    "pagesAudited": "{{count}} páginas",
+    "failedToLoad": "Falha ao carregar relatórios.",
+    "columns": {
+      "project": "Projeto",
+      "finished": "Concluída em",
+      "score": "Score",
+      "pages": "Páginas"
+    },
+    "empty": {
+      "title": "Nenhum relatório concluído ainda",
+      "hint": "Rode uma auditoria e aguarde ela terminar. As auditorias concluídas aparecem aqui.",
+      "action": "Rodar auditoria",
+      "actionProjects": "Ir para projetos"
+    }
   },
   "fixes": {
     "title": "Correções",

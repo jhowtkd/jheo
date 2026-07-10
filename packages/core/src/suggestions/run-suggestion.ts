@@ -1,6 +1,7 @@
 import type { LLMProvider, LLMRequest } from '../llm/types.js';
 import type { SuggestionContext, SuggestionCategory } from './context.js';
 import { suggestionOutputSchema, type SuggestionOutput } from './schema.js';
+import { stripLlmThinking } from '../generation/parse.js';
 import { buildSeoPrompt } from './prompts/seo.js';
 import { buildGeoPrompt } from './prompts/geo.js';
 import { buildCwvPrompt } from './prompts/cwv.js';
@@ -28,7 +29,11 @@ function selectPrompt(ctx: SuggestionContext): string {
 
 function tryParseJson(text: string): unknown | undefined {
   // Strip optional ```json fences the LLM sometimes adds despite instructions.
-  const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  // Also drop MiniMax-style `<think>…</think>` prefixes before looking for JSON.
+  const stripped = stripLlmThinking(text)
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```\s*$/, '')
+    .trim();
   try { return JSON.parse(stripped); } catch { /* fall through */ }
   const firstBrace = stripped.indexOf('{');
   const lastBrace = stripped.lastIndexOf('}');

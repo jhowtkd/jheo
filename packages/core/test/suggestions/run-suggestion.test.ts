@@ -83,4 +83,17 @@ describe('runSuggestion', () => {
     const called = (provider.complete as any).mock.calls[0][0];
     expect(called.prompt.toLowerCase()).toContain('geo');
   });
+
+  it('parses JSON after a MiniMax-style <think> prefix (even with braces inside)', async () => {
+    const payload = {
+      before: '<title>Old</title>',
+      after: '<title>New</title>',
+      confidence: 'medium',
+      rationale: 'Melhor título.',
+    };
+    const raw = `<think>\nI considered { "fake": true } options.\n</think>\n\n${JSON.stringify(payload)}`;
+    const out = await runSuggestion(makeProvider(() => raw), ctx);
+    expect(out.after).toBe('<title>New</title>');
+    expect(out.confidence).toBe('medium');
+  });
 });

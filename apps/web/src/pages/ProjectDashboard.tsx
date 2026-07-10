@@ -398,7 +398,12 @@ export function ProjectDashboard() {
       {/* Audit history — restored from F1 */}
       {p.audits.length > 0 && (
         <section>
-          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('projects.dashboard.auditHistory')}</h2>
+          <div className="spread" style={{ marginBottom: 'var(--space-3)' }}>
+            <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>{t('projects.dashboard.auditHistory')}</h2>
+            <Link to={`/reports?projectId=${projectId}`} className="tiny">
+              {t('projects.dashboard.viewAllReports')}
+            </Link>
+          </div>
           <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
             <table className="table">
               <thead>

@@ -520,21 +520,30 @@ export async function translateTexts(
 ): Promise<Array<{ original: string; translated: string; cached: boolean }>> {
   if (texts.length === 0) return [];
   const targetLocale = i18n.language === 'pt-BR' ? 'pt-BR' : 'en';
-  const res = await localeFetch('/api/translate', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'accept-language': targetLocale,
-    },
-    body: JSON.stringify({ texts, targetLocale, context }),
-  });
-  if (!res.ok) {
-    if (res.status === 503) throw new Error('no_llm_provider');
-    if (res.status === 429) throw new Error('rate_limited');
-    throw new Error(`translate failed: ${res.status}`);
+
+  // ponytail: chunk to stay under Fastify's 1 MB bodyLimit — long-form
+  // content (generations/materials) with 50 texts can easily overflow it.
+  const BATCH = 10;
+  const results: Array<{ original: string; translated: string; cached: boolean }> = [];
+  for (let i = 0; i < texts.length; i += BATCH) {
+    const batch = texts.slice(i, i + BATCH);
+    const res = await localeFetch('/api/translate', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'accept-language': targetLocale,
+      },
+      body: JSON.stringify({ texts: batch, targetLocale, context }),
+    });
+    if (!res.ok) {
+      if (res.status === 503) throw new Error('no_llm_provider');
+      if (res.status === 429) throw new Error('rate_limited');
+      throw new Error(`translate failed: ${res.status}`);
+    }
+    const body = await res.json();
+    results.push(...body.translations);
   }
-  const body = await res.json();
-  return body.translations;
+  return results;
 }
 
 // ---------- F7: suggestions ----------

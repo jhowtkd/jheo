@@ -9,6 +9,8 @@ vi.mock('../src/queue.js', () => ({
   auditPageQueue: { add: vi.fn() },
   auditOrchestrator: 'polling',
   auditPageConcurrency: 5,
+  AUDIT_ORCHESTRATOR_TIMEOUT_MS: 30 * 60 * 1000,
+  AUDIT_LOCK_DURATION_MS: 35 * 60 * 1000,
 }));
 
 vi.mock('../src/db.js', () => ({

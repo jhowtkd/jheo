@@ -32,6 +32,7 @@ export type {
 export {
   runGeneration,
   buildSystemPrompt,
+  stripLlmThinking,
   type RetrievedMaterial,
   type GenerationContext,
   type GenerationResult,

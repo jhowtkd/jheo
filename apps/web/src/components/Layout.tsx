@@ -21,6 +21,14 @@ function Logo() {
   );
 }
 
+const CRUMB_ROOT: Record<string, string> = {
+  projects: 'nav.projects',
+  reports: 'nav.reports',
+  templates: 'nav.templates',
+  fixes: 'nav.fixes',
+  settings: 'nav.settings',
+};
+
 function Crumb() {
   const { t } = useTranslation();
   const loc = useLocation();
@@ -28,9 +36,11 @@ function Crumb() {
   if (parts.length === 0) {
     return <span className="topbar__crumb"><span>{t('nav.projects')}</span></span>;
   }
+  const rootKey = CRUMB_ROOT[parts[0]!] ?? 'nav.projects';
+  const rootHref = `/${parts[0]}`;
   return (
     <nav className="topbar__crumb" aria-label={t('topbar.breadcrumb')}>
-      <a href="/projects" onClick={(e) => { e.preventDefault(); window.history.pushState({}, '', '/projects'); window.dispatchEvent(new PopStateEvent('popstate')); }}>{t('nav.projects')}</a>
+      <NavLink to={rootHref} end>{t(rootKey)}</NavLink>
       {parts.slice(1).map((p, i) => (
         <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <span className="topbar__sep">/</span>
@@ -69,6 +79,18 @@ export function Layout() {
           <path d="M3 7l9-4 9 4v10l-9 4-9-4V7z" />
           <path d="M3 7l9 4 9-4" />
           <path d="M12 11v10" />
+        </svg>
+      ),
+    },
+    {
+      to: '/reports',
+      labelKey: 'nav.reports',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+          <path d="M8 13h8" />
+          <path d="M8 17h5" />
         </svg>
       ),
     },

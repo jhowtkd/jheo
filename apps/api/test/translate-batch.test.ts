@@ -186,4 +186,16 @@ describe('translateBatch', () => {
     expect(log).toHaveBeenCalledWith(expect.stringContaining('expected 3'));
     expect(log).toHaveBeenCalledWith(expect.stringContaining('got 1'));
   });
+
+  it('strips MiniMax-style <think> prefixes before splitting lines', async () => {
+    const provider = spyProvider(
+      '<think>\nreasoning about the translation\n</think>\n\nA meta descrição está ausente.',
+    );
+    const out = await translateBatch(deps(prisma, provider), {
+      texts: ['Meta description is missing.'],
+      targetLocale: 'pt-BR',
+      context: 'finding',
+    });
+    expect(out.translations[0]?.translated).toBe('A meta descrição está ausente.');
+  });
 });

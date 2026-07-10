@@ -5,6 +5,7 @@
   },
   "nav": {
     "projects": "Projects",
+    "reports": "Reports",
     "templates": "Templates",
     "settings": "Settings",
     "fixes": "Fixes"
@@ -98,6 +99,7 @@
       "openFullReport": "Open full report →",
       "overall": "Overall",
       "auditHistory": "Audit history",
+      "viewAllReports": "View all reports →",
       "historyStarted": "Started",
       "historyStatus": "Status",
       "viewLink": "View →",
@@ -485,6 +487,29 @@
     "server": "The server returned an error ({{status}}). Please try again.",
     "backend_down": "The server is unavailable. Please try again shortly.",
     "notFound": "The requested resource was not found."
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Completed audit reports across your projects. Open any report to review scores and findings.",
+    "filterProject": "Project",
+    "allProjects": "All projects",
+    "filteredBy": "Showing reports for {{name}}.",
+    "openProject": "Open project →",
+    "openReport": "Open report →",
+    "pagesAudited": "{{count}} pages",
+    "failedToLoad": "Failed to load reports.",
+    "columns": {
+      "project": "Project",
+      "finished": "Finished",
+      "score": "Score",
+      "pages": "Pages"
+    },
+    "empty": {
+      "title": "No completed reports yet",
+      "hint": "Run an audit and wait for it to finish. Completed audits appear here.",
+      "action": "Run audit",
+      "actionProjects": "Go to projects"
+    }
   },
   "fixes": {
     "title": "Fixes",
