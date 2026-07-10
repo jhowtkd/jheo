@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
 
 export interface BackendReachable {
-  reachable: boolean;
+  status: 'pending' | 'reachable' | 'down';
+  reachable: boolean; // status === 'reachable'
   latencyMs: number | null;
-  lastCheckedAt: Date;
+  lastCheckedAt: Date; // epoch (new Date(0)) while pending/down
 }
 
 interface HealthResult {
@@ -14,9 +15,14 @@ interface HealthResult {
 
 /**
  * Poll `/api/health` on a 15s cadence (matching the previous hand-rolled
- * HealthIndicator in Layout.tsx:44-77) via React Query. Derives
- * `reachable` from `!isError && data.ok`. Gains cache, retry, and devtools
- * over the hand-rolled setInterval it replaces.
+ * HealthIndicator in Layout.tsx:44-77) via React Query. Gains cache, retry,
+ * and devtools over the hand-rolled setInterval it replaces.
+ *
+ * Three-state status avoids the red-flash-on-mount regression: React Query
+ * starts in a pending state (no data, no error), which previously collapsed
+ * into `reachable: false` and showed a red "down" dot until the first fetch
+ * resolved. `pending` is now distinct from `down` so consumers can render a
+ * neutral indicator before the first response arrives.
  */
 async function pingHealth(): Promise<HealthResult> {
   const start = performance.now();
@@ -38,10 +44,14 @@ export function useBackendReachable(): BackendReachable {
     gcTime: 0,
   });
 
+  if (q.isPending) {
+    return { status: 'pending', reachable: false, latencyMs: null, lastCheckedAt: new Date(0) };
+  }
   if (q.isError || !q.data) {
-    return { reachable: false, latencyMs: null, lastCheckedAt: new Date(0) };
+    return { status: 'down', reachable: false, latencyMs: null, lastCheckedAt: new Date(0) };
   }
   return {
+    status: q.data.ok ? 'reachable' : 'down',
     reachable: q.data.ok,
     latencyMs: q.data.latencyMs,
     lastCheckedAt: q.data.checkedAt,

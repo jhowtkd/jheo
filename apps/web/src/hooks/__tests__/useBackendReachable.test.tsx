@@ -26,6 +26,7 @@ describe('useBackendReachable', () => {
     const wrapper = createQueryClientWrapper();
     const { result } = renderHook(() => useBackendReachable(), { wrapper });
     await waitFor(() => expect(result.current.reachable).toBe(true));
+    expect(result.current.status).toBe('reachable');
     expect(result.current.latencyMs).not.toBeNull();
     expect(result.current.lastCheckedAt).toBeInstanceOf(Date);
   });
@@ -38,6 +39,7 @@ describe('useBackendReachable', () => {
     const wrapper = createQueryClientWrapper();
     const { result } = renderHook(() => useBackendReachable(), { wrapper });
     await waitFor(() => expect(result.current.reachable).toBe(false));
+    expect(result.current.status).toBe('down');
     expect(result.current.latencyMs).toBeNull();
   });
 
@@ -49,5 +51,23 @@ describe('useBackendReachable', () => {
     const wrapper = createQueryClientWrapper();
     const { result } = renderHook(() => useBackendReachable(), { wrapper });
     await waitFor(() => expect(result.current.reachable).toBe(false));
+    expect(result.current.status).toBe('down');
+  });
+
+  it('reports pending status before the first fetch resolves', async () => {
+    // A fetch that never resolves keeps React Query in its initial pending
+    // state (isPending === true, no data, no error), which is exactly the
+    // mount-time window we want to distinguish from genuine-down. We assert
+    // synchronously right after renderHook — no waitFor — so we observe the
+    // pre-resolution state rather than a settled one.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() => new Promise<Response>(() => {})),
+    );
+    const wrapper = createQueryClientWrapper();
+    const { result } = renderHook(() => useBackendReachable(), { wrapper });
+    expect(result.current.status).toBe('pending');
+    expect(result.current.reachable).toBe(false);
+    expect(result.current.latencyMs).toBeNull();
   });
 });

@@ -43,15 +43,16 @@ function Crumb() {
 
 function HealthIndicator() {
   const { t } = useTranslation();
-  const { reachable, latencyMs } = useBackendReachable();
+  const { status, latencyMs } = useBackendReachable();
+  const down = status === 'down';
   return (
-    <div className="topbar__health" title={reachable ? 'Backend healthy' : 'Backend unreachable'}>
+    <div className="topbar__health" title={down ? 'Backend unreachable' : 'Backend healthy'}>
       <span
         className="topbar__health-dot"
-        style={!reachable ? { background: 'var(--danger)', boxShadow: '0 0 8px rgba(239,68,68,0.4)' } : undefined}
+        style={down ? { background: 'var(--danger)', boxShadow: '0 0 8px rgba(239,68,68,0.4)' } : undefined}
       />
       <span>
-        {t('topbar.api')} {!reachable ? t('topbar.down') : latencyMs !== null ? `${latencyMs}ms` : '…'}
+        {t('topbar.api')} {down ? t('topbar.down') : status === 'reachable' && latencyMs !== null ? `${latencyMs}ms` : '…'}
       </span>
     </div>
   );
