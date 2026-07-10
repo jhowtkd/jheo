@@ -80,6 +80,7 @@ export {
   AuditSummarySchema,
   ExecutiveNarrativeSchema,
   type AuditSummary,
+  type GscReportSummary,
   type ExecutiveNarrative,
   type ExecutiveReportRecord,
   type TopRuleSummary,

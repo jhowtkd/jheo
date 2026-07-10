@@ -56,6 +56,7 @@ export const ExecutiveNarrativeSchema = z.object({
 });
 
 export type TopRuleSummary = z.infer<typeof TopRuleSummarySchema>;
+export type GscReportSummary = z.infer<typeof GscReportSummarySchema>;
 export type AuditSummary = z.infer<typeof AuditSummarySchema>;
 export type ExecutiveNarrative = z.infer<typeof ExecutiveNarrativeSchema>;
 export type ExecutiveReportRecord = {
