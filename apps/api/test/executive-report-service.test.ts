@@ -99,6 +99,7 @@ describe('loadOrGenerateExecutiveReport', () => {
       status: 'ready' as const,
       locale: 'en' as const,
       generatedAt: '2026-01-01',
+      generatingStartedAt: null,
       model: 'gpt-4o',
       errorMessage: null,
       aggregates: {} as never,
@@ -114,6 +115,7 @@ describe('loadOrGenerateExecutiveReport', () => {
       status: 'generating' as const,
       locale: 'en' as const,
       generatedAt: null,
+      generatingStartedAt: new Date().toISOString(),
       model: null,
       errorMessage: null,
       aggregates: {} as never,
@@ -124,6 +126,24 @@ describe('loadOrGenerateExecutiveReport', () => {
     const result = await loadOrGenerateExecutiveReport(deps, 'a1', 'en');
     expect(result).toBe(generating);
     expect(provider.complete).not.toHaveBeenCalled();
+  });
+
+  it('regenerates when generating record is stale (>5min)', async () => {
+    const staleGenerating = {
+      status: 'generating' as const,
+      locale: 'en' as const,
+      generatedAt: null,
+      generatingStartedAt: new Date(Date.now() - 6 * 60_000).toISOString(),
+      model: null,
+      errorMessage: null,
+      aggregates: {} as never,
+      narrative: null,
+    };
+    const provider = fakeProvider(VALID_NARRATIVE);
+    const deps = makeDeps({ ...COMPLETED_AUDIT, executiveReport: staleGenerating }, provider);
+    const result = await loadOrGenerateExecutiveReport(deps, 'a1', 'en');
+    expect(result.status).toBe('ready');
+    expect(provider.complete).toHaveBeenCalled();
   });
 
   it('generates successfully and persists ready with sanitized narrative', async () => {

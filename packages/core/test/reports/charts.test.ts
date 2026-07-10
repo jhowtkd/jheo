@@ -8,9 +8,10 @@ describe('renderCategoryBarsSvg', () => {
     expect(svg.trim().endsWith('</svg>')).toBe(true);
   });
 
-  it('has a width attribute of 400', () => {
+  it('has a width matching its viewBox', () => {
     const svg = renderCategoryBarsSvg({ seo: 90 });
-    expect(svg).toContain('width="400"');
+    expect(svg).toContain('width="420"');
+    expect(svg).toContain('viewBox="0 0 420');
   });
 
   it('renders category labels when provided', () => {

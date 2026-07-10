@@ -36,6 +36,13 @@ function pickProvider(llm: ExecutiveReportDeps['llmProviders']): LLMProvider {
   return first;
 }
 
+const STALE_GENERATING_MS = 5 * 60_000;
+
+function isStaleGenerating(cached: ExecutiveReportRecord): boolean {
+  if (cached.status !== 'generating' || !cached.generatingStartedAt) return false;
+  return Date.now() - new Date(cached.generatingStartedAt).getTime() > STALE_GENERATING_MS;
+}
+
 function reportModel(): string {
   return process.env.JHEO_REPORT_MODEL ?? process.env.JHEO_SUGGESTION_MODEL ?? 'gpt-4o-mini';
 }
@@ -70,7 +77,7 @@ export async function loadOrGenerateExecutiveReport(
   const cached = audit.executiveReport as ExecutiveReportRecord | null;
   if (cached) {
     if (cached.status === 'ready' && cached.locale === locale) return cached;
-    if (cached.status === 'generating') return cached;
+    if (cached.status === 'generating' && !isStaleGenerating(cached)) return cached;
   }
 
   const score = (audit.score ?? { overall: 0, byCategory: {} }) as {
@@ -109,6 +116,7 @@ export async function loadOrGenerateExecutiveReport(
     aggregates,
     narrative: null,
     generatedAt: null,
+    generatingStartedAt: new Date().toISOString(),
     model: null,
     errorMessage: null,
   };
@@ -127,6 +135,7 @@ export async function loadOrGenerateExecutiveReport(
       aggregates,
       narrative: sanitized,
       generatedAt: new Date().toISOString(),
+      generatingStartedAt: null,
       model: reportModel(),
       errorMessage: null,
     };
@@ -143,6 +152,7 @@ export async function loadOrGenerateExecutiveReport(
       aggregates,
       narrative: null,
       generatedAt: null,
+      generatingStartedAt: null,
       model: null,
       errorMessage,
     };

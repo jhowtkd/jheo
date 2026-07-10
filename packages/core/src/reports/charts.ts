@@ -1,7 +1,6 @@
 type SeverityCounts = { error: number; warning: number; info: number };
 
 const CAT_ORDER = ['seo', 'cwv', 'geo', 'a11y', 'content'] as const;
-const BAR_WIDTH = 400;
 const BAR_MAX = 260;
 const BAR_HEIGHT = 18;
 const ROW_HEIGHT = 32;
@@ -40,7 +39,7 @@ export function renderCategoryBarsSvg(
   const totalWidth = LABEL_WIDTH + BAR_MAX + 50;
   const totalHeight = PADDING * 2 + entries.length * ROW_HEIGHT;
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${BAR_WIDTH}" viewBox="0 0 ${totalWidth} ${totalHeight}" role="img" aria-label="Category scores">${rows}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" viewBox="0 0 ${totalWidth} ${totalHeight}" role="img" aria-label="Category scores">${rows}</svg>`;
 }
 
 export function renderSeverityDonutSvg(counts: SeverityCounts): string {

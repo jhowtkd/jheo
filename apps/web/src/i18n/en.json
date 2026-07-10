@@ -185,6 +185,7 @@
       "lowCtrQueries": "Low CTR queries",
       "impact": "Impact",
       "affectedPages": "Affected pages",
+      "viewFixes": "View Fixes",
       "sections": {
         "summary": "Executive Summary",
         "scores": "Category Scores",

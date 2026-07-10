@@ -223,7 +223,7 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
 
       <div style={{ marginTop: 'var(--space-6)' }}>
         <Link to={`/fixes?auditId=${auditId}`} className="btn">
-          {t('audit.executive.tabTechnical')}
+          {t('audit.executive.viewFixes')}
         </Link>
       </div>
     </div>

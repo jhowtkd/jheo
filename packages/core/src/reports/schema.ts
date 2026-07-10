@@ -63,6 +63,7 @@ export type ExecutiveReportRecord = {
   status: 'generating' | 'ready' | 'failed';
   locale: 'en' | 'pt-BR';
   generatedAt: string | null;
+  generatingStartedAt: string | null;
   model: string | null;
   errorMessage: string | null;
   aggregates: AuditSummary;
