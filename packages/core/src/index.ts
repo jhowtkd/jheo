@@ -82,6 +82,8 @@ export {
   buildAuditSummary,
   runExecutiveReport,
   ExecutiveReportLlmError,
+  renderCategoryBarsSvg,
+  renderSeverityDonutSvg,
   type AuditSummary,
   type GscReportSummary,
   type ExecutiveNarrative,
