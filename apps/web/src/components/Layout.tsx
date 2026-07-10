@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LanguageToggle } from './LanguageToggle.js';
+import { useBackendReachable } from '../hooks/useBackendReachable.js';
 
 interface NavItem {
   to: string;
@@ -43,35 +43,16 @@ function Crumb() {
 
 function HealthIndicator() {
   const { t } = useTranslation();
-  const [latencyMs, setLatencyMs] = useState<number | null>(null);
-  const [down, setDown] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function ping() {
-      const start = performance.now();
-      try {
-        const r = await fetch('/api/health', { cache: 'no-store' });
-        if (!cancelled) {
-          setLatencyMs(Math.round(performance.now() - start));
-          setDown(!r.ok);
-        }
-      } catch {
-        if (!cancelled) {
-          setLatencyMs(null);
-          setDown(true);
-        }
-      }
-    }
-    ping();
-    const id = setInterval(ping, 15000);
-    return () => { cancelled = true; clearInterval(id); };
-  }, []);
-
+  const { reachable, latencyMs } = useBackendReachable();
   return (
-    <div className="topbar__health" title={down ? 'Backend unreachable' : 'Backend healthy'}>
-      <span className="topbar__health-dot" style={down ? { background: 'var(--danger)', boxShadow: '0 0 8px rgba(239,68,68,0.4)' } : undefined} />
-      <span>{t('topbar.api')} {down ? t('topbar.down') : latencyMs !== null ? `${latencyMs}ms` : '…'}</span>
+    <div className="topbar__health" title={reachable ? 'Backend healthy' : 'Backend unreachable'}>
+      <span
+        className="topbar__health-dot"
+        style={!reachable ? { background: 'var(--danger)', boxShadow: '0 0 8px rgba(239,68,68,0.4)' } : undefined}
+      />
+      <span>
+        {t('topbar.api')} {!reachable ? t('topbar.down') : latencyMs !== null ? `${latencyMs}ms` : '…'}
+      </span>
     </div>
   );
 }
