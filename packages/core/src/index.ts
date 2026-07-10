@@ -79,6 +79,9 @@ export * from './suggestions/index.js';
 export {
   AuditSummarySchema,
   ExecutiveNarrativeSchema,
+  buildAuditSummary,
+  runExecutiveReport,
+  ExecutiveReportLlmError,
   type AuditSummary,
   type GscReportSummary,
   type ExecutiveNarrative,
