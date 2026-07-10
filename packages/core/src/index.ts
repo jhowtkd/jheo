@@ -76,3 +76,11 @@ export {
   type UrlInspectionResult,
 } from './gsc/index.js';
 export * from './suggestions/index.js';
+export {
+  AuditSummarySchema,
+  ExecutiveNarrativeSchema,
+  type AuditSummary,
+  type ExecutiveNarrative,
+  type ExecutiveReportRecord,
+  type TopRuleSummary,
+} from './reports/index.js';
