@@ -2,36 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { createProject, listProjects } from '../api.js';
+import { createProject, humanError, listProjects } from '../api';
+import { EmptyState, ErrorState } from '../components/states';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
   const month = d.toLocaleString('en-US', { month: 'short' });
   return `${month} ${d.getDate()}, ${d.getFullYear()}`;
-}
-
-function EmptyState({ onNew }: { onNew: () => void }) {
-  const { t } = useTranslation();
-  return (
-    <div className="empty">
-      <div className="empty__art">
-        <svg viewBox="0 0 56 56">
-          <rect x="8" y="14" width="40" height="32" rx="3" />
-          <path d="M8 22h40" />
-          <path d="M14 14V8" />
-          <path d="M42 14V8" />
-          <circle cx="20" cy="32" r="2" />
-          <path d="M28 32h12" />
-          <path d="M28 38h8" />
-        </svg>
-      </div>
-      <p className="empty__title">{t('projects.empty.title')}</p>
-      <p className="empty__hint">{t('projects.empty.hint')}</p>
-      <button className="btn btn--primary empty__action" onClick={onNew}>
-        {t('projects.empty.action')}
-      </button>
-    </div>
-  );
 }
 
 function LoadingSkeleton() {
@@ -58,8 +35,6 @@ export function ProjectsList() {
       navigate(`/projects/${p.id}`);
     },
   });
-
-  const focusNew = () => (document.getElementById('new-project-name') as HTMLInputElement | null)?.focus();
 
   return (
     <div className="page">
@@ -102,17 +77,39 @@ export function ProjectsList() {
             {create.isPending ? t('projects.create.creating') : t('projects.create.submit')}
           </button>
         </form>
-        {create.isError && (
-          <p className="tiny" style={{ color: 'var(--danger)', marginTop: 'var(--space-3)' }}>
-            {(create.error as Error).message}
-          </p>
-        )}
+        {create.isError &&
+          (() => {
+            const e = humanError(create.error);
+            return (
+              <ErrorState
+                titleKey={e.key}
+                {...(e.params ? { params: e.params } : {})}
+                {...(e.retry ? { retry: e.retry } : {})}
+                onRetry={() => create.mutate({ name, rootUrl })}
+                className="tiny"
+              />
+            );
+          })()}
       </div>
 
       {projects.isLoading && <LoadingSkeleton />}
 
       {projects.data && projects.data.length === 0 && !projects.isLoading && (
-        <EmptyState onNew={focusNew} />
+        <EmptyState
+          titleKey="projects.empty.title"
+          hintKey="projects.empty.hint"
+          cta={{ to: '/projects#new-project-name', labelKey: 'projects.empty.action' }}
+        >
+          <svg viewBox="0 0 56 56">
+            <rect x="8" y="14" width="40" height="32" rx="3" />
+            <path d="M8 22h40" />
+            <path d="M14 14V8" />
+            <path d="M42 14V8" />
+            <circle cx="20" cy="32" r="2" />
+            <path d="M28 32h12" />
+            <path d="M28 38h8" />
+          </svg>
+        </EmptyState>
       )}
 
       {projects.data && projects.data.length > 0 && (
