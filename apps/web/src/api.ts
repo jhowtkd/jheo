@@ -1,3 +1,4 @@
+import type { AuditSummary, ExecutiveNarrative } from '@jheo/core';
 import { i18n } from './i18n';
 
 const API = '/api';
@@ -606,4 +607,26 @@ export async function acceptSuggestion(id: string): Promise<AcceptSuggestionResu
 
 export async function rejectSuggestion(id: string): Promise<Suggestion> {
   return (await localeFetch(`/api/suggestions/${id}/reject`, { method: 'POST' }).then((r) => r.json())) as Suggestion;
+}
+
+// ---------- Executive report (F8) ----------
+export type ExecutiveReportResponse = {
+  status: 'generating' | 'ready' | 'failed';
+  locale: string;
+  generatedAt: string | null;
+  model: string | null;
+  errorMessage: string | null;
+  aggregates: AuditSummary;
+  narrative: ExecutiveNarrative | null;
+};
+
+export async function getExecutiveReport(auditId: string): Promise<ExecutiveReportResponse> {
+  const r = await localeFetch(`${API}/audits/${auditId}/executive-report`);
+  if (r.status === 202) return r.json();
+  if (!r.ok) throw new Error(`Failed to load executive report: ${r.status}`);
+  return r.json();
+}
+
+export function executiveReportExportUrl(auditId: string): string {
+  return `${API}/audits/${auditId}/executive-report/export`;
 }
