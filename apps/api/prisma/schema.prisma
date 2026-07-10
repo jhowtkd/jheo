@@ -94,6 +94,7 @@ model Audit {
   finishedAt     DateTime?
   configSnapshot Json
   score          Json?
+  executiveReport Json?
   findings       Finding[]
   pageAudits     PageAudit[]
   createdAt      DateTime  @default(now())
