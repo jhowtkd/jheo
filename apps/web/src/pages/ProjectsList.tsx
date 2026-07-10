@@ -32,6 +32,10 @@ export function ProjectsList() {
       createProject({ domain: input.rootUrl }).then((p) => ({ ...p, name: input.name })),
     onSuccess: async (p) => {
       await qc.invalidateQueries({ queryKey: ['projects'] });
+      // Clear the inputs only on success. Clearing on submit would wipe
+      // `name` before the error-state retry closure captures it, so a
+      // failed create would retry with an empty payload.
+      setName('');
       navigate(`/projects/${p.id}`);
     },
   });
@@ -55,7 +59,6 @@ export function ProjectsList() {
           onSubmit={(e) => {
             e.preventDefault();
             create.mutate({ name, rootUrl });
-            setName('');
           }}
         >
           <input

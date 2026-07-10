@@ -1,2 +1,2 @@
-export { EmptyState, type EmptyStateProps } from './EmptyState';
-export { ErrorState, type ErrorStateProps } from './ErrorState';
+export { EmptyState, type EmptyStateProps } from './EmptyState.js';
+export { ErrorState, type ErrorStateProps } from './ErrorState.js';
