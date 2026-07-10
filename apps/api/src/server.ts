@@ -32,6 +32,7 @@ import { pageRoutes } from './routes/pages.js';
 import { translateRoutes } from './routes/translate.js';
 import type { TranslateDeps } from './i18n/translate.js';
 import { suggestionRoutes } from './routes/suggestions.js';
+import { executiveReportRoutes } from './routes/executive-report.js';
 import {
   startWorkers,
   startGenerateWorkers,
@@ -169,6 +170,16 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
     fetchFn: withFetchTimeout(globalThis.fetch),
   });
   await app.register(suggestionRoutes, {
+    prisma: defaultPrisma,
+    llmProviders:
+      opts?.llmProviders ?? {
+        openai: new OpenAIProvider({ apiKey: '' }),
+        anthropic: new AnthropicProvider({ apiKey: '' }),
+        openrouter: new OpenRouterProvider({ apiKey: '' }),
+      },
+    fetchFn: withFetchTimeout(globalThis.fetch),
+  });
+  await app.register(executiveReportRoutes, {
     prisma: defaultPrisma,
     llmProviders:
       opts?.llmProviders ?? {
