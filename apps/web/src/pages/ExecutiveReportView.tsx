@@ -142,8 +142,8 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
                 <th style={{ padding: 'var(--space-2)' }}>{t('audit.executive.sections.topIssues')}</th>
-                <th style={{ padding: 'var(--space-2)' }}>{t('audit.executive.pagesAudited')}</th>
-                <th style={{ padding: 'var(--space-2)' }}>Impact</th>
+                <th style={{ padding: 'var(--space-2)' }}>{t('audit.executive.affectedPages')}</th>
+                <th style={{ padding: 'var(--space-2)' }}>{t('audit.executive.impact')}</th>
               </tr>
             </thead>
             <tbody>

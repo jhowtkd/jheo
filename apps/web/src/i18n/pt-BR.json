@@ -183,6 +183,8 @@
       "impressions": "Impressões",
       "ctr": "CTR",
       "lowCtrQueries": "Consultas com baixo CTR",
+      "impact": "Impacto",
+      "affectedPages": "Páginas afetadas",
       "sections": {
         "summary": "Resumo Executivo",
         "scores": "Pontuações por Categoria",

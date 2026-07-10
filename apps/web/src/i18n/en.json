@@ -183,6 +183,8 @@
       "impressions": "Impressions",
       "ctr": "CTR",
       "lowCtrQueries": "Low CTR queries",
+      "impact": "Impact",
+      "affectedPages": "Affected pages",
       "sections": {
         "summary": "Executive Summary",
         "scores": "Category Scores",
