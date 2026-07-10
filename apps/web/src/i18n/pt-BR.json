@@ -40,7 +40,8 @@
     "autoRefreshing": "atualizando sozinho · 2s",
     "active": "ativo",
     "inactive": "inativo",
-    "paused": "pausado"
+    "paused": "pausado",
+    "retry": "Tentar novamente"
   },
   "projects": {
     "title": "Projetos",
@@ -479,7 +480,11 @@
   "errors": {
     "generic": "Algo deu errado. Tente de novo.",
     "no_llm_provider": "Configure um provedor de IA em Configurações para ativar a tradução.",
-    "rate_limited": "Muitas requisições. Aguarde um instante."
+    "rate_limited": "Muitas requisições. Aguarde um instante.",
+    "network": "Sem conexão com o servidor. Verifique sua rede e tente novamente.",
+    "server": "O servidor retornou um erro ({{status}}). Tente novamente.",
+    "backend_down": "O servidor está indisponível. Tente novamente em instantes.",
+    "notFound": "O recurso solicitado não foi encontrado."
   },
   "fixes": {
     "title": "Correções",

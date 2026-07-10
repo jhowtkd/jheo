@@ -20,6 +20,8 @@ const localeFetch: typeof fetch = (input, init) => {
   return globalThis.fetch(input as RequestInfo | URL, { ...init, headers, ...(signal ? { signal } : {}) });
 };
 
+export { humanError, type HumanError } from './api/errors.js';
+
 export type Project = { id: string; name: string; rootUrl: string; createdAt: string };
 export type Audit = {
   id: string;

@@ -40,7 +40,8 @@
     "autoRefreshing": "auto-refreshing · 2s",
     "active": "active",
     "inactive": "inactive",
-    "paused": "paused"
+    "paused": "paused",
+    "retry": "Try again"
   },
   "projects": {
     "title": "Projects",
@@ -479,7 +480,11 @@
   "errors": {
     "generic": "Something went wrong. Please try again.",
     "no_llm_provider": "Configure an LLM provider in Settings to enable translation.",
-    "rate_limited": "Too many requests. Please wait a moment."
+    "rate_limited": "Too many requests. Please wait a moment.",
+    "network": "No connection to the server. Check your network and try again.",
+    "server": "The server returned an error ({{status}}). Please try again.",
+    "backend_down": "The server is unavailable. Please try again shortly.",
+    "notFound": "The requested resource was not found."
   },
   "fixes": {
     "title": "Fixes",
