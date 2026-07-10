@@ -3,9 +3,14 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "lib": ["DOM", "ES2022"],
-    "rootDir": "src",
+    // Widened from `src` to the app root so test files under `src/**/__tests__`
+    // can import the shared QueryClientProvider wrapper from `apps/web/test/`
+    // (Task 3) via `../../../test/queryClientWrapper`. Vite drives the actual
+    // build, so this only affects `tsc --noEmit` typecheck scope. Removing
+    // rootDir entirely would also work; pinning it documents intent.
+    "rootDir": ".",
     "types": ["vite/client"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "test/**/*"],
   "references": [{ "path": "../../packages/core" }]
 }
