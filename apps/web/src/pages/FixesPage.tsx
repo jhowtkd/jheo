@@ -8,6 +8,7 @@ import {
   createSuggestion,
   acceptSuggestion,
   rejectSuggestion,
+  humanError,
   type Project,
   type ProjectDetail,
   type Suggestion,
@@ -16,6 +17,7 @@ import {
 import { FixCard, type FindingLike } from '../components/fixes/FixCard.js';
 import { FixGroup, type FixGroupData } from '../components/fixes/FixGroup.js';
 import { EmptyFixesState } from '../components/fixes/EmptyFixesState.js';
+import { ErrorState } from '../components/states/index.js';
 
 type Filter = {
   projectId?: string | undefined;
@@ -325,7 +327,7 @@ function ProjectChooser({ projects, loading, hasProjectContext }: ProjectChooser
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   async function openLatestAudit(p: Project) {
     setError(null);
@@ -341,7 +343,7 @@ function ProjectChooser({ projects, loading, hasProjectContext }: ProjectChooser
         navigate(`/projects/${p.id}`);
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(e);
     } finally {
       setPendingId(null);
     }
@@ -355,11 +357,18 @@ function ProjectChooser({ projects, loading, hasProjectContext }: ProjectChooser
     <div className="fixes-page__chooser">
       <h2 className="fixes-page__chooser-title">{t('fixes.chooseProject.title')}</h2>
       <p className="muted">{t('fixes.chooseProject.hint')}</p>
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
+      {error != null &&
+        (() => {
+          const e = humanError(error);
+          return (
+            <ErrorState
+              titleKey={e.key}
+              {...(e.params ? { params: e.params } : {})}
+              {...(e.retry ? { retry: e.retry } : {})}
+              onRetry={() => setError(null)}
+            />
+          );
+        })()}
       <ul className="fixes-page__chooser-list">
         {projects.map((p) => (
           <li key={p.id} className="card">

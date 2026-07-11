@@ -3,15 +3,19 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { FixesPage } from '../FixesPage.js';
 
-vi.mock('../../api.js', () => ({
-  createSuggestion: vi.fn(),
-  listSuggestions: vi.fn(async () => []),
-  listSuggestionsByAudit: vi.fn(async () => []),
-  acceptSuggestion: vi.fn(),
-  rejectSuggestion: vi.fn(),
-  listProjects: vi.fn(async () => []),
-  getProject: vi.fn(async () => ({ audits: [], pages: [] })),
-}));
+vi.mock('../../api.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../api.js')>();
+  return {
+    ...actual,
+    createSuggestion: vi.fn(),
+    listSuggestions: vi.fn(async () => []),
+    listSuggestionsByAudit: vi.fn(async () => []),
+    acceptSuggestion: vi.fn(),
+    rejectSuggestion: vi.fn(),
+    listProjects: vi.fn(async () => []),
+    getProject: vi.fn(async () => ({ audits: [], pages: [] })),
+  };
+});
 
 describe('FixesPage', () => {
   // FixesPage calls fetch('/api/audits/:id/findings') directly when auditId is

@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { createGeneration, listGenerations, listMaterials, listTemplates } from '../api.js';
+import { createGeneration, humanError, listGenerations, listMaterials, listTemplates } from '../api.js';
+import { ErrorState } from '../components/states/index.js';
 
 export function GenerationComposer() {
   const { t } = useTranslation();
@@ -192,11 +193,19 @@ export function GenerationComposer() {
           </div>
 
           <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
-            {create.isError && (
-              <span className="tiny" style={{ color: 'var(--danger)' }}>
-                {(create.error as Error).message}
-              </span>
-            )}
+            {create.isError &&
+              (() => {
+                const e = humanError(create.error);
+                return (
+                  <ErrorState
+                    titleKey={e.key}
+                    {...(e.params ? { params: e.params } : {})}
+                    {...(e.retry ? { retry: e.retry } : {})}
+                    onRetry={() => create.mutate()}
+                    className="tiny"
+                  />
+                );
+              })()}
             <button type="submit" className="btn btn--primary" disabled={submitDisabled}>
               {create.isPending ? t('generation.composer.queueing') : t('generation.composer.submit')}
             </button>
