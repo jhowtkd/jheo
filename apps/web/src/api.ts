@@ -1,5 +1,6 @@
 import type { AuditSummary, ExecutiveNarrative } from '@jheo/core';
 import { i18n } from './i18n';
+import { readJsonOrThrow } from './api/readJsonOrThrow.js';
 
 const API = '/api';
 
@@ -50,7 +51,7 @@ export type Finding = {
 
 export async function listProjects(): Promise<Project[]> {
   const r = await localeFetch(`${API}/projects`);
-  return r.json();
+  return readJsonOrThrow(r, 'projects');
 }
 export async function createProject(input: { domain: string }): Promise<Project> {
   const r = await localeFetch(`${API}/projects`, {
@@ -58,7 +59,7 @@ export async function createProject(input: { domain: string }): Promise<Project>
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
   });
-  return r.json();
+  return readJsonOrThrow(r, 'projects');
 }
 export type PageScore = { overall: number; byCategory: Record<string, number | null> };
 
@@ -132,7 +133,8 @@ export type ProjectHealth = {
 
 export type ProjectDetail = Project & { audits: Audit[]; pages: ProjectPage[] };
 export async function getProject(id: string): Promise<ProjectDetail> {
-  return (await localeFetch(`${API}/projects/${id}`)).json();
+  const r = await localeFetch(`${API}/projects/${id}`);
+  return readJsonOrThrow(r, 'project');
 }
 export async function getProjectPages(
   id: string,
@@ -158,11 +160,11 @@ export async function runAudit(projectId: string): Promise<Audit> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ projectId, config: {} }),
   });
-  return r.json();
+  return readJsonOrThrow(r, 'audits');
 }
 export async function getAudit(id: string): Promise<Audit & { findings: Finding[] }> {
   const r = await localeFetch(`${API}/audits/${id}`);
-  return r.json();
+  return readJsonOrThrow(r, 'audit');
 }
 
 export type AuditProgress = {
@@ -463,14 +465,6 @@ export type GscMetricRow = {
   ctr: number;
   position: number;
 };
-
-async function readJsonOrThrow<T>(r: Response): Promise<T> {
-  const body = await r.json();
-  if (!r.ok) {
-    throw new Error(typeof body?.error === 'string' ? body.error : JSON.stringify(body));
-  }
-  return body as T;
-}
 
 export async function getGscConnection(projectId: string): Promise<GscConnection | null> {
   const r = await localeFetch(`/api/projects/${projectId}/gsc/connection`);
