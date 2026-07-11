@@ -1,17 +1,18 @@
 # JHEO UX Program — Design (umbrella)
 
 - **Date:** 2026-07-09
-- **Status:** Draft — awaiting user review
-- **Kind:** Program-level umbrella. Scopes and sequences five milestones. Implements nothing.
+- **Status:** Amended — sequence and SI boundaries in `2026-07-11-ux-impeccable-hybrid-design.md`
+- **Kind:** Program-level umbrella. Scopes and sequences milestones. Implements nothing.
 - **Source audit:** `docs/ux-audit-2026-07-09.md` (24 problems, 4 tracks: Stack / UX / Veracidade / Polish)
 - **Baseline:** clean tree at `2c3d289` (in-flight B10/B11 + i18n fixes committed before this program started)
+- **Amendment (2026-07-11):** Inserts Impeccable milestone **SI** between S1 and S2. Authoritative sequence: `S0 → S1 → SI → S2 → S3 → S4`. See `docs/superpowers/specs/2026-07-11-ux-impeccable-hybrid-design.md`.
 
 ## TL;DR
 
-The audit's diagnosis is "the gap is UX, not engineering." The architecture (audit → generate → publish, F1–F7 shipped, 26 plugins, Flow Producer) is sound; the surface is not. This program turns the audit's 24 issues into five sequenced milestones, each ending in something demoable end-to-end. Per-milestone brainstorm/spec/plan/implementation cycles follow this umbrella; the first of those (Sprint 0) starts after the user approves this document.
+The audit's diagnosis is "the gap is UX, not engineering." The architecture (audit → generate → publish, F1–F7 shipped, 26 plugins, Flow Producer) is sound; the surface is not. This program turns the audit's 24 issues into sequenced milestones, each ending in something demoable end-to-end. **Sequence was amended 2026-07-11** to insert SI (Impeccable foundations) after S1; use that doc for order and SI scope. Per-milestone brainstorm/spec/plan/implementation cycles follow; S0–S4 ownership detail below remains except where the amendment overrides.
 
-Three decisions shaped the program (made during brainstorming):
-1. **Strict sequence** S0 → S1 → S2 → S3 → S4 — the audit's claim that sprints are "independent and parallelizable" conflicts with its own "Sprint 1 unblocks everything" note. Sequence resolves that.
+Three decisions shaped the original program (made during brainstorming):
+1. **Strict sequence** (originally S0 → S1 → S2 → S3 → S4; now **S0 → S1 → SI → S2 → S3 → S4**) — the audit's claim that sprints are "independent and parallelizable" conflicts with its own "Sprint 1 unblocks everything" note. Sequence resolves that.
 2. **Extract shared foundations first** (Sprint 0) — three primitives recur across 3–4 milestones; build once, consume everywhere.
 3. **Score defensibility via full transparency** — every score point traces to evidence a user can open. This is more ambitious than the audit's "fix the math" and is why Sprint 3 owns C1+C2+C3 fused, not C1 alone.
 
@@ -166,4 +167,4 @@ Each S0 primitive gets a typed interface frozen at S0 close. Later milestones co
 
 ## Next step
 
-This umbrella approved → brainstorm **Sprint 0 (Shared foundations)** as its own spec → writing-plans → implement. Then S1, S2, S3, S4 in turn, each through its own brainstorm/spec/plan cycle.
+Follow `2026-07-11-ux-impeccable-hybrid-design.md`: verify/close S0 if needed → S1 → **SI (teach first)** → S2 → S3 → S4, each through its own brainstorm/spec/plan cycle.
