@@ -70,4 +70,14 @@ describe('useBackendReachable', () => {
     expect(result.current.reachable).toBe(false);
     expect(result.current.latencyMs).toBeNull();
   });
+
+  it('uses a longer refetchInterval after a down result than after reachable', async () => {
+    const fetchMock = vi.fn(() => Promise.resolve({ ok: false } as Response));
+    vi.stubGlobal('fetch', fetchMock);
+    const wrapper = createQueryClientWrapper();
+    const { result } = renderHook(() => useBackendReachable(), { wrapper });
+    await waitFor(() => expect(result.current.status).toBe('down'));
+    // Implementation exposes retryInMs for S1 consumers / assertions.
+    expect(result.current.retryInMs).toBeGreaterThan(15_000);
+  });
 });
