@@ -569,7 +569,7 @@ h1, h2, h3, h4, h5 {
   background: currentColor;
   flex: none;
 }
-.badge--success { background: rgba(16, 185, 129, 0.1); color: var(--success); border-color: rgba(16, 185, 129, 0.2); }
+.badge--success { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); border-color: color-mix(in srgb, var(--success) 24%, transparent); }
 .badge--warning { background: rgba(245, 158, 11, 0.1); color: var(--warning); border-color: rgba(245, 158, 11, 0.2); }
 .badge--danger { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: rgba(239, 68, 68, 0.2); }
 .badge--info { background: rgba(59, 130, 246, 0.1); color: var(--info); border-color: rgba(59, 130, 246, 0.2); }
@@ -588,7 +588,7 @@ h1, h2, h3, h4, h5 {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.3; }
 }
-.badge--completed { background: rgba(16, 185, 129, 0.1); color: var(--success); border-color: rgba(16, 185, 129, 0.2); }
+.badge--completed { background: color-mix(in srgb, var(--success) 12%, transparent); color: var(--success); border-color: color-mix(in srgb, var(--success) 24%, transparent); }
 .badge--failed { background: rgba(239, 68, 68, 0.1); color: var(--danger); border-color: rgba(239, 68, 68, 0.2); }
 .badge--cancelled { background: var(--surface-3); color: var(--text-muted); }
 

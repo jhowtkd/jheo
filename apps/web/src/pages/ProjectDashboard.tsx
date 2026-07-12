@@ -44,7 +44,9 @@ export function ProjectDashboard() {
   const [filter, setFilter] = useState<FilterValue>('all');
   const apiFilter = filter === 'all' ? undefined : filter;
   const [openPageAuditId, setOpenPageAuditId] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<unknown>(null);
+  // { err, pageId } so the error banner can truly re-invoke the failed re-audit
+  // instead of only dismissing (the variables/pageId flow up from useMutation).
+  const [actionError, setActionError] = useState<{ err: unknown; pageId: string } | null>(null);
 
   const project = useQuery({
     queryKey: ['project', projectId],
@@ -128,8 +130,8 @@ export function ProjectDashboard() {
     onSuccess: (data) => {
       setOpenPageAuditId(data.pageAuditId);
     },
-    onError: (err: Error) => {
-      setActionError(err);
+    onError: (err: Error, pageId: string) => {
+      setActionError({ err, pageId });
     },
   });
 
@@ -164,7 +166,7 @@ export function ProjectDashboard() {
   const inFlight = (h?.pagesTotal ?? 0) - (h?.pagesAudited ?? 0) > 0;
   const p = project.data;
   const latest = p.audits[0];
-  const actionHE = actionError ? humanError(actionError) : null;
+  const actionHE = actionError ? humanError(actionError.err) : null;
 
   const filterOptions: FilterOption<FilterValue>[] = [
     { value: 'all', label: t('projects.dashboard.filters.all') },
@@ -196,12 +198,16 @@ export function ProjectDashboard() {
       </header>
 
       {/* actionError — page-level re-audit failure (no window.alert) */}
-      {actionHE && (
+      {actionHE && actionError && (
         <ErrorState
           titleKey={actionHE.key}
           {...(actionHE.params ? { params: actionHE.params } : {})}
           retry
-          onRetry={() => setActionError(null)}
+          onRetry={() => {
+            const pageId = actionError.pageId;
+            setActionError(null);
+            reAudit.mutate(pageId);
+          }}
         />
       )}
 
