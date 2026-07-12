@@ -522,20 +522,30 @@ export async function translateTexts(
   const results: Array<{ original: string; translated: string; cached: boolean }> = [];
   for (let i = 0; i < texts.length; i += BATCH) {
     const batch = texts.slice(i, i + BATCH);
-    const res = await localeFetch('/api/translate', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'accept-language': targetLocale,
-      },
-      body: JSON.stringify({ texts: batch, targetLocale, context }),
-    });
-    if (!res.ok) {
-      if (res.status === 503) throw new Error('no_llm_provider');
-      if (res.status === 429) throw new Error('rate_limited');
-      throw new Error(`translate failed: ${res.status}`);
+    let res: Response | null = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      res = await localeFetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'accept-language': targetLocale,
+        },
+        body: JSON.stringify({ texts: batch, targetLocale, context }),
+      });
+      if (res.status !== 429) break;
+      const retryAfterSec = Number(res.headers.get('retry-after') ?? '1');
+      await new Promise((resolve) => setTimeout(resolve, Math.max(1, retryAfterSec) * 1000));
     }
-    const body = await res.json();
+    if (!res!.ok) {
+      if (res!.status === 503) {
+        const errBody = await res!.json().catch(() => null);
+        if (errBody?.error === 'backend_unavailable') throw new Error('backend_unavailable');
+        throw new Error('no_llm_provider');
+      }
+      if (res!.status === 429) throw new Error('rate_limited');
+      throw new Error(`translate failed: ${res!.status}`);
+    }
+    const body = await res!.json();
     results.push(...body.translations);
   }
   return results;
