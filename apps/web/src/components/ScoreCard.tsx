@@ -17,10 +17,10 @@ export function ScoreCard({ health }: Props) {
     );
   }
   return (
-    <div className="card col" style={{ gap: 'var(--space-3)' }}>
+    <div className="card scorecard col" style={{ gap: 'var(--space-3)' }}>
       <div>
         <h2 style={{ margin: 0 }}>{t('findings.scoreCard.overall')}</h2>
-        <p style={{ fontSize: 'var(--fs-2xl)', margin: 0 }}>{health.overall ?? '—'}</p>
+        <p className="scorecard__overall">{health.overall ?? '—'}</p>
       </div>
       <div className="col" style={{ gap: 'var(--space-2)' }}>
         {CATEGORIES.map((cat) => {
