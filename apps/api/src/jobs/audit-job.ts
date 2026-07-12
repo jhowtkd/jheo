@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq';
 import { FlowProducer, QueueEvents } from 'bullmq';
+import { AUDIT_ORCHESTRATOR_TIMEOUT_MS } from '../audit-timeouts.js';
 import {
   auditOrchestrator,
   auditPageQueue,
@@ -139,14 +140,42 @@ async function runFlowOrchestrator(
     data: { auditId },
     children,
   });
-  // The QueueEvents is scoped to this audit via withAuditPageQueueEvents;
-  // it will be closed (and its pub/sub subscription torn down) when the
-  // callback resolves, the waitUntilFinished timeout fires, or the parent
-  // handler throws. See the helper's docstring for why we do not keep a
-  // module-level singleton.
-  await withAuditPageQueueEvents((queueEvents) =>
-    group.job.waitUntilFinished(queueEvents, 30 * 60 * 1000),
-  );
+  // Race pub/sub completion against a DB terminal poll. Either path is
+  // enough to proceed to score aggregation:
+  //   - waitUntilFinished: normal path when QueueEvents stays healthy
+  //   - waitForPagesTerminal: safety net when pub/sub drops (2026-07-08
+  //     incident) OR when the parent job is about to be stalled — pages
+  //     can already be terminal in Postgres while Redis events never fire
+  await withAuditPageQueueEvents(async (queueEvents) => {
+    let flowSettled = false;
+    const flowDone = group.job
+      .waitUntilFinished(queueEvents, AUDIT_ORCHESTRATOR_TIMEOUT_MS)
+      .finally(() => {
+        flowSettled = true;
+      });
+    const dbDone = waitForPagesTerminal(auditId, pages.length, () => flowSettled);
+    await Promise.race([flowDone, dbDone]);
+  });
+}
+
+/** Poll PageAudit until every row is terminal (or the deadline elapses). */
+async function waitForPagesTerminal(
+  auditId: string,
+  total: number,
+  shouldStop?: () => boolean,
+): Promise<void> {
+  const deadline = Date.now() + AUDIT_ORCHESTRATOR_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    if (shouldStop?.()) return;
+    const done = await prisma.pageAudit.count({
+      where: {
+        auditId,
+        status: { in: ['completed', 'failed', 'skipped'] },
+      },
+    });
+    if (done >= total) return;
+    await new Promise((r) => setTimeout(r, 2_000));
+  }
 }
 
 /**
@@ -171,19 +200,7 @@ async function runPollingOrchestrator(
       url: page.url,
     } satisfies PageAuditJobData);
   }
-  // Poll until all PageAudits are terminal or 30 min
-  const deadline = Date.now() + 30 * 60 * 1000;
-  const total = pages.length;
-  while (Date.now() < deadline) {
-    const done = await prisma.pageAudit.count({
-      where: {
-        auditId,
-        status: { in: ['completed', 'failed', 'skipped'] },
-      },
-    });
-    if (done >= total) return;
-    await new Promise((r) => setTimeout(r, 2_000));
-  }
+  await waitForPagesTerminal(auditId, pages.length);
 }
 
 export function makeAuditHandler(opts: { fetchText: FetchText }) {
@@ -274,38 +291,9 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
         await runFlowOrchestrator(audit.id, pagesWithIds);
       }
 
-      // Aggregate score from PageAudits.
-      const pageAudits = await prisma.pageAudit.findMany({
-        where: { auditId: audit.id, status: 'completed' },
-        select: { score: true },
-      });
-      const pageScores = pageAudits
-        .map((p) => p.score as { overall: number; byCategory?: Record<string, number | null> } | null)
-        .filter((s): s is { overall: number; byCategory?: Record<string, number | null> } => s !== null);
-
-      const categories = ['seo', 'cwv', 'geo', 'a11y', 'content'] as const;
-      const byCategory = Object.fromEntries(
-        categories.map((category) => {
-          const values = pageScores
-            .map((s) => s.byCategory?.[category])
-            .filter((v): v is number => v !== null && v !== undefined);
-          return [category, values.length ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : null];
-        }),
-      );
-      const score = {
-        overall: pageScores.length
-          ? Math.round(pageScores.reduce((sum, s) => sum + s.overall, 0) / pageScores.length)
-          : 0,
-        byCategory,
-        pagesAudited: pageAudits.length,
+      await completeAuditFromPageScores(audit.id, {
         pagesTotal: pagesWithIds.length,
-        discoveryLimitReached: pagesWithIds.length === pages.length, // approximation; can be refined
-      };
-      const finishedAt = new Date();
-
-      await prisma.audit.update({
-        where: { id: audit.id },
-        data: { status: 'completed', finishedAt, score },
+        discoveryLimitReached: pagesWithIds.length === pages.length,
       });
     } catch (err) {
       // Conditional update — only mark 'failed' if the audit is still
@@ -328,5 +316,50 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
       throw err;
     }
   };
+}
+
+/**
+ * Aggregate completed PageAudit scores and mark the parent Audit completed.
+ * Exported so operators / recovery paths can finalize audits whose parent
+ * BullMQ job stalled after every page was already terminal in Postgres.
+ */
+export async function completeAuditFromPageScores(
+  auditId: string,
+  opts?: { pagesTotal?: number; discoveryLimitReached?: boolean },
+): Promise<boolean> {
+  const pageAudits = await prisma.pageAudit.findMany({
+    where: { auditId, status: 'completed' },
+    select: { score: true },
+  });
+  const pageScores = pageAudits
+    .map((p) => p.score as { overall: number; byCategory?: Record<string, number | null> } | null)
+    .filter((s): s is { overall: number; byCategory?: Record<string, number | null> } => s !== null);
+
+  const categories = ['seo', 'cwv', 'geo', 'a11y', 'content'] as const;
+  const byCategory = Object.fromEntries(
+    categories.map((category) => {
+      const values = pageScores
+        .map((s) => s.byCategory?.[category])
+        .filter((v): v is number => v !== null && v !== undefined);
+      return [category, values.length ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : null];
+    }),
+  );
+  const pagesTotal =
+    opts?.pagesTotal ??
+    (await prisma.pageAudit.count({ where: { auditId } }));
+  const score = {
+    overall: pageScores.length
+      ? Math.round(pageScores.reduce((sum, s) => sum + s.overall, 0) / pageScores.length)
+      : 0,
+    byCategory,
+    pagesAudited: pageAudits.length,
+    pagesTotal,
+    discoveryLimitReached: opts?.discoveryLimitReached ?? false,
+  };
+  const result = await prisma.audit.updateMany({
+    where: { id: auditId, status: 'running' },
+    data: { status: 'completed', finishedAt: new Date(), score },
+  });
+  return result.count > 0;
 }
 

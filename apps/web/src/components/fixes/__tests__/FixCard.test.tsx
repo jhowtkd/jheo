@@ -6,6 +6,7 @@ import { ensureI18n, i18n } from '../../../i18n';
 
 const finding = {
   id: 'f1',
+  rule: 'meta.missing-description',
   category: 'seo',
   severity: 'warning',
   message: 'Meta description is missing',

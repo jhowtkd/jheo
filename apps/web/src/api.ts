@@ -1,4 +1,6 @@
+import type { AuditSummary, ExecutiveNarrative } from '@jheo/core';
 import { i18n } from './i18n';
+import { readJsonOrThrow } from './api/readJsonOrThrow.js';
 
 const API = '/api';
 
@@ -19,6 +21,8 @@ const localeFetch: typeof fetch = (input, init) => {
       : undefined);
   return globalThis.fetch(input as RequestInfo | URL, { ...init, headers, ...(signal ? { signal } : {}) });
 };
+
+export { humanError, type HumanError } from './api/errors.js';
 
 export type Project = { id: string; name: string; rootUrl: string; createdAt: string };
 export type Audit = {
@@ -47,7 +51,7 @@ export type Finding = {
 
 export async function listProjects(): Promise<Project[]> {
   const r = await localeFetch(`${API}/projects`);
-  return r.json();
+  return readJsonOrThrow(r, 'projects');
 }
 export async function createProject(input: { domain: string }): Promise<Project> {
   const r = await localeFetch(`${API}/projects`, {
@@ -55,7 +59,7 @@ export async function createProject(input: { domain: string }): Promise<Project>
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
   });
-  return r.json();
+  return readJsonOrThrow(r, 'projects');
 }
 export type PageScore = { overall: number; byCategory: Record<string, number | null> };
 
@@ -129,7 +133,8 @@ export type ProjectHealth = {
 
 export type ProjectDetail = Project & { audits: Audit[]; pages: ProjectPage[] };
 export async function getProject(id: string): Promise<ProjectDetail> {
-  return (await localeFetch(`${API}/projects/${id}`)).json();
+  const r = await localeFetch(`${API}/projects/${id}`);
+  return readJsonOrThrow(r, 'project');
 }
 export async function getProjectPages(
   id: string,
@@ -155,11 +160,11 @@ export async function runAudit(projectId: string): Promise<Audit> {
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ projectId, config: {} }),
   });
-  return r.json();
+  return readJsonOrThrow(r, 'audits');
 }
 export async function getAudit(id: string): Promise<Audit & { findings: Finding[] }> {
   const r = await localeFetch(`${API}/audits/${id}`);
-  return r.json();
+  return readJsonOrThrow(r, 'audit');
 }
 
 export type AuditProgress = {
@@ -461,14 +466,6 @@ export type GscMetricRow = {
   position: number;
 };
 
-async function readJsonOrThrow<T>(r: Response): Promise<T> {
-  const body = await r.json();
-  if (!r.ok) {
-    throw new Error(typeof body?.error === 'string' ? body.error : JSON.stringify(body));
-  }
-  return body as T;
-}
-
 export async function getGscConnection(projectId: string): Promise<GscConnection | null> {
   const r = await localeFetch(`/api/projects/${projectId}/gsc/connection`);
   if (r.status === 404) return null;
@@ -518,21 +515,40 @@ export async function translateTexts(
 ): Promise<Array<{ original: string; translated: string; cached: boolean }>> {
   if (texts.length === 0) return [];
   const targetLocale = i18n.language === 'pt-BR' ? 'pt-BR' : 'en';
-  const res = await localeFetch('/api/translate', {
-    method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'accept-language': targetLocale,
-    },
-    body: JSON.stringify({ texts, targetLocale, context }),
-  });
-  if (!res.ok) {
-    if (res.status === 503) throw new Error('no_llm_provider');
-    if (res.status === 429) throw new Error('rate_limited');
-    throw new Error(`translate failed: ${res.status}`);
+
+  // ponytail: chunk to stay under Fastify's 1 MB bodyLimit — long-form
+  // content (generations/materials) with 50 texts can easily overflow it.
+  const BATCH = 10;
+  const results: Array<{ original: string; translated: string; cached: boolean }> = [];
+  for (let i = 0; i < texts.length; i += BATCH) {
+    const batch = texts.slice(i, i + BATCH);
+    let res: Response | null = null;
+    for (let attempt = 0; attempt < 4; attempt++) {
+      res = await localeFetch('/api/translate', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'accept-language': targetLocale,
+        },
+        body: JSON.stringify({ texts: batch, targetLocale, context }),
+      });
+      if (res.status !== 429) break;
+      const retryAfterSec = Number(res.headers.get('retry-after') ?? '1');
+      await new Promise((resolve) => setTimeout(resolve, Math.max(1, retryAfterSec) * 1000));
+    }
+    if (!res!.ok) {
+      if (res!.status === 503) {
+        const errBody = await res!.json().catch(() => null);
+        if (errBody?.error === 'backend_unavailable') throw new Error('backend_unavailable');
+        throw new Error('no_llm_provider');
+      }
+      if (res!.status === 429) throw new Error('rate_limited');
+      throw new Error(`translate failed: ${res!.status}`);
+    }
+    const body = await res!.json();
+    results.push(...body.translations);
   }
-  const body = await res.json();
-  return body.translations;
+  return results;
 }
 
 // ---------- F7: suggestions ----------
@@ -595,4 +611,26 @@ export async function acceptSuggestion(id: string): Promise<AcceptSuggestionResu
 
 export async function rejectSuggestion(id: string): Promise<Suggestion> {
   return (await localeFetch(`/api/suggestions/${id}/reject`, { method: 'POST' }).then((r) => r.json())) as Suggestion;
+}
+
+// ---------- Executive report (F8) ----------
+export type ExecutiveReportResponse = {
+  status: 'generating' | 'ready' | 'failed';
+  locale: string;
+  generatedAt: string | null;
+  model: string | null;
+  errorMessage: string | null;
+  aggregates: AuditSummary;
+  narrative: ExecutiveNarrative | null;
+};
+
+export async function getExecutiveReport(auditId: string): Promise<ExecutiveReportResponse> {
+  const r = await localeFetch(`${API}/audits/${auditId}/executive-report`);
+  if (r.status === 202) return r.json();
+  if (!r.ok) throw new Error(`Failed to load executive report: ${r.status}`);
+  return r.json();
+}
+
+export function executiveReportExportUrl(auditId: string): string {
+  return `${API}/audits/${auditId}/executive-report/export`;
 }

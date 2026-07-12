@@ -1,7 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { runAudit } from '../api.js';
+import { humanError, runAudit } from '../api.js';
+import { ErrorState } from '../components/states/index.js';
 
 export function AuditRunner() {
   const { t } = useTranslation();
@@ -23,7 +24,10 @@ export function AuditRunner() {
 
       <div className="card" style={{ maxWidth: 560 }}>
         <div className="card__title">{t('audit.runner.readyTitle')}</div>
-        <p className="tiny muted" style={{ marginTop: 'var(--space-2)', marginBottom: 'var(--space-4)' }}>
+        <p
+          className="tiny muted"
+          style={{ marginTop: 'var(--space-2)', marginBottom: 'var(--space-4)' }}
+        >
           {t('audit.runner.readyHint')}
         </p>
         <button
@@ -33,11 +37,19 @@ export function AuditRunner() {
         >
           {run.isPending ? t('audit.runner.starting') : t('audit.runner.start')}
         </button>
-        {run.isError && (
-          <p className="tiny" style={{ color: 'var(--danger)', marginTop: 'var(--space-3)' }}>
-            {(run.error as Error).message}
-          </p>
-        )}
+        {run.isError &&
+          (() => {
+            const e = humanError(run.error);
+            return (
+              <ErrorState
+                titleKey={e.key}
+                {...(e.params ? { params: e.params } : {})}
+                {...(e.retry ? { retry: e.retry } : {})}
+                onRetry={() => run.mutate()}
+                className="tiny"
+              />
+            );
+          })()}
       </div>
     </div>
   );

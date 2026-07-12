@@ -1,6 +1,15 @@
 {
-  "app": { "name": "JHEO", "tagline": "GEO · SEO · conteúdo" },
-  "nav": { "projects": "Projetos", "templates": "Modelos", "settings": "Configurações", "fixes": "Correções" },
+  "app": {
+    "name": "JHEO",
+    "tagline": "GEO · SEO · conteúdo"
+  },
+  "nav": {
+    "projects": "Projetos",
+    "reports": "Relatórios",
+    "templates": "Modelos",
+    "settings": "Configurações",
+    "fixes": "Correções"
+  },
   "sidebar": {
     "workspace": "Espaço de trabalho",
     "userName": "Usuário local",
@@ -12,9 +21,15 @@
     "language": "Idioma",
     "translationUnavailable": "Tradução indisponível",
     "breadcrumb": "Trilha",
-    "filter": "Filtro"
+    "filter": "Filtro",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro"
   },
-  "languages": { "en": "English", "pt-BR": "Português (Brasil)" },
+  "languages": {
+    "en": "English",
+    "pt-BR": "Português (Brasil)"
+  },
   "common": {
     "close": "Fechar",
     "cancel": "Cancelar",
@@ -29,7 +44,8 @@
     "autoRefreshing": "atualizando sozinho · 2s",
     "active": "ativo",
     "inactive": "inativo",
-    "paused": "pausado"
+    "paused": "pausado",
+    "retry": "Tentar novamente"
   },
   "projects": {
     "title": "Projetos",
@@ -56,7 +72,7 @@
       "runAudit": "Rodar auditoria",
       "lastAudit": "Última auditoria",
       "statusLabel": "Status",
-      "pagesCompleted": "{completed} / {total} páginas concluídas ({failed} falharam, {skipped} puladas)",
+      "pagesCompleted": "{{completed}} / {{total}} páginas concluídas ({{failed}} falharam, {{skipped}} puladas)",
       "inProgress": "Em andamento",
       "cancelAudit": "Cancelar auditoria",
       "cancelling": "Cancelando…",
@@ -75,7 +91,7 @@
         "title": "Reauditoria",
         "score": "Score"
       },
-      "footerAudited": "{audited} / {total} auditadas",
+      "footerAudited": "{{audited}} / {{total}} auditadas",
       "stats": {
         "audits": "Auditorias",
         "materials": "Materiais",
@@ -86,6 +102,7 @@
       "openFullReport": "Abrir relatório completo →",
       "overall": "Geral",
       "auditHistory": "Histórico de auditorias",
+      "viewAllReports": "Ver todos os relatórios →",
       "historyStarted": "Iniciada em",
       "historyStatus": "Status",
       "viewLink": "Ver →",
@@ -99,6 +116,11 @@
         "channelsHint": "Onde as gerações aprovadas são publicadas (WordPress, HTTP, agente)"
       },
       "failedToLoad": "Falha ao carregar o projeto.",
+      "secondary": "Mais",
+      "pagesEmpty": {
+        "title": "Ainda não há páginas",
+        "hint": "Rode uma auditoria para descobrir as páginas deste site."
+      },
       "filters": {
         "all": "Tudo",
         "notAudited": "Não auditada",
@@ -143,10 +165,52 @@
       "failed": "Falhou",
       "cancelled": "Cancelada"
     },
-    "actions": { "run": "Rodar auditoria", "cancel": "Cancelar", "view": "Ver resultados" }
+    "actions": {
+      "run": "Rodar auditoria",
+      "cancel": "Cancelar",
+      "view": "Ver resultados"
+    },
+    "executive": {
+      "tabExecutive": "Executivo",
+      "tabTechnical": "Técnico",
+      "generating": "Gerando relatório executivo...",
+      "failed": "Falha ao gerar relatório",
+      "retry": "Tentar novamente",
+      "exportHtml": "Exportar HTML",
+      "impactHigh": "Alto",
+      "impactMedium": "Médio",
+      "impactLow": "Baixo",
+      "gscEmpty": "Conecte o Google Search Console para ver dados de desempenho de pesquisa.",
+      "pagesAudited": "Páginas auditadas",
+      "pagesTotal": "Total de páginas",
+      "pagesFailed": "Páginas com falha",
+      "overallScore": "Score geral",
+      "generatedAt": "Gerado em",
+      "model": "Modelo",
+      "clicks": "Cliques",
+      "impressions": "Impressões",
+      "ctr": "CTR",
+      "lowCtrQueries": "Consultas com baixo CTR",
+      "impact": "Impacto",
+      "affectedPages": "Páginas afetadas",
+      "viewFixes": "Ver Correções",
+      "sections": {
+        "summary": "Resumo Executivo",
+        "scores": "Pontuações por Categoria",
+        "severity": "Severidade dos Problemas",
+        "topIssues": "Principais Problemas",
+        "gsc": "Desempenho de Pesquisa",
+        "scenarios": "Cenários Hipotéticos",
+        "recommendations": "Recomendações"
+      }
+    }
   },
   "findings": {
-    "severities": { "info": "Aviso leve", "warning": "Atenção", "error": "Erro" },
+    "severities": {
+      "info": "Aviso leve",
+      "warning": "Atenção",
+      "error": "Erro"
+    },
     "diff": {
       "NEW": "Novo",
       "UNCHANGED": "Sem mudança",
@@ -174,9 +238,18 @@
     "adding": "Adicionando…",
     "generate": "Gerar a partir dos materiais",
     "types": {
-      "note": { "label": "Nota", "hint": "Texto curto que o gerador usa como fonte" },
-      "url": { "label": "URL", "hint": "Buscar e embutir uma página" },
-      "file": { "label": "Arquivo", "hint": "Subir um documento (PDF / markdown)" }
+      "note": {
+        "label": "Nota",
+        "hint": "Texto curto que o gerador usa como fonte"
+      },
+      "url": {
+        "label": "URL",
+        "hint": "Buscar e embutir uma página"
+      },
+      "file": {
+        "label": "Arquivo",
+        "hint": "Subir um documento (PDF / markdown)"
+      }
     },
     "fields": {
       "title": "Título",
@@ -199,7 +272,7 @@
       "embedding": "Embedding",
       "chars": "caracteres"
     },
-    "deleteConfirm": "Excluir material \"{title}\"?",
+    "deleteConfirm": "Excluir material \"{{title}}\"?",
     "deleteTitle": "Excluir"
   },
   "templates": {
@@ -233,14 +306,14 @@
       "subtitle": "Escolha um modelo + materiais, escreva o prompt e escolha a IA. O worker busca os top-K materiais mais parecidos por embedding e manda para o modelo.",
       "breadcrumb": "compor",
       "templateCard": "Modelo",
-      "activeOption": "Ativo · {name} (v{version})",
+      "activeOption": "Ativo · {{name}} (v{{version}})",
       "selectTemplate": "Selecione um modelo",
       "optionActive": " · ativo",
       "promptCard": "Prompt",
       "promptPlaceholder": "Escreva um post curto sobre maçãs",
       "materialsCard": "Materiais",
       "noMaterials": "Nenhum selecionado — o gerador vai depender só do prompt.",
-      "selectedCount": "{count} selecionados.",
+      "selectedCount": "{{count}} selecionados.",
       "noMaterialsEmpty": "Nenhum material ainda.",
       "addMaterialsLink": "Adicionar alguns →",
       "modelCard": "Modelo de IA",
@@ -258,7 +331,7 @@
     "review": {
       "breadcrumb": "geração",
       "progressTitle": "Geração em andamento",
-      "progressHint": "O status do job é {status}. O modelo MiniMax está escrevendo um rascunho — esta página atualiza sozinha a cada 2s.",
+      "progressHint": "O status do job é {{status}}. O modelo MiniMax está escrevendo um rascunho — esta página atualiza sozinha a cada 2s.",
       "frontmatter": "Frontmatter",
       "sources": "Fontes",
       "score": "score",
@@ -273,7 +346,7 @@
       "sendToReview": "Enviar para revisão",
       "approve": "Aprovar",
       "reject": "Rejeitar",
-      "titleFallback": "Geração {id}"
+      "titleFallback": "Geração {{id}}"
     }
   },
   "channels": {
@@ -294,7 +367,7 @@
       "title": "Nenhum canal configurado",
       "hint": "Canais são gerenciados por canal via API. Use os adaptadores WordPress / HTTP / Agent para mandar as gerações aprovadas a um destino."
     },
-    "deleteConfirm": "Excluir canal \"{name}\"?",
+    "deleteConfirm": "Excluir canal \"{{name}}\"?",
     "editor": {
       "breadcrumb": "canal",
       "configuration": "Configuração",
@@ -321,7 +394,7 @@
       "started": "Iniciada em",
       "finished": "Finalizada em",
       "external": "Externo",
-      "attempts": "tentativas {count}",
+      "attempts": "tentativas {{count}}",
       "lastError": "último erro"
     },
     "actions": {
@@ -332,11 +405,11 @@
       "openBundle": "Abrir pacote"
     },
     "auditTrail": "Trilha de auditoria",
-    "auditTrailHint": "Cada mudança de status grava uma linha de evento imutável. {count} evento(s).",
+    "auditTrailHint": "Cada mudança de status grava uma linha de evento imutável. {{count}} evento(s).",
     "actionsPanel": {
       "title": "Publicar",
       "selectChannels": "Selecione os canais:",
-      "publishTo": "Publicar em {count} canal(is)",
+      "publishTo": "Publicar em {{count}} canal(is)",
       "tableChannel": "Canal",
       "tableStatus": "Status",
       "tableExternal": "Externo",
@@ -345,7 +418,7 @@
       "detail": "detalhe",
       "retry": "Tentar de novo",
       "cancel": "Cancelar",
-      "retrySuffix": " (tentativa {count})"
+      "retrySuffix": " (tentativa {{count}})"
     },
     "bundle": {
       "breadcrumb": "pacote",
@@ -364,14 +437,26 @@
     "storedKeysTitle": "Chaves salvas",
     "addOrUpdateTitle": "Adicionar ou atualizar",
     "presets": {
-      "openai_api_key": { "label": "API key da OpenAI", "hint": "Usada para embeddings + provider padrão de completion" },
-      "openai_embedding_api_key": { "label": "API key de embedding da OpenAI", "hint": "Slot separado quando o completion passa por um terceiro compatível com OpenAI (ex.: MiniMax)" },
-      "anthropic_api_key": { "label": "API key da Anthropic", "hint": "Completion via Anthropic Claude" },
-      "openrouter_api_key": { "label": "API key da OpenRouter", "hint": "Completion via OpenRouter (roteamento multi-modelo)" }
+      "openai_api_key": {
+        "label": "API key da OpenAI",
+        "hint": "Usada para embeddings + provider padrão de completion"
+      },
+      "openai_embedding_api_key": {
+        "label": "API key de embedding da OpenAI",
+        "hint": "Slot separado quando o completion passa por um terceiro compatível com OpenAI (ex.: MiniMax)"
+      },
+      "anthropic_api_key": {
+        "label": "API key da Anthropic",
+        "hint": "Completion via Anthropic Claude"
+      },
+      "openrouter_api_key": {
+        "label": "API key da OpenRouter",
+        "hint": "Completion via OpenRouter (roteamento multi-modelo)"
+      }
     },
     "customSetting": "Configuração personalizada",
-    "updatedAt": "atualizada em {date}",
-    "deleteConfirm": "Excluir \"{key}\"?",
+    "updatedAt": "atualizada em {{date}}",
+    "deleteConfirm": "Excluir \"{{key}}\"?",
     "empty": {
       "title": "Nenhuma chave salva ainda",
       "hint": "Adicione uma abaixo. A API usa fallback de env var quando a chave não está salva, mas as linhas criptografadas em Settings têm prioridade e sobrevivem a restart do container."
@@ -397,9 +482,9 @@
     "syncNow": "Sincronizar agora",
     "syncing": "Sincronizando…",
     "disconnect": "Desconectar",
-    "serviceAccountEmail": "Service account: {email}",
-    "dataThrough": "Dados até {date}",
-    "lastSync": "Última sync {date}",
+    "serviceAccountEmail": "Service account: {{email}}",
+    "dataThrough": "Dados até {{date}}",
+    "lastSync": "Última sync {{date}}",
     "metrics": {
       "clicks": "Cliques",
       "impressions": "Impressões",
@@ -439,7 +524,34 @@
   "errors": {
     "generic": "Algo deu errado. Tente de novo.",
     "no_llm_provider": "Configure um provedor de IA em Configurações para ativar a tradução.",
-    "rate_limited": "Muitas requisições. Aguarde um instante."
+    "rate_limited": "Muitas requisições. Aguarde um instante.",
+    "network": "Sem conexão com o servidor. Verifique sua rede e tente novamente.",
+    "server": "O servidor retornou um erro ({{status}}). Tente novamente.",
+    "backend_down": "O servidor está indisponível. Tente novamente em instantes.",
+    "notFound": "O recurso solicitado não foi encontrado."
+  },
+  "reports": {
+    "title": "Relatórios",
+    "subtitle": "Relatórios de auditorias concluídas em todos os projetos. Abra qualquer um para ver scores e achados.",
+    "filterProject": "Projeto",
+    "allProjects": "Todos os projetos",
+    "filteredBy": "Mostrando relatórios de {{name}}.",
+    "openProject": "Abrir projeto →",
+    "openReport": "Abrir relatório →",
+    "pagesAudited": "{{count}} páginas",
+    "failedToLoad": "Falha ao carregar relatórios.",
+    "columns": {
+      "project": "Projeto",
+      "finished": "Concluída em",
+      "score": "Score",
+      "pages": "Páginas"
+    },
+    "empty": {
+      "title": "Nenhum relatório concluído ainda",
+      "hint": "Rode uma auditoria e aguarde ela terminar. As auditorias concluídas aparecem aqui.",
+      "action": "Rodar auditoria",
+      "actionProjects": "Ir para projetos"
+    }
   },
   "fixes": {
     "title": "Correções",
@@ -476,6 +588,31 @@
       "pageHtmlMissing": "A página não tem captura de HTML. Rode uma nova auditoria da página.",
       "llmInvalid": "O modelo devolveu uma resposta inválida. Tente regenerar.",
       "rateLimited": "Muitas requisições. Espere um minuto e tente de novo."
+    },
+    "chooseProject": {
+      "title": "Escolha um projeto",
+      "hint": "As correções são feitas por projeto. Abra o que você quer revisar.",
+      "viewFixes": "Ver correções",
+      "lastAudit": "Última auditoria",
+      "noAudits": "Nenhuma auditoria ainda — rode uma primeiro.",
+      "goProjects": "Ir para projetos",
+      "noProjects": "Você ainda não tem projetos."
+    },
+    "group": {
+      "toggle": "Agrupar por regra",
+      "count_one": "{{count}} ocorrência",
+      "count_other": "{{count}} ocorrências",
+      "expand": "Ver mais {{count}}",
+      "collapse": "Ocultar",
+      "openFinding": "Abrir achado",
+      "withoutSuggestion": "sem sugestão"
+    },
+    "stats": {
+      "label": "Resumo",
+      "rules": "Regras",
+      "findings": "Achados",
+      "pending": "Pendentes",
+      "accepted": "Aceitas"
     }
   }
 }

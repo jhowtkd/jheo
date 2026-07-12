@@ -1,6 +1,7 @@
 import type { LLMProvider, LLMRequest } from '../llm/types.js';
 import type { SuggestionContext, SuggestionCategory } from './context.js';
 import { suggestionOutputSchema, type SuggestionOutput } from './schema.js';
+import { stripLlmThinking } from '../generation/parse.js';
 import { buildSeoPrompt } from './prompts/seo.js';
 import { buildGeoPrompt } from './prompts/geo.js';
 import { buildCwvPrompt } from './prompts/cwv.js';
@@ -28,7 +29,11 @@ function selectPrompt(ctx: SuggestionContext): string {
 
 function tryParseJson(text: string): unknown | undefined {
   // Strip optional ```json fences the LLM sometimes adds despite instructions.
-  const stripped = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim();
+  // Also drop MiniMax-style `<think>…</think>` prefixes before looking for JSON.
+  const stripped = stripLlmThinking(text)
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/```\s*$/, '')
+    .trim();
   try { return JSON.parse(stripped); } catch { /* fall through */ }
   const firstBrace = stripped.indexOf('{');
   const lastBrace = stripped.lastIndexOf('}');
@@ -53,10 +58,12 @@ export async function runSuggestion(
   // choice the caller (api layer) supplies. The api layer threads the real
   // model name into the persisted `Suggestion.model` field after the call
   // returns. Here we send a default that the provider may ignore; OpenAI
-  // for example uses `req.config.model` as the deployment name.
+  // (and MiniMax-compatible) use `req.config.model` as the deployment name.
+  // Allow override via env so MiniMax deployments can supply e.g.
+  // `JHEO_SUGGESTION_MODEL=MiniMax-M3` without changing source.
   const req: LLMRequest = {
     prompt,
-    config: { model: 'gpt-4o-mini' },
+    config: { model: process.env.JHEO_SUGGESTION_MODEL ?? 'gpt-4o-mini' },
     signal: AbortSignal.timeout(30_000),
   };
   const res = await provider.complete(req, fetchFn);

@@ -51,6 +51,9 @@ const AgentBundleView = lazy(() =>
 const Settings = lazy(() =>
   import('./pages/Settings.js').then((m) => ({ default: m.Settings })),
 );
+const ReportsList = lazy(() =>
+  import('./pages/ReportsList.js').then((m) => ({ default: m.ReportsList })),
+);
 
 function PageFallback() {
   return <p style={{ padding: 24 }}>Loading…</p>;
@@ -71,6 +74,7 @@ export function AppRoutes() {
           <Route path="/templates" element={<TemplatesList />} />
           <Route path="/templates/:templateId" element={<TemplateEditor />} />
           <Route path="/fixes" element={<FixesPage />} />
+          <Route path="/reports" element={<ReportsList />} />
           <Route path="/generations/:generationId" element={<GenerationReview />} />
           <Route path="/projects/:projectId/channels" element={<ChannelsList />} />
           <Route path="/channels/:channelId" element={<ChannelEditor />} />

@@ -7,7 +7,12 @@ import { makeAuditHandler, type FetchText } from './jobs/audit-job.js';
 import { makeGenerateHandler } from './jobs/generate-job.js';
 import { makePublishHandler, type PublishJobData } from './jobs/publish-job.js';
 import { makeGscHandler } from './jobs/gsc-job.js';
+import {
+  AUDIT_LOCK_DURATION_MS,
+  AUDIT_ORCHESTRATOR_TIMEOUT_MS,
+} from './audit-timeouts.js';
 
+export { AUDIT_LOCK_DURATION_MS, AUDIT_ORCHESTRATOR_TIMEOUT_MS };
 const env = loadEnv();
 
 const connection = new IORedis({
@@ -71,6 +76,7 @@ export function startWorkers(fetchText: FetchText) {
       // further.
       concurrency: readInt('AUDIT_CONCURRENCY', 2),
       limiter: readLimiter('AUDIT_LIMITER', { max: 60, ms: 60_000 }),
+      lockDuration: AUDIT_LOCK_DURATION_MS,
       ...RETRY_POLICY,
     },
   );

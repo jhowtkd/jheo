@@ -32,6 +32,7 @@ export type {
 export {
   runGeneration,
   buildSystemPrompt,
+  stripLlmThinking,
   type RetrievedMaterial,
   type GenerationContext,
   type GenerationResult,
@@ -75,3 +76,17 @@ export {
   type UrlInspectionResult,
 } from './gsc/index.js';
 export * from './suggestions/index.js';
+export {
+  AuditSummarySchema,
+  ExecutiveNarrativeSchema,
+  buildAuditSummary,
+  runExecutiveReport,
+  ExecutiveReportLlmError,
+  renderCategoryBarsSvg,
+  renderSeverityDonutSvg,
+  type AuditSummary,
+  type GscReportSummary,
+  type ExecutiveNarrative,
+  type ExecutiveReportRecord,
+  type TopRuleSummary,
+} from './reports/index.js';

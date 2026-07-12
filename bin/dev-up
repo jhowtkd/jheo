@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# bin/dev-up — best-effort local stack bootstrap for JHEO (S1 / A1).
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+COMPOSE=(docker compose -f "$ROOT/docker/docker-compose.yml" --env-file "$ROOT/docker/.env")
+API_PORT="${API_PORT:-8080}"
+HEALTH_URL="http://127.0.0.1:${API_PORT}/api/health"
+DOCKER_WAIT_SECS="${DOCKER_WAIT_SECS:-60}"
+HEALTH_WAIT_SECS="${HEALTH_WAIT_SECS:-120}"
+
+if [[ ! -f "$ROOT/docker/.env" ]]; then
+  echo "Creating docker/.env from docker/.env.example (all defaults)."
+  cp "$ROOT/docker/.env.example" "$ROOT/docker/.env"
+fi
+
+echo "==> Waiting for Docker daemon (up to ${DOCKER_WAIT_SECS}s)…"
+deadline=$((SECONDS + DOCKER_WAIT_SECS))
+until docker info >/dev/null 2>&1; do
+  if (( SECONDS >= deadline )); then
+    echo "Docker is not reachable."
+    echo "On macOS: open Docker Desktop, wait until it is healthy, then re-run: pnpm run dev-up"
+    if command -v osascript >/dev/null 2>&1; then
+      echo "Tip: open -a Docker"
+    fi
+    exit 1
+  fi
+  sleep 2
+done
+echo "Docker OK."
+
+echo "==> compose up -d --build"
+"${COMPOSE[@]}" up -d --build
+
+echo "==> Waiting for ${HEALTH_URL} (up to ${HEALTH_WAIT_SECS}s)…"
+deadline=$((SECONDS + HEALTH_WAIT_SECS))
+until curl -fsS "$HEALTH_URL" >/dev/null 2>&1; do
+  if (( SECONDS >= deadline )); then
+    echo "API health check did not pass."
+    echo "Inspect: pnpm run compose:logs"
+    echo "If tables are missing: docker exec \$(docker compose -f docker/docker-compose.yml ps -q api) prisma migrate deploy"
+    exit 1
+  fi
+  sleep 2
+done
+
+echo "API healthy at ${HEALTH_URL}"
+echo "Next: pnpm --filter @jheo/web dev  →  http://127.0.0.1:5173"
+echo "Or open the compose UI if you serve the built SPA from the API."

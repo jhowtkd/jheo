@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import type { LLMProvider, LLMRequest } from '@jheo/core';
+import { stripLlmThinking, type LLMProvider, type LLMRequest } from '@jheo/core';
 import type { PrismaClient } from '@prisma/client';
 import type { SupportedLocale } from './locale.js';
 import { buildTranslationSystemPrompt } from './system-prompt.js';
@@ -98,14 +98,37 @@ export async function translateBatch(
 
     const system = buildTranslationSystemPrompt(targetLocale);
     const userPrompt = toTranslate.map((t) => t.text).join('\n');
+    // Same override pattern as F7 suggestions: MiniMax (and other
+    // OpenAI-compatible hosts) reject OpenAI model ids like `gpt-4o-mini`.
+    // Prefer a translate-specific override, then fall back to the suggestion
+    // model so a single `JHEO_SUGGESTION_MODEL=MiniMax-M3` covers both.
+    const model =
+      process.env.JHEO_TRANSLATE_MODEL ??
+      process.env.JHEO_SUGGESTION_MODEL ??
+      'gpt-4o-mini';
+    // #region agent log
+    fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fb8da3'},body:JSON.stringify({sessionId:'fb8da3',runId:'post-fix',hypothesisId:'A',location:'translate.ts:model',message:'translateBatch model selected',data:{model,baseUrlSet:Boolean(process.env.OPENAI_BASE_URL),missCount:toTranslate.length,targetLocale,context},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     const req: LLMRequest = {
       prompt: userPrompt,
       system,
-      config: { model: 'gpt-4o-mini', temperature: 0.2 },
+      config: { model, temperature: 0.2 },
       signal: AbortSignal.timeout(30_000),
     };
-    const res = await provider.complete(req, deps.fetchFn);
-    const translated = splitTranslations(res.text, toTranslate.length, deps.logFn);
+    let res;
+    try {
+      res = await provider.complete(req, deps.fetchFn);
+    } catch (e) {
+      // #region agent log
+      fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fb8da3'},body:JSON.stringify({sessionId:'fb8da3',runId:'post-fix',hypothesisId:'A',location:'translate.ts:complete-error',message:'translateBatch LLM complete failed',data:{model,err:e instanceof Error ? e.message.slice(0,200) : String(e)},timestamp:Date.now()})}).catch(()=>{});
+      // #endregion
+      throw e;
+    }
+    const cleaned = stripLlmThinking(res.text);
+    // #region agent log
+    fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fb8da3'},body:JSON.stringify({sessionId:'fb8da3',runId:'post-fix',hypothesisId:'B',location:'translate.ts:complete-ok',message:'translateBatch LLM complete ok',data:{model,provider:res.provider,resModel:res.model,rawLen:res.text.length,cleanedLen:cleaned.length,rawHadThink:/<think>/i.test(res.text),cleanedPreview:cleaned.slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+    const translated = splitTranslations(cleaned, toTranslate.length, deps.logFn);
 
     await Promise.all(
       toTranslate.map(async (t, i) => {

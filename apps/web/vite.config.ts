@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { sendBackendUnavailable } from './src/dev/backendUnavailable';
+
+const apiTarget = `http://127.0.0.1:${process.env.JHEO_API_PORT ?? '8080'}`;
 
 export default defineConfig({
   plugins: [react()],
@@ -9,7 +12,24 @@ export default defineConfig({
     // Forward `/api/*` to the Fastify backend. Default port 8080; override
     // via `JHEO_API_PORT` env var (e.g. when running alongside the docker
     // stack on a remapped port).
-    proxy: { '/api': `http://127.0.0.1:${process.env.JHEO_API_PORT ?? '8080'}` },
+    proxy: {
+      '/api': {
+        target: apiTarget,
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on('error', (_err, _req, res) => {
+            // http-proxy may pass a Socket; only Node ServerResponse has writeHead.
+            const r = res as { headersSent?: boolean; writeHead?: Function; end?: Function };
+            if (r && typeof r.writeHead === 'function' && typeof r.end === 'function') {
+              sendBackendUnavailable(
+                { headersSent: r.headersSent, writeHead: r.writeHead.bind(r), end: r.end.bind(r) },
+                5,
+              );
+            }
+          });
+        },
+      },
+    },
   },
   build: {
     outDir: 'dist',

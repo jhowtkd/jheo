@@ -1,6 +1,14 @@
-import { LOCALE_NAMES, negotiateLocale, type SupportedLocale } from '@jheo/core';
+// Locally vendored — see ./locale-base.ts for the rationale.
+import {
+  LOCALE_NAMES,
+  negotiateLocale,
+  localeDisplayName,
+  type SupportedLocale,
+} from './locale-base.js';
 
-export { LOCALE_NAMES, negotiateLocale, type SupportedLocale };
+// Re-export so consumers of `locale.ts` keep working.
+export { LOCALE_NAMES, negotiateLocale, localeDisplayName };
+export type { SupportedLocale };
 
 /** Resolution order for the SPA: localStorage > navigator.language > en default. */
 export function resolveInitialLocale(): SupportedLocale {

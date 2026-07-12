@@ -9,6 +9,7 @@ import {
   getProject,
   getProjectHealth,
   getProjectPages,
+  humanError,
   listMaterials,
   listChannels,
   listGenerations,
@@ -17,8 +18,15 @@ import {
 import { ScoreCard } from '../components/ScoreCard.js';
 import { FilterBar, type FilterOption } from '../components/FilterBar.js';
 import { FindingList } from '../components/FindingList.js';
+import { EmptyState, ErrorState } from '../components/states/index.js';
 
-type FilterValue = 'all' | 'not_audited' | 'with_error' | 'discovered_via:sitemap' | 'discovered_via:crawl' | 'discovered_via:root';
+type FilterValue =
+  | 'all'
+  | 'not_audited'
+  | 'with_error'
+  | 'discovered_via:sitemap'
+  | 'discovered_via:crawl'
+  | 'discovered_via:root';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -36,6 +44,9 @@ export function ProjectDashboard() {
   const [filter, setFilter] = useState<FilterValue>('all');
   const apiFilter = filter === 'all' ? undefined : filter;
   const [openPageAuditId, setOpenPageAuditId] = useState<string | null>(null);
+  // { err, pageId } so the error banner can truly re-invoke the failed re-audit
+  // instead of only dismissing (the variables/pageId flow up from useMutation).
+  const [actionError, setActionError] = useState<{ err: unknown; pageId: string } | null>(null);
 
   const project = useQuery({
     queryKey: ['project', projectId],
@@ -56,7 +67,8 @@ export function ProjectDashboard() {
 
   const pages = useQuery({
     queryKey: ['project-pages', projectId, apiFilter],
-    queryFn: () => getProjectPages(projectId!, apiFilter ? { filter: apiFilter, limit: 200 } : { limit: 200 }),
+    queryFn: () =>
+      getProjectPages(projectId!, apiFilter ? { filter: apiFilter, limit: 200 } : { limit: 200 }),
     enabled: Boolean(projectId),
     refetchInterval: auditLive ? 5_000 : false,
   });
@@ -77,7 +89,10 @@ export function ProjectDashboard() {
     queryFn: () => listGenerations(projectId!),
     enabled: !!projectId,
     refetchInterval: (q) => {
-      const items = q.state.data ?? [];
+      // When the underlying request errors, `state.data` is the parsed error
+      // envelope (an object), not the list. Guard with Array.isArray so a
+      // transient 5xx doesn't tear the dashboard down.
+      const items = Array.isArray(q.state.data) ? q.state.data : [];
       const live = items.some((g) => g.status === 'queued' || g.status === 'running');
       return live ? 5_000 : false;
     },
@@ -105,7 +120,9 @@ export function ProjectDashboard() {
     queryFn: () => getPageAuditDetail(openPageAuditId!),
     enabled: Boolean(openPageAuditId),
     refetchInterval: (query) =>
-      query.state.data?.status === 'queued' || query.state.data?.status === 'running' ? 1_000 : false,
+      query.state.data?.status === 'queued' || query.state.data?.status === 'running'
+        ? 1_000
+        : false,
   });
 
   const reAudit = useMutation({
@@ -113,9 +130,8 @@ export function ProjectDashboard() {
     onSuccess: (data) => {
       setOpenPageAuditId(data.pageAuditId);
     },
-    onError: (err: Error) => {
-      // eslint-disable-next-line no-alert
-      window.alert(err.message);
+    onError: (err: Error, pageId: string) => {
+      setActionError({ err, pageId });
     },
   });
 
@@ -123,18 +139,34 @@ export function ProjectDashboard() {
     return (
       <div className="page">
         <div className="skeleton skeleton--title" style={{ marginBottom: 'var(--space-3)' }} />
-        <div className="skeleton skeleton--text" style={{ width: '30%', marginBottom: 'var(--space-8)' }} />
+        <div
+          className="skeleton skeleton--text"
+          style={{ width: '30%', marginBottom: 'var(--space-8)' }}
+        />
         <div className="skeleton skeleton--card" />
       </div>
     );
   }
-  if (project.isError) return <p>{t('projects.dashboard.failedToLoad')}</p>;
+  if (project.isError) {
+    const he = humanError(project.error);
+    return (
+      <div className="page">
+        <ErrorState
+          titleKey={he.key}
+          {...(he.params ? { params: he.params } : {})}
+          {...(he.retry ? { retry: he.retry } : {})}
+          onRetry={() => void project.refetch()}
+        />
+      </div>
+    );
+  }
   if (!project.data) return <p>{t('common.notFound')}</p>;
 
   const h = health.data;
   const inFlight = (h?.pagesTotal ?? 0) - (h?.pagesAudited ?? 0) > 0;
   const p = project.data;
   const latest = p.audits[0];
+  const actionHE = actionError ? humanError(actionError.err) : null;
 
   const filterOptions: FilterOption<FilterValue>[] = [
     { value: 'all', label: t('projects.dashboard.filters.all') },
@@ -151,7 +183,9 @@ export function ProjectDashboard() {
       <header className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
+            <Link to="/projects" className="muted tiny">
+              {t('nav.projects')}
+            </Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{p.name}</span>
           </div>
@@ -163,8 +197,35 @@ export function ProjectDashboard() {
         </Link>
       </header>
 
+      {/* actionError — page-level re-audit failure (no window.alert) */}
+      {actionHE && actionError && (
+        <ErrorState
+          titleKey={actionHE.key}
+          {...(actionHE.params ? { params: actionHE.params } : {})}
+          retry
+          onRetry={() => {
+            const pageId = actionError.pageId;
+            setActionError(null);
+            reAudit.mutate(pageId);
+          }}
+        />
+      )}
+
       {/* Health card */}
       <ScoreCard health={h} />
+
+      {/* Actions — secondary navigation (does not compete with Run audit) */}
+      <nav className="row" style={{ gap: 'var(--space-2)', flexWrap: 'wrap' }}>
+        <Link to={`/projects/${projectId}/compose`} className="btn btn--secondary btn--sm">
+          {t('projects.dashboard.quickLinks.generate')}
+        </Link>
+        <Link to={`/projects/${projectId}/channels`} className="btn btn--secondary btn--sm">
+          {t('projects.dashboard.quickLinks.channels')}
+        </Link>
+        <Link to={`/projects/${projectId}/materials`} className="btn btn--secondary btn--sm">
+          {t('projects.dashboard.quickLinks.materials')}
+        </Link>
+      </nav>
 
       {/* Phase 3 T7: Last audit progress + cancel */}
       {lastAudit && (
@@ -184,7 +245,9 @@ export function ProjectDashboard() {
                 })}
               </p>
               {progress.data.currentPages.length > 0 && (
-                <p>{t('projects.dashboard.inProgress')}: {progress.data.currentPages.join(', ')}</p>
+                <p>
+                  {t('projects.dashboard.inProgress')}: {progress.data.currentPages.join(', ')}
+                </p>
               )}
               <div
                 style={{
@@ -216,7 +279,9 @@ export function ProjectDashboard() {
               disabled={cancel.isPending}
               style={{ marginTop: 'var(--space-3)' }}
             >
-              {cancel.isPending ? t('projects.dashboard.cancelling') : t('projects.dashboard.cancelAudit')}
+              {cancel.isPending
+                ? t('projects.dashboard.cancelling')
+                : t('projects.dashboard.cancelAudit')}
             </button>
           )}
         </div>
@@ -225,53 +290,65 @@ export function ProjectDashboard() {
       {/* Filter bar */}
       <FilterBar value={filter} onChange={setFilter} options={filterOptions} />
 
-      {/* Pages table */}
-      <div className="card" style={{ padding: 0, overflow: 'auto' }}>
-        <table className="table">
-          <thead>
-            <tr>
-              <th>{t('projects.dashboard.pagesTable.url')}</th>
-              <th>{t('projects.dashboard.pagesTable.source')}</th>
-              <th>{t('projects.dashboard.pagesTable.lastAudited')}</th>
-              <th>{t('projects.dashboard.pagesTable.score')}</th>
-              <th>{t('projects.dashboard.pagesTable.action')}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pages.data?.items.map((page) => (
-              <tr key={page.id}>
-                <td>
-                  <a href={page.url} target="_blank" rel="noreferrer" className="mono">
-                    {page.url}
-                  </a>
-                </td>
-                <td>
-                  <span className={`tag tag--${page.discoveredVia}`}>{page.discoveredVia}</span>
-                </td>
-                <td>{page.lastAuditedAt ? new Date(page.lastAuditedAt).toLocaleString() : '—'}</td>
-                <td>{page.lastScore ? Math.round(page.lastScore.overall) : '—'}</td>
-                <td>
-                  <button
-                    type="button"
-                    className="btn btn--secondary btn--sm"
-                    onClick={() => reAudit.mutate(page.id)}
-                    disabled={reAudit.isPending}
-                  >
-                    {reAudit.isPending ? t('projects.dashboard.pagesTable.queuing') : t('projects.dashboard.pagesTable.reAudit')}
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {pages.data?.items.length === 0 && (
+      {/* Pages — empty state when zero pages and no filter; else the table */}
+      {pages.data && pages.data.total === 0 && filter === 'all' ? (
+        <EmptyState
+          titleKey="projects.dashboard.pagesEmpty.title"
+          hintKey="projects.dashboard.pagesEmpty.hint"
+          cta={{ to: `/projects/${projectId}/audit`, labelKey: 'projects.dashboard.runAudit' }}
+        />
+      ) : (
+        <div className="card" style={{ padding: 0, overflow: 'auto' }}>
+          <table className="table">
+            <thead>
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
-                  {t('projects.dashboard.pagesTable.noMatch')}
-                </td>
+                <th>{t('projects.dashboard.pagesTable.url')}</th>
+                <th>{t('projects.dashboard.pagesTable.source')}</th>
+                <th>{t('projects.dashboard.pagesTable.lastAudited')}</th>
+                <th>{t('projects.dashboard.pagesTable.score')}</th>
+                <th>{t('projects.dashboard.pagesTable.action')}</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {pages.data?.items.map((page) => (
+                <tr key={page.id}>
+                  <td>
+                    <a href={page.url} target="_blank" rel="noreferrer" className="mono">
+                      {page.url}
+                    </a>
+                  </td>
+                  <td>
+                    <span className={`tag tag--${page.discoveredVia}`}>{page.discoveredVia}</span>
+                  </td>
+                  <td>
+                    {page.lastAuditedAt ? new Date(page.lastAuditedAt).toLocaleString() : '—'}
+                  </td>
+                  <td>{page.lastScore ? Math.round(page.lastScore.overall) : '—'}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="btn btn--secondary btn--sm"
+                      onClick={() => reAudit.mutate(page.id)}
+                      disabled={reAudit.isPending}
+                    >
+                      {reAudit.isPending
+                        ? t('projects.dashboard.pagesTable.queuing')
+                        : t('projects.dashboard.pagesTable.reAudit')}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {pages.data?.items.length === 0 && (
+                <tr>
+                  <td colSpan={5} style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+                    {t('projects.dashboard.pagesTable.noMatch')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* F5.4 T4: re-audit diff modal */}
       {openPageAuditId && detail.data && (
@@ -293,12 +370,22 @@ export function ProjectDashboard() {
               {t('projects.dashboard.diffModal.title')}: {detail.data.url}
             </h2>
             <p style={{ color: 'var(--text-muted)', margin: 0, marginBottom: 'var(--space-4)' }}>
-              {t('projects.dashboard.statusLabel')}: <strong style={{ color: 'var(--text)' }}>{detail.data.status}</strong>
+              {t('projects.dashboard.statusLabel')}:{' '}
+              <strong style={{ color: 'var(--text)' }}>{detail.data.status}</strong>
               {detail.data.score && (
-                <> · {t('projects.dashboard.diffModal.score')}: <strong style={{ color: 'var(--text)' }}>{detail.data.score.overall}</strong></>
+                <>
+                  {' '}
+                  · {t('projects.dashboard.diffModal.score')}:{' '}
+                  <strong style={{ color: 'var(--text)' }}>{detail.data.score.overall}</strong>
+                </>
               )}
             </p>
-            <FindingList findings={detail.data.findings as unknown as Parameters<typeof FindingList>[0]["findings"]} fixed={detail.data.fixed} />
+            <FindingList
+              findings={
+                detail.data.findings as unknown as Parameters<typeof FindingList>[0]['findings']
+              }
+              fixed={detail.data.fixed}
+            />
           </div>
         </div>
       )}
@@ -317,144 +404,188 @@ export function ProjectDashboard() {
         }}
       >
         <span className="mono">
-          {t('projects.dashboard.footerAudited', { audited: h?.pagesAudited ?? 0, total: h?.pagesTotal ?? 0 })}
+          {t('projects.dashboard.footerAudited', {
+            audited: h?.pagesAudited ?? 0,
+            total: h?.pagesTotal ?? 0,
+          })}
         </span>
         {inFlight && <span className="spinner" aria-label={t('common.inProgress')} />}
       </footer>
 
-      {/* Stat tiles — restored from F1 */}
-      <section>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-            gap: 'var(--space-3)',
-          }}
+      {/* Secondary — below-the-fold reference material */}
+      <div className="dashboard__secondary">
+        <p
+          className="tiny muted"
+          style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}
         >
-          <StatTile
-            label={t('projects.dashboard.stats.audits')}
-            value={p.audits.length}
-            {...(latest?.status === 'completed' ? { accent: 'success' as const } : {})}
-          />
-          <StatTile label={t('projects.dashboard.stats.materials')} value={materials.data?.length ?? '—'} />
-          <StatTile label={t('projects.dashboard.stats.generations')} value={generations.data?.length ?? '—'} />
-          <StatTile label={t('projects.dashboard.stats.channels')} value={channels.data?.length ?? '—'} />
-        </div>
-      </section>
+          {t('projects.dashboard.secondary')}
+        </p>
 
-      {/* Latest audit score — restored from F1 */}
-      {latest?.score && (
+        {/* Stat tiles — restored from F1 */}
         <section>
-          <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
-            <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>{t('projects.dashboard.latestAudit')}</h2>
-            <Link to={`/audits/${latest.id}`} className="tiny">
-              {t('projects.dashboard.openFullReport')}
-            </Link>
-          </div>
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: 'minmax(200px, auto) 1fr',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
               gap: 'var(--space-3)',
-              alignItems: 'stretch',
             }}
           >
-            <div className="card" style={{ padding: 'var(--space-5)' }}>
-              <div
-                className="tiny"
-                style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600, marginBottom: 'var(--space-2)' }}
-              >
-                {t('projects.dashboard.overall')}
-              </div>
-              <div
-                className="tabular"
-                style={{
-                  fontSize: 'var(--fs-2xl)',
-                  fontWeight: 700,
-                  letterSpacing: '-0.025em',
-                }}
-              >
-                {latest.score.overall}
-              </div>
+            <StatTile
+              label={t('projects.dashboard.stats.audits')}
+              value={p.audits.length}
+              {...(latest?.status === 'completed' ? { accent: 'success' as const } : {})}
+            />
+            <StatTile
+              label={t('projects.dashboard.stats.materials')}
+              value={materials.data?.length ?? '—'}
+            />
+            <StatTile
+              label={t('projects.dashboard.stats.generations')}
+              value={generations.data?.length ?? '—'}
+            />
+            <StatTile
+              label={t('projects.dashboard.stats.channels')}
+              value={channels.data?.length ?? '—'}
+            />
+          </div>
+        </section>
+
+        {/* Latest audit score — restored from F1 */}
+        {latest?.score && (
+          <section>
+            <div className="spread" style={{ marginBottom: 'var(--space-4)' }}>
+              <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>
+                {t('projects.dashboard.latestAudit')}
+              </h2>
+              <Link to={`/audits/${latest.id}`} className="tiny">
+                {t('projects.dashboard.openFullReport')}
+              </Link>
             </div>
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                gridTemplateColumns: 'minmax(200px, auto) 1fr',
                 gap: 'var(--space-3)',
+                alignItems: 'stretch',
               }}
             >
-              {Object.entries(latest.score.byCategory).map(([k, v]) => (
-                <CategoryScoreCard key={k} label={k} value={v} />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Audit history — restored from F1 */}
-      {p.audits.length > 0 && (
-        <section>
-          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('projects.dashboard.auditHistory')}</h2>
-          <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('projects.dashboard.historyStatus')}</th>
-                  <th>{t('projects.dashboard.historyStarted')}</th>
-                  <th style={{ textAlign: 'right' }}>{t('projects.dashboard.overall')}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {p.audits.map((a) => (
-                  <tr key={a.id}>
-                    <td><span className={`badge badge--${a.status}`}>{a.status}</span></td>
-                    <td className="tiny tabular muted">{a.startedAt ? formatDate(a.startedAt) : '—'}</td>
-                    <td className="tabular" style={{ textAlign: 'right', fontWeight: 600 }}>
-                      {a.score?.overall ?? '—'}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link to={`/audits/${a.id}`} className="tiny">{t('projects.dashboard.viewLink')}</Link>
-                    </td>
-                  </tr>
+              <div className="card" style={{ padding: 'var(--space-5)' }}>
+                <div
+                  className="tiny"
+                  style={{
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.08em',
+                    fontWeight: 600,
+                    marginBottom: 'var(--space-2)',
+                  }}
+                >
+                  {t('projects.dashboard.overall')}
+                </div>
+                <div
+                  className="tabular"
+                  style={{
+                    fontSize: 'var(--fs-2xl)',
+                    fontWeight: 700,
+                    letterSpacing: '-0.025em',
+                  }}
+                >
+                  {latest.score.overall}
+                </div>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
+                  gap: 'var(--space-3)',
+                }}
+              >
+                {Object.entries(latest.score.byCategory).map(([k, v]) => (
+                  <CategoryScoreCard key={k} label={k} value={v} />
                 ))}
-              </tbody>
-            </table>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Audit history — restored from F1 */}
+        {p.audits.length > 0 && (
+          <section>
+            <div className="spread" style={{ marginBottom: 'var(--space-3)' }}>
+              <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>
+                {t('projects.dashboard.auditHistory')}
+              </h2>
+              <Link to={`/reports?projectId=${projectId}`} className="tiny">
+                {t('projects.dashboard.viewAllReports')}
+              </Link>
+            </div>
+            <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t('projects.dashboard.historyStatus')}</th>
+                    <th>{t('projects.dashboard.historyStarted')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('projects.dashboard.overall')}</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {p.audits.map((a) => (
+                    <tr key={a.id}>
+                      <td>
+                        <span className={`badge badge--${a.status}`}>{a.status}</span>
+                      </td>
+                      <td className="tiny tabular muted">
+                        {a.startedAt ? formatDate(a.startedAt) : '—'}
+                      </td>
+                      <td className="tabular" style={{ textAlign: 'right', fontWeight: 600 }}>
+                        {a.score?.overall ?? '—'}
+                      </td>
+                      <td style={{ textAlign: 'right' }}>
+                        <Link to={`/audits/${a.id}`} className="tiny">
+                          {t('projects.dashboard.viewLink')}
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
+        {/* Workspace quick links — preserved from F2/F3 (materials, channels, generations) */}
+        <section>
+          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>
+            {t('projects.dashboard.workspace')}
+          </h2>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+              gap: 'var(--space-3)',
+            }}
+          >
+            <QuickLink
+              to={`/projects/${projectId}/materials`}
+              label={t('projects.dashboard.quickLinks.materials')}
+              hint={t('projects.dashboard.quickLinks.materialsHint')}
+              {...(materials.data ? { count: materials.data.length } : {})}
+            />
+            <QuickLink
+              to={`/projects/${projectId}/compose`}
+              label={t('projects.dashboard.quickLinks.generate')}
+              hint={t('projects.dashboard.quickLinks.generateHint')}
+              {...(generations.data ? { count: generations.data.length } : {})}
+            />
+            <QuickLink
+              to={`/projects/${projectId}/channels`}
+              label={t('projects.dashboard.quickLinks.channels')}
+              hint={t('projects.dashboard.quickLinks.channelsHint')}
+              {...(channels.data ? { count: channels.data.length } : {})}
+            />
           </div>
         </section>
-      )}
-
-      {/* Workspace quick links — preserved from F2/F3 (materials, channels, generations) */}
-      <section>
-        <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('projects.dashboard.workspace')}</h2>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-            gap: 'var(--space-3)',
-          }}
-        >
-          <QuickLink
-            to={`/projects/${projectId}/materials`}
-            label={t('projects.dashboard.quickLinks.materials')}
-            hint={t('projects.dashboard.quickLinks.materialsHint')}
-            {...(materials.data ? { count: materials.data.length } : {})}
-          />
-          <QuickLink
-            to={`/projects/${projectId}/compose`}
-            label={t('projects.dashboard.quickLinks.generate')}
-            hint={t('projects.dashboard.quickLinks.generateHint')}
-            {...(generations.data ? { count: generations.data.length } : {})}
-          />
-          <QuickLink
-            to={`/projects/${projectId}/channels`}
-            label={t('projects.dashboard.quickLinks.channels')}
-            hint={t('projects.dashboard.quickLinks.channelsHint')}
-            {...(channels.data ? { count: channels.data.length } : {})}
-          />
-        </div>
-      </section>
+      </div>
     </div>
   );
 }
@@ -478,7 +609,10 @@ function StatTile({
         gap: 'var(--space-1)',
       }}
     >
-      <span className="tiny" style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}>
+      <span
+        className="tiny"
+        style={{ textTransform: 'uppercase', letterSpacing: '0.08em', fontWeight: 600 }}
+      >
         {label}
       </span>
       <span
@@ -546,11 +680,11 @@ function QuickLink({
     >
       <div className="spread">
         <span style={{ fontWeight: 600 }}>{label}</span>
-        {count !== undefined && (
-          <span className="tabular tiny muted">{count}</span>
-        )}
+        {count !== undefined && <span className="tabular tiny muted">{count}</span>}
       </div>
-      <p className="tiny muted" style={{ margin: 0, lineHeight: 1.5 }}>{hint}</p>
+      <p className="tiny muted" style={{ margin: 0, lineHeight: 1.5 }}>
+        {hint}
+      </p>
     </Link>
   );
 }

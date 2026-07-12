@@ -5,7 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { AppRoutes } from './routes.js';
 import { queryClient } from './queryClient.js';
 import { ensureI18n } from './i18n';
+import { applyStoredTheme } from './theme/theme.js';
 import './styles.css';
+
+applyStoredTheme();
 
 ensureI18n().then(() => {
   createRoot(document.getElementById('root')!).render(

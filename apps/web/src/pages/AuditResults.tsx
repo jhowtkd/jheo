@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useParams, Link } from 'react-router-dom';
+import { ExecutiveReportView } from './ExecutiveReportView.js';
+import { FilterBar } from '../components/FilterBar.js';
 import { FindingList } from '../components/FindingList.js';
 import { ScoreCard } from '../components/ScoreCard.js';
 import { getAudit, type Finding, type ProjectHealth } from '../api.js';
@@ -8,6 +11,7 @@ import { getAudit, type Finding, type ProjectHealth } from '../api.js';
 export function AuditResults() {
   const { t } = useTranslation();
   const { auditId } = useParams<{ auditId: string }>();
+  const [tab, setTab] = useState<'executive' | 'technical'>('executive');
   const q = useQuery({
     queryKey: ['audit', auditId],
     queryFn: () => getAudit(auditId!),
@@ -30,6 +34,7 @@ export function AuditResults() {
   }
   const a = q.data;
   const isPending = a.status === 'running' || a.status === 'queued';
+  const effectiveTab = a.status === 'completed' ? tab : 'technical';
   const findings = a.findings as Finding[];
   const findingsByCategory = groupByCategory(findings);
   const { error: errorCount, warning: warningCount, info: infoCount } = tallySeverities(findings);
@@ -56,6 +61,25 @@ export function AuditResults() {
         </div>
       </div>
 
+      {a.status === 'completed' && (
+        <div style={{ marginBottom: 'var(--space-6)' }}>
+          <FilterBar
+            value={tab}
+            onChange={setTab}
+            options={[
+              { value: 'executive', label: t('audit.executive.tabExecutive') },
+              { value: 'technical', label: t('audit.executive.tabTechnical') },
+            ]}
+          />
+        </div>
+      )}
+
+      {effectiveTab === 'executive' && (
+        <ExecutiveReportView auditId={a.id} />
+      )}
+
+      {effectiveTab === 'technical' && (
+      <>
       {a.score && (
         <div style={{ marginBottom: 'var(--space-8)' }}>
           <ScoreCard
@@ -114,6 +138,8 @@ export function AuditResults() {
       </div>
 
       <FindingList findings={findings} byCategory={findingsByCategory} />
+      </>
+      )}
     </div>
   );
 }

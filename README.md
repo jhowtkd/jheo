@@ -8,6 +8,20 @@ accessibility, content, and overall. The SPA dashboard consumes the same API.
 
 ## Quickstart
 
+### Local bootstrap (recommended)
+
+```bash
+pnpm run dev-up          # Docker daemon → compose up → wait for /api/health
+pnpm --filter @jheo/web dev
+open http://127.0.0.1:5173
+```
+
+`pnpm run dev-up` waits for the Docker daemon, runs `compose up -d --build`, and
+polls `/api/health` until it returns 200. If `docker/.env` is missing it is
+copied from `.env.example` automatically.
+
+### Alternative: raw compose
+
 ```bash
 cp docker/.env.example docker/.env   # only required if you want to override defaults
 docker compose -f docker/docker-compose.yml up -d --build

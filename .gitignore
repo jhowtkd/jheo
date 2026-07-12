@@ -9,3 +9,10 @@ coverage
 playwright-report
 test-results
 docker/postgres-data
+
+# Local scratch / throwaway screenshots
+/tmp/
+tmp/
+
+# Brainstorm companion sessions / local SDD scratch
+.superpowers/
