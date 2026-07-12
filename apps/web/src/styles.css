@@ -1204,3 +1204,10 @@ h1, h2, h3, h4, h5 {
 .badge--sev-info { background: rgba(96, 165, 250, 0.12); color: var(--sev-info); }
 .badge--sev-warning { background: rgba(251, 191, 36, 0.12); color: var(--sev-warn); }
 .badge--sev-error { background: rgba(248, 113, 113, 0.12); color: var(--sev-error); }
+
+/* Dashboard secondary — demotes below-the-fold reference sections. */
+.dashboard__secondary {
+  opacity: 0.92;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}

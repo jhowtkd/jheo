@@ -116,6 +116,11 @@
         "channelsHint": "Onde as gerações aprovadas são publicadas (WordPress, HTTP, agente)"
       },
       "failedToLoad": "Falha ao carregar o projeto.",
+      "secondary": "Mais",
+      "pagesEmpty": {
+        "title": "Ainda não há páginas",
+        "hint": "Rode uma auditoria para descobrir as páginas deste site."
+      },
       "filters": {
         "all": "Tudo",
         "notAudited": "Não auditada",

@@ -116,6 +116,11 @@
         "channelsHint": "Where approved generations are published (WordPress, HTTP, agent)"
       },
       "failedToLoad": "Failed to load project.",
+      "secondary": "More",
+      "pagesEmpty": {
+        "title": "No pages yet",
+        "hint": "Run an audit to discover this site's pages."
+      },
       "filters": {
         "all": "All",
         "notAudited": "Not audited",
