@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LanguageToggle } from './LanguageToggle.js';
+import { ThemeToggle } from './ThemeToggle.js';
 import { useBackendReachable } from '../hooks/useBackendReachable.js';
 
 interface NavItem {
@@ -168,6 +169,7 @@ export function Layout() {
           <Crumb />
           <div className="topbar__actions">
             <LanguageToggle />
+            <ThemeToggle />
             <HealthIndicator />
           </div>
         </header>

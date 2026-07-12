@@ -21,7 +21,10 @@
     "language": "Idioma",
     "translationUnavailable": "Tradução indisponível",
     "breadcrumb": "Trilha",
-    "filter": "Filtro"
+    "filter": "Filtro",
+    "theme": "Tema",
+    "themeLight": "Claro",
+    "themeDark": "Escuro"
   },
   "languages": {
     "en": "English",

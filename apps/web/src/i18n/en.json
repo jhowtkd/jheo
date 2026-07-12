@@ -21,7 +21,10 @@
     "language": "Language",
     "translationUnavailable": "Translation unavailable",
     "breadcrumb": "Breadcrumb",
-    "filter": "Filter"
+    "filter": "Filter",
+    "theme": "Theme",
+    "themeLight": "Light",
+    "themeDark": "Dark"
   },
   "languages": {
     "en": "English",
