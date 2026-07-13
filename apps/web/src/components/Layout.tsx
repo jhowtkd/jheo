@@ -8,6 +8,7 @@ import { localePath, type RouteId } from '../i18n/localePath.js';
 interface NavItem {
   id: RouteId;
   labelKey: string;
+  hintKey: string;
   badge?: string;
   icon: JSX.Element;
 }
@@ -107,6 +108,7 @@ export function Layout() {
     {
       id: 'projects',
       labelKey: 'nav.projects',
+      hintKey: 'nav.projectsHint',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 7l9-4 9 4v10l-9 4-9-4V7z" />
@@ -118,6 +120,7 @@ export function Layout() {
     {
       id: 'audits',
       labelKey: 'nav.audits',
+      hintKey: 'nav.auditsHint',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M9 11l3 3L22 4" />
@@ -128,6 +131,7 @@ export function Layout() {
     {
       id: 'templates',
       labelKey: 'nav.templates',
+      hintKey: 'nav.templatesHint',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <rect x="4" y="3" width="16" height="18" rx="2" />
@@ -140,6 +144,7 @@ export function Layout() {
     {
       id: 'materialsGate',
       labelKey: 'nav.materials',
+      hintKey: 'nav.materialsHint',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
@@ -150,6 +155,7 @@ export function Layout() {
     {
       id: 'generationsGate',
       labelKey: 'nav.generations',
+      hintKey: 'nav.generationsHint',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z" />
@@ -159,6 +165,7 @@ export function Layout() {
     {
       id: 'fixes',
       labelKey: 'nav.fixes',
+      hintKey: 'nav.fixesHint',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12l4 4 14-14" />
@@ -169,6 +176,7 @@ export function Layout() {
     {
       id: 'channelsGate',
       labelKey: 'nav.channels',
+      hintKey: 'nav.channelsHint',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 11h18" />
@@ -180,6 +188,7 @@ export function Layout() {
     {
       id: 'settings',
       labelKey: 'nav.settings',
+      hintKey: 'nav.settingsHint',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <circle cx="12" cy="12" r="3" />
@@ -200,7 +209,7 @@ export function Layout() {
           <div className="sidebar__logo"><Logo /></div>
           <div className="sidebar__wordmark">
             <div className="sidebar__wordmark-name">{t('app.name')}</div>
-            <div className="sidebar__wordmark-tag">{t('app.tagline')}</div>
+            <div className="sidebar__wordmark-tag" title={t('app.taglineHint')}>{t('app.tagline')}</div>
           </div>
         </div>
         <div className="sidebar__section-label">{t('sidebar.workspace')}</div>
@@ -210,6 +219,7 @@ export function Layout() {
               key={item.id}
               to={localePath(item.id)}
               end={item.id === 'projects'}
+              title={t(item.hintKey)}
               className={({ isActive }) =>
                 'sidebar__link' + (isActive ? ' sidebar__link--active' : '')
               }

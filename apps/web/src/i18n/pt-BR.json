@@ -1,7 +1,8 @@
 {
   "app": {
     "name": "JHEO",
-    "tagline": "GEO · SEO · conteúdo"
+    "tagline": "GEO · SEO · conteúdo",
+    "taglineHint": "Generative Engine Optimization · Search Engine Optimization · criação de conteúdo"
   },
   "nav": {
     "projects": "Projetos",
@@ -12,7 +13,15 @@
     "generations": "Gerações",
     "settings": "Configurações",
     "fixes": "Correções",
-    "channels": "Canais"
+    "channels": "Canais",
+    "projectsHint": "Auditar, gerar e distribuir conteúdo por site",
+    "auditsHint": "Execuções de auditoria anteriores em todos os projetos",
+    "templatesHint": "Prompt reutilizável + schema de saída para gerações",
+    "materialsHint": "Fontes que o gerador recupera como contexto",
+    "generationsHint": "Rascunhos compostos a partir de um modelo + materiais",
+    "fixesHint": "Correções sugeridas para achados pendentes",
+    "channelsHint": "Onde as gerações aprovadas são publicadas",
+    "settingsHint": "API keys, tema e idioma"
   },
   "chooser": {
     "title": "Escolha um projeto",
@@ -35,9 +44,9 @@
     }
   },
   "sidebar": {
-    "workspace": "Espaço de trabalho",
+    "workspace": "Menu",
     "userName": "Usuário local",
-    "userMeta": "uso único · v0.1.0"
+    "userMeta": "Local · sem login · sem sync na nuvem · v0.1.0"
   },
   "topbar": {
     "api": "API",
