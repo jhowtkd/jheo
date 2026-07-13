@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { auditQueue } from '../queue.js';
+import { ensureScoreSnapshot } from '../services/score-backfill.js';
 
 const CreateAuditBody = z.object({
   projectId: z.string().min(1),
@@ -74,6 +75,21 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
       include: { findings: true },
     });
     if (!audit) return reply.code(404).send({ error: 'not found' });
+    // Backfill v2 snapshot for audits completed before the engine shipped.
+    // Idempotent: a v2 audit returns its score unchanged.
+    const score = await ensureScoreSnapshot({
+      id: audit.id,
+      status: audit.status,
+      score: audit.score,
+    });
+    if (score !== audit.score) {
+      // Re-fetch so the response reflects the persisted v2 snapshot.
+      const updated = await prisma.audit.findUnique({
+        where: { id: req.params.id },
+        include: { findings: true },
+      });
+      if (updated) return updated;
+    }
     setAuditReadCache(reply, audit.status);
     return audit;
   });
