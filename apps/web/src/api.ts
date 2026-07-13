@@ -32,10 +32,14 @@ export type Audit = {
   startedAt: string | null;
   finishedAt: string | null;
   score?: {
-    overall: number;
+    overall: number | null;
     byCategory: Record<string, number | null>;
     pagesAudited?: number;
+    pagesTotal?: number;
+    pagesWithError?: number;
     discoveryLimitReached?: boolean;
+    scoreEngineVersion?: string;
+    recomputedAt?: string;
   } | null;
 };
 export type Finding = {

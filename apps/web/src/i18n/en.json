@@ -260,7 +260,25 @@
     },
     "scoreCard": {
       "noHealth": "No health data yet.",
-      "overall": "Overall"
+      "overall": "Overall",
+      "recomputed": "recomputed",
+      "recomputedHint": "This score was recomputed with the current engine to keep history consistent.",
+      "deltaHint": "{{delta}} points vs previous audit"
+    }
+  },
+  "score": {
+    "category": {
+      "seo": "SEO",
+      "cwv": "CWV",
+      "geo": "GEO",
+      "a11y": "A11Y",
+      "content": "Content",
+      "empty": "Category not scored / no findings",
+      "seoHint": "Search engine optimisation: meta, headings, sitemap, robots, internal links, images, structured data.",
+      "cwvHint": "Core Web Vitals: Lighthouse, request count, performance hints, caching, compression.",
+      "geoHint": "Generative engine optimisation: llms.txt, AI crawler access, citability, markdown parallel, FAQ, schema coverage.",
+      "a11yHint": "Accessibility: lang attribute, skip links, axe-core audit, colour contrast.",
+      "contentHint": "Content quality: language consistency, readability, thin content, publication dates."
     }
   },
   "materials": {

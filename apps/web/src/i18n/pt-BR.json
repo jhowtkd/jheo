@@ -260,7 +260,25 @@
     },
     "scoreCard": {
       "noHealth": "Ainda sem dados de saúde.",
-      "overall": "Geral"
+      "overall": "Geral",
+      "recomputed": "recalculado",
+      "recomputedHint": "Este score foi recalculado com o motor atual para manter o histórico consistente.",
+      "deltaHint": "{{delta}} pontos em relação à auditoria anterior"
+    }
+  },
+  "score": {
+    "category": {
+      "seo": "SEO",
+      "cwv": "CWV",
+      "geo": "GEO",
+      "a11y": "A11Y",
+      "content": "Conteúdo",
+      "empty": "Categoria não pontuada / sem achados",
+      "seoHint": "Otimização para mecanismos de busca: meta, cabeçalhos, sitemap, robots, links internos, imagens, dados estruturados.",
+      "cwvHint": "Core Web Vitals: Lighthouse, contagem de requisições, dicas de performance, cache, compressão.",
+      "geoHint": "Otimização para motores generativos: llms.txt, acesso de crawlers de IA, citabilidade, markdown paralelo, FAQ, cobertura de schema.",
+      "a11yHint": "Acessibilidade: atributo lang, skip links, auditoria axe-core, contraste de cores.",
+      "contentHint": "Qualidade do conteúdo: consistência de idioma, legibilidade, conteúdo fino, datas de publicação."
     }
   },
   "materials": {
