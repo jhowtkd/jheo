@@ -18,6 +18,7 @@ import { FixCard, type FindingLike } from '../components/fixes/FixCard.js';
 import { FixGroup, type FixGroupData } from '../components/fixes/FixGroup.js';
 import { EmptyFixesState } from '../components/fixes/EmptyFixesState.js';
 import { ErrorState } from '../components/states/index.js';
+import { ProjectChooser } from '../components/ProjectChooser.js';
 
 type Filter = {
   projectId?: string | undefined;
@@ -32,6 +33,7 @@ const GROUP_BY_RULE_STORAGE_KEY = 'jheo.fixes.groupByRule';
 
 export function FixesPage() {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [findings, setFindings] = useState<FindingLike[]>([]);
   const [suggestions, setSuggestions] = useState<Record<string, Suggestion>>({});
@@ -218,6 +220,19 @@ export function FixesPage() {
           projects={projects}
           loading={projectsLoading}
           hasProjectContext={Boolean(filter.projectId)}
+          titleKey="fixes.chooseProject.title"
+          hintKey="fixes.chooseProject.hint"
+          pickLabelKey="fixes.chooseProject.viewFixes"
+          emptyKind={filter.projectId ? 'no-audits' : 'no-projects'}
+          onPick={async (pid) => {
+            const detail = await getProject(pid);
+            const latest = detail.audits?.[0];
+            if (latest) {
+              navigate(`/fixes?auditId=${latest.id}`);
+            } else {
+              navigate(`/projects/${pid}`);
+            }
+          }}
         />
       ) : (
         <>
@@ -314,82 +329,4 @@ export function FixesPage() {
     next.set('findingId', findingId);
     setParams(next, { replace: true });
   }
-}
-
-type ProjectChooserProps = {
-  projects: Project[];
-  loading: boolean;
-  // True when the URL had projectId but the project has no audits yet.
-  hasProjectContext: boolean;
-};
-
-function ProjectChooser({ projects, loading, hasProjectContext }: ProjectChooserProps) {
-  const { t } = useTranslation();
-  const navigate = useNavigate();
-  const [pendingId, setPendingId] = useState<string | null>(null);
-  const [error, setError] = useState<unknown>(null);
-
-  async function openLatestAudit(p: Project) {
-    setError(null);
-    setPendingId(p.id);
-    try {
-      const detail = await getProject(p.id);
-      const latest = detail.audits?.[0];
-      if (latest) {
-        navigate(`/fixes?auditId=${latest.id}`);
-      } else {
-        // No audits yet — drop the user on the project dashboard so they
-        // can run one and come back.
-        navigate(`/projects/${p.id}`);
-      }
-    } catch (e) {
-      setError(e);
-    } finally {
-      setPendingId(null);
-    }
-  }
-
-  if (loading) return <p>…</p>;
-  if (projects.length === 0) {
-    return <EmptyFixesState kind={hasProjectContext ? 'no-audits' : 'no-projects'} />;
-  }
-  return (
-    <div className="fixes-page__chooser">
-      <h2 className="fixes-page__chooser-title">{t('fixes.chooseProject.title')}</h2>
-      <p className="muted">{t('fixes.chooseProject.hint')}</p>
-      {error != null &&
-        (() => {
-          const e = humanError(error);
-          return (
-            <ErrorState
-              titleKey={e.key}
-              {...(e.params ? { params: e.params } : {})}
-              {...(e.retry ? { retry: e.retry } : {})}
-              onRetry={() => setError(null)}
-            />
-          );
-        })()}
-      <ul className="fixes-page__chooser-list">
-        {projects.map((p) => (
-          <li key={p.id} className="card">
-            <div className="fixes-page__chooser-row">
-              <div>
-                <div className="fixes-page__chooser-name">{p.name}</div>
-                <div className="muted mono">{p.rootUrl}</div>
-              </div>
-              <button
-                className="btn btn--sm btn--primary"
-                disabled={pendingId === p.id}
-                onClick={() => openLatestAudit(p)}
-              >
-                {pendingId === p.id
-                  ? t('common.loading')
-                  : t('fixes.chooseProject.viewFixes')}
-              </button>
-            </div>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
 }

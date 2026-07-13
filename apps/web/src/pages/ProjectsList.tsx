@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { createProject, humanError, listProjects } from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { isValidProjectUrlInput, normalizeProjectUrl } from '../lib/projectUrl.js';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -27,9 +28,10 @@ export function ProjectsList() {
   const projects = useQuery({ queryKey: ['projects'], queryFn: listProjects });
   const [name, setName] = useState('');
   const [rootUrl, setRootUrl] = useState('https://');
+  const [urlError, setUrlError] = useState(false);
   const create = useMutation({
     mutationFn: (input: { name: string; rootUrl: string }) =>
-      createProject({ domain: input.rootUrl }).then((p) => ({ ...p, name: input.name })),
+      createProject({ domain: normalizeProjectUrl(input.rootUrl) }).then((p) => ({ ...p, name: input.name })),
     onSuccess: async (p) => {
       await qc.invalidateQueries({ queryKey: ['projects'] });
       // Clear the inputs only on success. Clearing on submit would wipe
@@ -58,6 +60,11 @@ export function ProjectsList() {
           className="form-row"
           onSubmit={(e) => {
             e.preventDefault();
+            if (!isValidProjectUrlInput(rootUrl)) {
+              setUrlError(true);
+              return;
+            }
+            setUrlError(false);
             create.mutate({ name, rootUrl });
           }}
         >
@@ -73,13 +80,21 @@ export function ProjectsList() {
             className="input"
             required
             value={rootUrl}
-            onChange={(e) => setRootUrl(e.target.value)}
+            onChange={(e) => {
+              setRootUrl(e.target.value);
+              if (urlError) setUrlError(false);
+            }}
             placeholder={t('projects.create.urlPlaceholder')}
           />
           <button className="btn btn--primary" type="submit" disabled={create.isPending}>
             {create.isPending ? t('projects.create.creating') : t('projects.create.submit')}
           </button>
         </form>
+        {urlError && (
+          <p className="tiny" role="alert" style={{ color: 'var(--danger)', marginTop: 'var(--space-2)' }}>
+            {t('projects.create.urlInvalid')}
+          </p>
+        )}
         {create.isError &&
           (() => {
             const e = humanError(create.error);
@@ -96,6 +111,19 @@ export function ProjectsList() {
       </div>
 
       {projects.isLoading && <LoadingSkeleton />}
+
+      {projects.isError &&
+        (() => {
+          const e = humanError(projects.error);
+          return (
+            <ErrorState
+              titleKey={e.key}
+              {...(e.params ? { params: e.params } : {})}
+              {...(e.retry ? { retry: e.retry } : {})}
+              onRetry={() => void projects.refetch()}
+            />
+          );
+        })()}
 
       {projects.data && projects.data.length === 0 && !projects.isLoading && (
         <EmptyState

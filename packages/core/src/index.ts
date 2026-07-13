@@ -10,6 +10,13 @@ export {
 } from './i18n/locale.js';
 export { runAudit } from './audit/orchestrator.js';
 export {
+  scoreFindings,
+  SCORE_ENGINE_VERSION,
+  CATEGORY_WEIGHTS,
+  type ScoreBreakdown,
+  type ScoreOptions,
+} from './audit/score.js';
+export {
   OpenAIProvider,
 } from './llm/openai.js';
 export {

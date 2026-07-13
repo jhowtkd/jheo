@@ -99,6 +99,6 @@ describe('ProjectsList', () => {
     await waitFor(() => {
       expect(mock).toHaveBeenCalledTimes(2);
     });
-    expect(mock).toHaveBeenLastCalledWith({ domain: 'https://acme.com' });
+    expect(mock).toHaveBeenLastCalledWith({ domain: 'https://acme.com/' });
   });
 });

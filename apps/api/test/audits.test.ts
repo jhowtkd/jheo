@@ -80,4 +80,34 @@ describe('routes/audits', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toMatchObject({ id: aid, status: 'cancelled' });
   });
+
+  it.runIf(canRunDb)('GET /api/audits returns recent audits with project names, newest first', async () => {
+    const projA = await app!.inject({
+      method: 'POST', url: '/api/projects',
+      payload: { name: 'audit-list-a', domain: 'a.example.com' },
+    });
+    const projB = await app!.inject({
+      method: 'POST', url: '/api/projects',
+      payload: { name: 'audit-list-b', domain: 'b.example.com' },
+    });
+    const { id: aidA } = (await app!.inject({
+      method: 'POST', url: '/api/audits',
+      payload: { projectId: projA.json().id },
+    })).json();
+    const { id: aidB } = (await app!.inject({
+      method: 'POST', url: '/api/audits',
+      payload: { projectId: projB.json().id },
+    })).json();
+
+    const res = await app!.inject({ method: 'GET', url: '/api/audits?limit=10' });
+    expect(res.statusCode).toBe(200);
+    const rows = res.json();
+    expect(Array.isArray(rows)).toBe(true);
+    // Newest first → aidB (created after aidA) should appear before aidA.
+    const ids = rows.map((r: { id: string }) => r.id);
+    expect(ids.indexOf(aidB)).toBeLessThan(ids.indexOf(aidA));
+    // Each row includes projectName.
+    const rowB = rows.find((r: { id: string }) => r.id === aidB);
+    expect(rowB.projectName).toBe('audit-list-b');
+  });
 });

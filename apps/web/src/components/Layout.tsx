@@ -24,9 +24,13 @@ function Logo() {
 
 const CRUMB_ROOT: Record<string, string> = {
   projects: 'nav.projects',
+  audits: 'nav.audits',
   reports: 'nav.reports',
   templates: 'nav.templates',
+  materials: 'nav.materials',
+  generations: 'nav.generations',
   fixes: 'nav.fixes',
+  channels: 'nav.channels',
   settings: 'nav.settings',
 };
 
@@ -84,14 +88,12 @@ export function Layout() {
       ),
     },
     {
-      to: '/reports',
-      labelKey: 'nav.reports',
+      to: '/audits',
+      labelKey: 'nav.audits',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <path d="M14 2v6h6" />
-          <path d="M8 13h8" />
-          <path d="M8 17h5" />
+          <path d="M9 11l3 3L22 4" />
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
         </svg>
       ),
     },
@@ -108,12 +110,42 @@ export function Layout() {
       ),
     },
     {
+      to: '/materials',
+      labelKey: 'nav.materials',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+        </svg>
+      ),
+    },
+    {
+      to: '/generations',
+      labelKey: 'nav.generations',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8 5.8 21.3l2.4-7.4L2 9.4h7.6z" />
+        </svg>
+      ),
+    },
+    {
       to: '/fixes',
       labelKey: 'nav.fixes',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <path d="M3 12l4 4 14-14" />
           <path d="M3 18l4 4 14-14" />
+        </svg>
+      ),
+    },
+    {
+      to: '/channels',
+      labelKey: 'nav.channels',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 11h18" />
+          <path d="M3 11l3-6h12l3 6" />
+          <path d="M5 11v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8" />
         </svg>
       ),
     },

@@ -6,7 +6,8 @@ import { ExecutiveReportView } from './ExecutiveReportView.js';
 import { FilterBar } from '../components/FilterBar.js';
 import { FindingList } from '../components/FindingList.js';
 import { ScoreCard } from '../components/ScoreCard.js';
-import { getAudit, type Finding, type ProjectHealth } from '../api.js';
+import { getAudit, getProject, type Finding } from '../api.js';
+import { scoreHistoryFromAudits } from '../lib/scoreHistory.js';
 
 export function AuditResults() {
   const { t } = useTranslation();
@@ -22,6 +23,16 @@ export function AuditResults() {
       return a.status === 'running' || a.status === 'queued' ? 2000 : false;
     },
   });
+
+  // Pull the project (with its full audit list) so the ScoreCard can show
+  // history + vs-last relative to the prior completed audit on the same
+  // project. Cheap: /projects/:id is cached and the audit list is small.
+  const project = useQuery({
+    queryKey: ['project', q.data?.projectId],
+    queryFn: () => getProject(q.data!.projectId),
+    enabled: Boolean(q.data?.projectId),
+  });
+  const { history, previousOverall } = scoreHistoryFromAudits(project.data?.audits ?? []);
 
   if (!q.data) {
     return (
@@ -93,10 +104,13 @@ export function AuditResults() {
                 content: a.score.byCategory.content ?? null,
               },
               pagesAudited: a.score.pagesAudited ?? 0,
-              pagesTotal: 0,
-              pagesWithError: 0,
-              lastAuditAt: null,
+              pagesTotal: a.score.pagesTotal ?? 0,
+              pagesWithError: a.score.pagesWithError ?? 0,
+              lastAuditAt: a.finishedAt,
             }}
+            history={history}
+            previousOverall={previousOverall}
+            recomputed={Boolean(a.score.recomputedAt)}
           />
         </div>
       )}

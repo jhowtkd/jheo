@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { Layout } from './components/Layout.js';
+import { ProjectScopedGate } from './components/ProjectScopedGate.js';
 
 // Every page is a separate chunk. With lazy(), Vite/Rollup produces one JS
 // per page and the initial bundle only loads the chunk for the first route
@@ -17,6 +18,9 @@ const AuditRunner = lazy(() =>
 );
 const AuditResults = lazy(() =>
   import('./pages/AuditResults.js').then((m) => ({ default: m.AuditResults })),
+);
+const AuditsList = lazy(() =>
+  import('./pages/AuditsList.js').then((m) => ({ default: m.AuditsList })),
 );
 const MaterialsList = lazy(() =>
   import('./pages/MaterialsList.js').then((m) => ({ default: m.MaterialsList })),
@@ -68,15 +72,19 @@ export function AppRoutes() {
           <Route path="/projects" element={<ProjectsList />} />
           <Route path="/projects/:projectId" element={<ProjectDashboard />} />
           <Route path="/projects/:projectId/audit" element={<AuditRunner />} />
+          <Route path="/audits" element={<AuditsList />} />
           <Route path="/audits/:auditId" element={<AuditResults />} />
           <Route path="/projects/:projectId/materials" element={<MaterialsList />} />
+          <Route path="/materials" element={<ProjectScopedGate redirectTemplate="/projects/:projectId/materials" />} />
           <Route path="/projects/:projectId/compose" element={<GenerationComposer />} />
+          <Route path="/generations" element={<ProjectScopedGate redirectTemplate="/projects/:projectId/compose" />} />
           <Route path="/templates" element={<TemplatesList />} />
           <Route path="/templates/:templateId" element={<TemplateEditor />} />
           <Route path="/fixes" element={<FixesPage />} />
           <Route path="/reports" element={<ReportsList />} />
           <Route path="/generations/:generationId" element={<GenerationReview />} />
           <Route path="/projects/:projectId/channels" element={<ChannelsList />} />
+          <Route path="/channels" element={<ProjectScopedGate redirectTemplate="/projects/:projectId/channels" />} />
           <Route path="/channels/:channelId" element={<ChannelEditor />} />
           <Route path="/publishes/:publishId" element={<PublishDetail />} />
           <Route

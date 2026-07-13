@@ -8,10 +8,6 @@ vi.mock('react-router-dom', async () => {
   return { ...actual, useNavigate: () => vi.fn() };
 });
 
-// Stub the data-translation hook so the test does not hit `/api/translate`
-// when the active locale differs from the source locale. The component
-// falls back to the raw `finding.message` when the translated map is empty,
-// which is fine for verifying the Suggest-fix button is rendered.
 vi.mock('../i18n/useDataTranslations', () => ({
   useDataTranslations: () => ({ translated: new Map<string, string>(), loading: false, error: null }),
 }));
@@ -21,5 +17,34 @@ describe('FindingList', () => {
     const findings = [{ id: 'f1', category: 'seo', severity: 'warning', message: 'm', url: 'https://e.com' }];
     render(<MemoryRouter><FindingList findings={findings as any} /></MemoryRouter>);
     expect(screen.getAllByText(/gerar/i).length).toBeGreaterThan(0);
+  });
+
+  it('renders evidence keys/values when present', () => {
+    const findings = [
+      {
+        id: 'f1',
+        category: 'seo',
+        severity: 'warning',
+        message: 'm',
+        url: 'https://e.com',
+        evidence: { actualH1: 'Welcome', expectedH1: 'About' },
+      },
+    ];
+    const { container } = render(
+      <MemoryRouter><FindingList findings={findings as any} /></MemoryRouter>,
+    );
+    expect(container.querySelector('.finding__evidence')).toBeTruthy();
+    expect(screen.getByText('actualH1')).toBeTruthy();
+    expect(screen.getByText('Welcome')).toBeTruthy();
+  });
+
+  it('does not render an evidence region when evidence is empty', () => {
+    const findings = [
+      { id: 'f1', category: 'seo', severity: 'info', message: 'm', url: 'https://e.com', evidence: {} },
+    ];
+    const { container } = render(
+      <MemoryRouter><FindingList findings={findings as any} /></MemoryRouter>,
+    );
+    expect(container.querySelector('.finding__evidence')).toBeFalsy();
   });
 });

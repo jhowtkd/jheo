@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
@@ -19,6 +19,8 @@ import { ScoreCard } from '../components/ScoreCard.js';
 import { FilterBar, type FilterOption } from '../components/FilterBar.js';
 import { FindingList } from '../components/FindingList.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { setLastProjectId } from '../lib/lastProject.js';
+import { scoreHistoryFromAudits } from '../lib/scoreHistory.js';
 
 type FilterValue =
   | 'all'
@@ -53,6 +55,12 @@ export function ProjectDashboard() {
     queryFn: () => getProject(projectId!),
     enabled: Boolean(projectId),
   });
+
+  // Persist the last-opened project so global nav gates (Materials/
+  // Generations/Channels) can default to it.
+  useEffect(() => {
+    if (projectId) setLastProjectId(projectId);
+  }, [projectId]);
 
   // Phase 3 T7: live audit progress + cancel — poll only while work is active.
   const lastAudit = project.data?.audits[0];
@@ -212,7 +220,17 @@ export function ProjectDashboard() {
       )}
 
       {/* Health card */}
-      <ScoreCard health={h} />
+      <ScoreCard
+        health={h}
+        {...(() => {
+          const { history, previousOverall } = scoreHistoryFromAudits(p.audits);
+          return {
+            history,
+            previousOverall,
+            recomputed: Boolean(latest?.score?.recomputedAt),
+          };
+        })()}
+      />
 
       {/* Actions — secondary navigation (does not compete with Run audit) */}
       <nav className="row" style={{ gap: 'var(--space-2)', flexWrap: 'wrap' }}>
@@ -270,6 +288,18 @@ export function ProjectDashboard() {
                   }}
                 />
               </div>
+              {progress.data.pagesCompleted >= 2 && lastAudit.startedAt && (() => {
+                const elapsedSec = (Date.now() - new Date(lastAudit.startedAt).getTime()) / 1000;
+                const pagesPerSec = progress.data.pagesCompleted / elapsedSec;
+                if (!isFinite(pagesPerSec) || pagesPerSec <= 0) return null;
+                const remaining = Math.max(0, progress.data.pagesTotal - progress.data.pagesCompleted);
+                const etaSec = Math.round(remaining / pagesPerSec);
+                return (
+                  <p className="tiny muted" style={{ marginTop: 'var(--space-2)' }}>
+                    {t('projects.dashboard.eta', { seconds: etaSec })}
+                  </p>
+                );
+              })()}
             </>
           )}
           {(lastAudit.status === 'queued' || lastAudit.status === 'running') && (

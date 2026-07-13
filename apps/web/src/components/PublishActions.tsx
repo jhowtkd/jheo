@@ -68,26 +68,40 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
   return (
     <section>
       <h3>{t('publish.actionsPanel.title')}</h3>
+      {reviewState !== 'approved' && (
+        <p className="tiny muted" role="status">
+          {t('publish.actionsPanel.needsApproval')}
+        </p>
+      )}
       {reviewState === 'approved' && (
         <>
           <p>{t('publish.actionsPanel.selectChannels')}</p>
-          <ul>
-            {activeChannels.map((c) => (
-              <li key={c.id}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={selected.has(c.id)}
-                    onChange={(e) => toggle(c.id, e.target.checked)}
-                  />
-                  {c.name} ({c.type})
-                </label>
-              </li>
-            ))}
-          </ul>
-          <button onClick={() => publish.mutate()} disabled={selected.size === 0}>
-            {t('publish.actionsPanel.publishTo', { count: selected.size })}
-          </button>
+          {activeChannels.length === 0 ? (
+            <p className="tiny muted">
+              {t('publish.actionsPanel.noChannels')}{' '}
+              <Link to={`/projects/${projectId}/channels`}>{t('publish.actionsPanel.createChannel')}</Link>
+            </p>
+          ) : (
+            <>
+              <ul>
+                {activeChannels.map((c) => (
+                  <li key={c.id}>
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(c.id)}
+                        onChange={(e) => toggle(c.id, e.target.checked)}
+                      />
+                      {c.name} ({c.type})
+                    </label>
+                  </li>
+                ))}
+              </ul>
+              <button onClick={() => publish.mutate()} disabled={selected.size === 0}>
+                {t('publish.actionsPanel.publishTo', { count: selected.size })}
+              </button>
+            </>
+          )}
         </>
       )}
       <table>

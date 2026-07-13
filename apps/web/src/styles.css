@@ -990,6 +990,10 @@ h1, h2, h3, h4, h5 {
 .tag--sitemap { background: rgba(59, 130, 246, 0.12); color: var(--info); }
 .tag--crawl   { background: rgba(16, 185, 129, 0.12); color: var(--success); }
 .tag--root    { background: rgba(245, 158, 11, 0.12); color: var(--warning); }
+.tag--good    { background: rgba(16, 185, 129, 0.12); color: var(--success); }
+.tag--bad     { background: rgba(185, 28, 28, 0.12); color: var(--danger); }
+.tag--info    { background: rgba(59, 130, 246, 0.12); color: var(--info); }
+.tag--neutral { background: var(--surface-3); color: var(--text-dim); }
 
 /* Spinner (in-progress indicator, used in sticky footer)
  * ----------------------------------------------------------- */
