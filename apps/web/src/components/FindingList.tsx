@@ -171,6 +171,7 @@ function FindingCard({
             <span className="translation-unavailable" aria-label={errorText} title={errorText}> ↻</span>
           )}
         </div>
+        <FindingEvidence {...(finding.evidence ? { evidence: finding.evidence } : {})} />
       </div>
       <div className="finding__meta">
         <div>{finding.category}</div>
@@ -186,5 +187,54 @@ function FindingCard({
         </button>
       </div>
     </article>
+  );
+}
+
+// ponytail: cap rendered evidence values to keep the list scannable;
+// the underlying JSON is still in the DB if anyone needs the full text.
+const EVIDENCE_VALUE_MAX = 500;
+
+function formatValue(v: unknown): string {
+  if (v == null) return '—';
+  if (typeof v === 'string') return v;
+  if (typeof v === 'number' || typeof v === 'boolean') return String(v);
+  try {
+    return JSON.stringify(v);
+  } catch {
+    return '[unserializable]';
+  }
+}
+
+function truncate(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max) + '…' : s;
+}
+
+function FindingEvidence({ evidence }: { evidence?: Record<string, unknown> }) {
+  if (!evidence || Object.keys(evidence).length === 0) return null;
+  return (
+    <dl
+      className="finding__evidence"
+      style={{
+        margin: 'var(--space-2) 0 0',
+        padding: 'var(--space-2) var(--space-3)',
+        background: 'var(--bg-elevated)',
+        borderRadius: 'var(--radius-sm)',
+        fontSize: 'var(--fs-xs)',
+        fontFamily: 'var(--font-mono)',
+        display: 'grid',
+        gridTemplateColumns: 'auto 1fr',
+        columnGap: 'var(--space-3)',
+        rowGap: 'var(--space-1)',
+      }}
+    >
+      {Object.entries(evidence).map(([k, v]) => (
+        <div key={k} style={{ display: 'contents' }}>
+          <dt style={{ color: 'var(--text-muted)', textTransform: 'none' }}>{k}</dt>
+          <dd style={{ margin: 0, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            {truncate(formatValue(v), EVIDENCE_VALUE_MAX)}
+          </dd>
+        </div>
+      ))}
+    </dl>
   );
 }

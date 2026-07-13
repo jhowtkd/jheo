@@ -51,6 +51,7 @@ export type Finding = {
   message: string;
   url: string;
   selector?: string | null;
+  evidence?: Record<string, unknown>;
 };
 
 export async function listProjects(): Promise<Project[]> {
