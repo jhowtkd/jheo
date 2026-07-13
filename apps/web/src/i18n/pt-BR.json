@@ -181,7 +181,8 @@
       "sourceRoot": "Página raiz",
       "sourceSitemap": "Sitemap",
       "sourceCrawl": "Rastrear links",
-      "etaHint": "Tempo estimado: ≈ {{seconds}}s ({{perPage}}s por página)"
+      "etaHint": "Tempo estimado: ≈ {{seconds}}s ({{perPage}}s por página)",
+      "cwvBrowserWarning": "Os checks de CWV precisam de um browser. Rode a stack completa (`bin/dev-up`) para que o Chromium fique disponível — a API sozinha pode pular ou falhar o CWV."
     },
     "results": {
       "title": "Relatório de auditoria",

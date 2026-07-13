@@ -71,4 +71,13 @@ describe('AuditRunner errors', () => {
       });
     });
   });
+
+  it('shows a CWV browser warning with role="note" so C4 copy is not lost', () => {
+    renderRunner();
+    const note = screen.getByRole('note');
+    expect(note).toBeInTheDocument();
+    // pt-BR catalog is active in this suite (beforeEach sets pt-BR) — the
+    // warning must mention browser/Chromium/dev-up regardless of locale.
+    expect(note.textContent).toMatch(/browser|chromium|dev-up/i);
+  });
 });

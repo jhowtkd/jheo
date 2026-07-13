@@ -181,7 +181,8 @@
       "sourceRoot": "Root page",
       "sourceSitemap": "Sitemap",
       "sourceCrawl": "Crawl links",
-      "etaHint": "Estimated runtime: ≈ {{seconds}}s ({{perPage}}s per page)"
+      "etaHint": "Estimated runtime: ≈ {{seconds}}s ({{perPage}}s per page)",
+      "cwvBrowserWarning": "CWV checks need a browser. Run the full stack (`bin/dev-up`) so Chromium is available — standalone API may skip or fail CWV."
     },
     "results": {
       "title": "Audit report",

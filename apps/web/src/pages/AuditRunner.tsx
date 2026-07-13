@@ -37,6 +37,20 @@ export function AuditRunner() {
       </div>
 
       <div className="card" style={{ maxWidth: 560 }}>
+        <div
+          className="tiny"
+          role="note"
+          style={{
+            marginTop: 'var(--space-2)',
+            marginBottom: 'var(--space-4)',
+            padding: 'var(--space-3)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-sm)',
+            background: 'var(--bg-elevated)',
+          }}
+        >
+          {t('audit.runner.cwvBrowserWarning')}
+        </div>
         <div className="card__title">{t('audit.runner.readyTitle')}</div>
         <p
           className="tiny muted"
