@@ -1,5 +1,6 @@
 import type { Job } from 'bullmq';
 import { FlowProducer, QueueEvents } from 'bullmq';
+import { SCORE_ENGINE_VERSION, scoreFindings } from '@jheo/core';
 import { AUDIT_ORCHESTRATOR_TIMEOUT_MS } from '../audit-timeouts.js';
 import {
   auditOrchestrator,
@@ -327,39 +328,53 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
  * Aggregate completed PageAudit scores and mark the parent Audit completed.
  * Exported so operators / recovery paths can finalize audits whose parent
  * BullMQ job stalled after every page was already terminal in Postgres.
+ *
+ * Score rollup strategy (S3): pull every finding persisted for this audit
+ * and run `scoreFindings` once with `pageCount = pagesAudited`. The page-local
+ * `PageAudit.score` is still `scoreFindings(pageFindings, { pageCount: 1 })`
+ * for per-page UI; only the parent `Audit.score` is the v2 rollup.
  */
 export async function completeAuditFromPageScores(
   auditId: string,
   opts?: { pagesTotal?: number; discoveryLimitReached?: boolean },
 ): Promise<boolean> {
-  const pageAudits = await prisma.pageAudit.findMany({
-    where: { auditId, status: 'completed' },
-    select: { score: true },
-  });
-  const pageScores = pageAudits
-    .map((p) => p.score as { overall: number; byCategory?: Record<string, number | null> } | null)
-    .filter((s): s is { overall: number; byCategory?: Record<string, number | null> } => s !== null);
-
-  const categories = ['seo', 'cwv', 'geo', 'a11y', 'content'] as const;
-  const byCategory = Object.fromEntries(
-    categories.map((category) => {
-      const values = pageScores
-        .map((s) => s.byCategory?.[category])
-        .filter((v): v is number => v !== null && v !== undefined);
-      return [category, values.length ? Math.round(values.reduce((sum, v) => sum + v, 0) / values.length) : null];
+  const [findings, pageAudits, pagesWithError] = await Promise.all([
+    prisma.finding.findMany({
+      where: { auditId },
+      select: { category: true, severity: true, rule: true, message: true, url: true, evidence: true, selector: true },
     }),
-  );
+    prisma.pageAudit.findMany({
+      where: { auditId },
+      select: { status: true },
+    }),
+    prisma.pageAudit.count({ where: { auditId, status: 'failed' } }),
+  ]);
+
+  const pagesAudited = pageAudits.filter((p) => p.status === 'completed').length;
   const pagesTotal =
-    opts?.pagesTotal ??
-    (await prisma.pageAudit.count({ where: { auditId } }));
+    opts?.pagesTotal ?? pageAudits.length;
+
+  const rollup = scoreFindings(
+    findings.map((f) => ({
+      category: f.category as Parameters<typeof scoreFindings>[0][number]['category'],
+      severity: f.severity as 'info' | 'warning' | 'error',
+      rule: f.rule,
+      message: f.message,
+      url: f.url,
+      ...(f.selector ? { selector: f.selector } : {}),
+      evidence: (f.evidence ?? {}) as Record<string, unknown>,
+    })),
+    { pageCount: Math.max(1, pagesAudited) },
+  );
+
   const score = {
-    overall: pageScores.length
-      ? Math.round(pageScores.reduce((sum, s) => sum + s.overall, 0) / pageScores.length)
-      : 0,
-    byCategory,
-    pagesAudited: pageAudits.length,
+    overall: rollup.overall,
+    byCategory: rollup.byCategory,
+    pagesAudited,
     pagesTotal,
+    pagesWithError,
     discoveryLimitReached: opts?.discoveryLimitReached ?? false,
+    scoreEngineVersion: SCORE_ENGINE_VERSION,
   };
   const result = await prisma.audit.updateMany({
     where: { id: auditId, status: 'running' },
