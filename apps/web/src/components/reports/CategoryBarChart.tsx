@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { renderCategoryBarsSvg } from '@jheo/core';
+import { renderCategoryBarsSvg } from '@jheo/core/reports/charts';
 
 interface Props {
   byCategory: Record<string, number | null>;

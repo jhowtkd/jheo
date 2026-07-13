@@ -1,16 +1,23 @@
-# JHEO Executive Audit Report — progress
+# SI — Impeccable Foundations — SDD Progress
 
 Branch: executive-report
-Base: 1f98131 (baseline commit, includes stripLlmThinking)
+Plan: docs/superpowers/plans/2026-07-12-si-impeccable-foundations.md
+Base: 8db7457 (SI teach artifacts + plan)
+
+Baseline: web tests 82/82 PASS, tree clean (unrelated WIP stashed: "WIP: unrelated executive-report/translate/chart work (pre-SI)").
 
 | Task | Status | Commits | Review verdict |
 |------|--------|---------|----------------|
-| Task 1: Report types and Zod schemas | DONE | 08d33a9 | clean (schema verbatim, incremental barrel, tsc clean, TopRuleSummary type pre-approved addition) |
-| Task 2: buildAuditSummary with tests | DONE | bb9c1ba | clean (dedup deviation justified — plan's test/code inconsistent, test wins in TDD, reviewer confirmed) |
-| Task 3: Prisma executiveReport column | DONE | bc73eb7 | clean (schema + manual migration, prisma generate, tsc pass) |
-| Task 4: GSC summary helper | DONE | 5580551 | clean (3/3 tests, correct aggregation logic, minor: redundant qImp>0 guard, tests don't verify query construction) |
-| Task 5: Executive report prompt + LLM runner | DONE | a4304a7 | clean (8/8 tests, mirrors run-suggestion pattern, retry logic, 60s timeout, env chain, locale prompts) |
-| Task 6: executive-report service (cache + lock) | DONE | 9aa6dde | clean (6/6 tests, cache/generation/sanitize logic correct, minor: no GSC-enriched test path, TOCTOU on lock, dead test var) |
-| Task 7: API routes | DONE | afcc40a | clean (12/12 tests, GET+export routes, rate limit, force param, server registration, minimal HTML stub for Task 9) |
-| Task 8: SVG chart helpers | DONE | 3b51b47 | clean (13/13 tests, pure SVG functions, null/zero edge cases guarded, no deps, barrel updated) |
-| Task 9: HTML export renderer | DONE | (this commit) | pending review |
+| Task 0: Commit teach artifacts | DONE | 8db7457 (already committed) | n/a |
+| Task 1: Theme module | DONE | 8db7457..d94a81b | clean (6 exports verbatim, default-light, no OS-pref; 2 Minor inherited from brief test suite) |
+| Task 2: CSS tokens light/dark | DONE | d94a81b..f0aa27c | clean (hex verbatim both themes, names preserved, dark block overrides-only, FOUC before CSS, glow neutralized; 4 Minor deferred: sev tokens, shadow tuning, inset highlights, on-accent literal) |
+| Task 3: ThemeToggle + i18n | DONE | f0aa27c..f84675c | clean (mirrors LanguageToggle, i18n parity both locales, real behavioral test, no new CSS; 3 Minor inherited from reference) |
+| Task 4: ScoreCard legibility | DONE | f84675c..269673e | clean (CSS rule verbatim, placed as component rule, no scope creep, layout classes preserved) |
+| Task 5: Project Dashboard craft | DONE | 269673e..cb65fa4 | clean (sentinel-hiding proven by real behavioral test, 7-step hierarchy faithful, EmptyState zero-pages, no scope creep; 3 Minor polish) |
+
+Residual (non-blocking): `pnpm --filter @jheo/web lint` (prettier --check ts/tsx) fails across 44 pre-existing files — NOT a Task 7 gate (gate = test + typecheck only). Out of scope for SI; flag for a separate format pass if desired.
+| Task 6: Refresh DESIGN.md | DONE | cb65fa4..3c18a19 | clean (perfect hex fidelity vs styles.css, all placeholders removed, six sections kept, DESIGN.md only) |
+| Task 7: Acceptance gate | DONE (automated) | — | 91/91 tests PASS, typecheck clean @ edc5d28. Manual Score Ledger demo PENDING (needs Docker stack + browser — handed to user). |
+| Final whole-branch review | DONE | 8db7457..3c18a19 | With fixes → 1 Important (lying Retry button) + optional Minor (badge emerald) fixed in edc5d28; controller-verified honest retry (onError captures pageId, onRetry re-invokes mutate) + regression test. 91/91, typecheck clean. |
+
+Pre-flight scan: clean. No inter-task conflicts beyond Task 5 depending on Tasks 1-3 (theme API + tokens) and Task 2 CSS additions feeding Task 4 (.scorecard__overall). Task 7 is verification only.

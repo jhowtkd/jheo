@@ -9,6 +9,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./reports": {
+      "types": "./dist/reports/index.d.ts",
+      "import": "./dist/reports/index.js"
+    },
+    "./reports/charts": {
+      "types": "./dist/reports/charts.d.ts",
+      "import": "./dist/reports/charts.js"
+    },
+    "./i18n/locale": {
+      "types": "./dist/i18n/locale.d.ts",
+      "import": "./dist/i18n/locale.js"
     }
   },
   "scripts": {
