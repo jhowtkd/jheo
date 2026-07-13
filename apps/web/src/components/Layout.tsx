@@ -5,7 +5,7 @@ import { ThemeToggle } from './ThemeToggle.js';
 import { RouteListener } from './RouteListener.js';
 import { recordNavClick } from '../telemetry/sessionTelemetry.js';
 import { useBackendReachable } from '../hooks/useBackendReachable.js';
-import { localePath, type RouteId } from '../i18n/localePath.js';
+import { localePath, routeIdFromPath, type RouteId } from '../i18n/localePath.js';
 
 interface NavItem {
   id: RouteId;
@@ -61,11 +61,14 @@ function Crumb() {
   }
   const firstSeg = parts[0]!;
   const rootKey = CRUMB_ROOT_EN[firstSeg] ?? CRUMB_ROOT_PT[firstSeg] ?? 'nav.projects';
-  // Preserve the *original* first segment in the link target so a pt-BR
-  // user clicking the crumb goes back to the pt-BR list, not the EN one.
+  // Use the active locale's canonical path for the crumb link, not the URL's
+  // first segment — a pt-BR user on a bookmarked /projects/abc URL still
+  // expects clicking the crumb to land on /projetos.
+  const id = routeIdFromPath(loc.pathname);
+  const crumbTo = id ? localePath(id) : `/${firstSeg}`;
   return (
     <nav className="topbar__crumb" aria-label={t('topbar.breadcrumb')}>
-      <NavLink to={`/${firstSeg}`} end>{t(rootKey)}</NavLink>
+      <NavLink to={crumbTo} end>{t(rootKey)}</NavLink>
       {parts.slice(1).map((p, i) => (
         <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <span className="topbar__sep">/</span>

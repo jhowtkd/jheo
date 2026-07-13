@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { createMaterial, deleteMaterial, humanError, listMaterials, type Material } from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 
 type MaterialType = 'url' | 'note' | 'file';
 
@@ -57,16 +58,16 @@ export function MaterialsList() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
-            <Link to={`/projects/${projectId}`} className="muted tiny">{projectId?.slice(0, 8)}</Link>
+            <Link to={localePath('projectDashboard', { projectId: projectId! })} className="muted tiny">{projectId?.slice(0, 8)}</Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('materials.breadcrumb')}</span>
           </div>
           <h1 className="page__title">{t('materials.title')}</h1>
           <p className="page__subtitle">{t('materials.subtitle')}</p>
         </div>
-        <Link to={`/projects/${projectId}/compose`} className="btn btn--primary">
+        <Link to={localePath('compose', { projectId: projectId! })} className="btn btn--primary">
           {t('materials.generate')}
         </Link>
       </div>

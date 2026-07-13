@@ -11,6 +11,7 @@ import {
   type Channel,
   type Publish,
 } from '../api.js';
+import { localePath } from '../i18n/localePath.js';
 
 interface Props {
   generationId: string;
@@ -79,7 +80,7 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
           {activeChannels.length === 0 ? (
             <p className="tiny muted">
               {t('publish.actionsPanel.noChannels')}{' '}
-              <Link to={`/projects/${projectId}/channels`}>{t('publish.actionsPanel.createChannel')}</Link>
+              <Link to={localePath('channelsProject', { projectId })}>{t('publish.actionsPanel.createChannel')}</Link>
             </p>
           ) : (
             <>
@@ -134,7 +135,7 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
                   ) : (
                     p.lastError ? <code>{p.lastError}</code> : '—'
                   )}
-                  {p.channelId && <Link to={`/publishes/${p.id}`}> {t('publish.actionsPanel.detail')}</Link>}
+                  {p.channelId && <Link to={localePath('publishDetail', { publishId: p.id })}> {t('publish.actionsPanel.detail')}</Link>}
                 </td>
                 <td>
                   {(p.status === 'queued' || p.status === 'running') && (

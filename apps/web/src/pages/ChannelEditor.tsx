@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { getChannel } from '../api.js';
+import { localePath } from '../i18n/localePath.js';
 
 export function ChannelEditor() {
   const { t } = useTranslation();
@@ -25,9 +26,9 @@ export function ChannelEditor() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
-            <Link to={`/projects/${c.projectId}`} className="muted tiny">{c.projectId.slice(0, 8)}</Link>
+            <Link to={localePath('projectDashboard', { projectId: c.projectId! })} className="muted tiny">{c.projectId.slice(0, 8)}</Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('channels.editor.breadcrumb')}</span>
           </div>

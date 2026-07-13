@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useSearchParams } from 'react-router-dom';
 import { getProject, listProjects, type Audit, type Project } from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 
 type ReportRow = Audit & {
   projectName: string;
@@ -114,7 +115,7 @@ export function ReportsList() {
           {filterProject && (
             <p className="tiny muted" style={{ marginTop: 'var(--space-2)', marginBottom: 0 }}>
               {t('reports.filteredBy', { name: filterProject.name })}{' '}
-              <Link to={`/projects/${filterProject.id}`}>{t('reports.openProject')}</Link>
+              <Link to={localePath('projectDashboard', { projectId: filterProject.id })}>{t('reports.openProject')}</Link>
             </p>
           )}
         </div>
@@ -131,8 +132,8 @@ export function ReportsList() {
           titleKey="reports.empty.title"
           hintKey="reports.empty.hint"
           {...(projectId
-            ? { cta: { to: `/projects/${projectId}/audit`, labelKey: 'reports.empty.action' } }
-            : { cta: { to: '/projects', labelKey: 'reports.empty.actionProjects' } })}
+            ? { cta: { to: () => localePath('auditRunner', { projectId }), labelKey: 'reports.empty.action' } }
+            : { cta: { to: () => localePath('projects'), labelKey: 'reports.empty.actionProjects' } })}
         >
           <svg viewBox="0 0 56 56">
             <rect x="10" y="8" width="36" height="40" rx="3" />
@@ -172,7 +173,7 @@ export function ReportsList() {
                       : '—'}
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <Link to={`/audits/${row.id}`} className="tiny">
+                    <Link to={localePath('auditResults', { auditId: row.id })} className="tiny">
                       {t('reports.openReport')}
                     </Link>
                   </td>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { humanError, listAudits, type AuditListItem } from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -52,7 +53,7 @@ export function AuditsList() {
         <EmptyState
           titleKey="audits.empty.title"
           hintKey="audits.empty.hint"
-          cta={{ to: '/projects', labelKey: 'nav.projects' }}
+          cta={{ to: () => localePath('projects'), labelKey: 'nav.projects' }}
         />
       )}
 
@@ -72,7 +73,7 @@ export function AuditsList() {
               {audits.data.map((a: AuditListItem) => (
                 <tr key={a.id}>
                   <td>
-                    <Link to={`/projects/${a.projectId}`} style={{ fontWeight: 500 }}>
+                    <Link to={localePath('projectDashboard', { projectId: a.projectId })} style={{ fontWeight: 500 }}>
                       {a.projectName}
                     </Link>
                   </td>

@@ -10,6 +10,7 @@ import {
 import { CategoryBarChart } from '../components/reports/CategoryBarChart.js';
 import { SeverityChart } from '../components/reports/SeverityChart.js';
 import { ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 
 interface Props {
   auditId: string;
@@ -239,7 +240,7 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
       )}
 
       <div style={{ marginTop: 'var(--space-6)' }}>
-        <Link to={`/fixes?auditId=${auditId}`} className="btn">
+        <Link to={`${localePath('fixes')}?auditId=${encodeURIComponent(auditId)}`} className="btn">
           {t('audit.executive.viewFixes')}
         </Link>
       </div>

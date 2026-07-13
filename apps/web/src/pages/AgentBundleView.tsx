@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { getPublishFiles } from '../api.js';
+import { localePath } from '../i18n/localePath.js';
 
 export function AgentBundleView() {
   const { t } = useTranslation();
@@ -17,7 +18,7 @@ export function AgentBundleView() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={`/publishes/${publishId}`} className="muted tiny">{t('publish.title')}</Link>
+            <Link to={localePath('publishDetail', { publishId: publishId! })} className="muted tiny">{t('publish.title')}</Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('publish.bundle.breadcrumb')}</span>
           </div>

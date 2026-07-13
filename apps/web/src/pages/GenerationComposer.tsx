@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { createGeneration, humanError, listGenerations, listMaterials, listTemplates } from '../api.js';
 import { ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 
 export function GenerationComposer() {
   const { t } = useTranslation();
@@ -46,7 +47,7 @@ export function GenerationComposer() {
       }),
     onSuccess: async (g) => {
       await qc.invalidateQueries({ queryKey: ['generations', projectId] });
-      navigate(`/generations/${g.id}`);
+      navigate(localePath('generationReview', { generationId: g.id }));
     },
   });
 
@@ -57,9 +58,9 @@ export function GenerationComposer() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
-            <Link to={`/projects/${projectId}`} className="muted tiny">{projectId?.slice(0, 8)}</Link>
+            <Link to={localePath('projectDashboard', { projectId: projectId! })} className="muted tiny">{projectId?.slice(0, 8)}</Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('generation.composer.breadcrumb')}</span>
           </div>
@@ -127,7 +128,7 @@ export function GenerationComposer() {
             {materials.data && materials.data.length === 0 ? (
               <p className="tiny muted">
                 {t('generation.composer.noMaterialsEmpty')}{' '}
-                <Link to={`/projects/${projectId}/materials`}>{t('generation.composer.addMaterialsLink')}</Link>
+                <Link to={localePath('materialsProject', { projectId: projectId! })}>{t('generation.composer.addMaterialsLink')}</Link>
               </p>
             ) : (
               <div className="col" style={{ gap: 'var(--space-2)', maxHeight: 240, overflowY: 'auto' }}>
@@ -209,7 +210,7 @@ export function GenerationComposer() {
             {!templateId && !activeTemplate && (
               <p className="tiny" role="status" style={{ margin: 0 }}>
                 {t('generation.composer.needTemplateHint')}{' '}
-                <Link to="/templates">{t('generation.composer.needTemplateLink')}</Link>
+                <Link to={localePath('templates')}>{t('generation.composer.needTemplateLink')}</Link>
               </p>
             )}
             <button type="submit" className="btn btn--primary" disabled={submitDisabled}>
@@ -229,7 +230,7 @@ export function GenerationComposer() {
               {generations.data.slice(0, 6).map((g, i) => (
                 <Link
                   key={g.id}
-                  to={`/generations/${g.id}`}
+                  to={localePath('generationReview', { generationId: g.id })}
                   style={{
                     display: 'block',
                     padding: i > 0 ? 'var(--space-3) 0 0' : 0,

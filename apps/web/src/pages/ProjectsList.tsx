@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { createProject, humanError, listProjects } from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 import { isValidProjectUrlInput, normalizeProjectUrl } from '../lib/projectUrl.js';
 
 function formatDate(iso: string): string {
@@ -38,7 +39,7 @@ export function ProjectsList() {
       // `name` before the error-state retry closure captures it, so a
       // failed create would retry with an empty payload.
       setName('');
-      navigate(`/projects/${p.id}`);
+      navigate(localePath('projectDashboard', { projectId: p.id }));
     },
   });
 
@@ -158,7 +159,7 @@ export function ProjectsList() {
                 <tr
                   key={p.id}
                   style={{ cursor: 'pointer' }}
-                  onClick={() => navigate(`/projects/${p.id}`)}
+                  onClick={() => navigate(localePath('projectDashboard', { projectId: p.id }))}
                 >
                   <td>
                     <span style={{ fontWeight: 500 }}>{p.name}</span>

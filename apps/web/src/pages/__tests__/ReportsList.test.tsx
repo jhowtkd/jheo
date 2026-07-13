@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { I18nextProvider } from 'react-i18next';
 import type { ReactNode } from 'react';
 import { createQueryClientWrapper } from '../../../test/queryClientWrapper';
+import { ensureI18n, i18n } from '../../i18n/index.js';
 import { ReportsList } from '../ReportsList.js';
 
 vi.mock('../../api.js', async (importOriginal) => {
@@ -17,15 +19,19 @@ vi.mock('../../api.js', async (importOriginal) => {
 function renderWith(node: ReactNode, initial = '/reports') {
   const QueryWrapper = createQueryClientWrapper();
   return render(
-    <MemoryRouter initialEntries={[initial]}>
-      <QueryWrapper>{node}</QueryWrapper>
-    </MemoryRouter>,
+    <I18nextProvider i18n={i18n}>
+      <MemoryRouter initialEntries={[initial]}>
+        <QueryWrapper>{node}</QueryWrapper>
+      </MemoryRouter>
+    </I18nextProvider>,
   );
 }
 
 describe('ReportsList', () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
+    await ensureI18n();
+    await i18n.changeLanguage('en');
   });
   afterEach(() => {
     vi.restoreAllMocks();
@@ -38,9 +44,9 @@ describe('ReportsList', () => {
     renderWith(<ReportsList />);
 
     await waitFor(() => {
-      expect(screen.getByText(/nenhum relatório concluído/i)).toBeTruthy();
+      expect(screen.getByText(/no completed reports yet/i)).toBeTruthy();
     });
-    expect(screen.getByRole('link', { name: /ir para projetos/i })).toHaveAttribute('href', '/projects');
+    expect(screen.getByRole('link', { name: /go to projects/i })).toHaveAttribute('href', '/projects');
   });
 
   it('lists completed audits with a link to the report page', async () => {
@@ -80,7 +86,7 @@ describe('ReportsList', () => {
       expect(screen.getByText('Cenbrap')).toBeTruthy();
     });
     expect(screen.getByText('88')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /abrir relatório/i })).toHaveAttribute('href', '/audits/a1');
+    expect(screen.getByRole('link', { name: /open report/i })).toHaveAttribute('href', '/audits/a1');
     expect(screen.queryByText(/running/i)).toBeNull();
   });
 
@@ -111,14 +117,14 @@ describe('ReportsList', () => {
     renderWith(<ReportsList />, '/reports?projectId=p1');
 
     await waitFor(() => {
-      expect(screen.getByRole('link', { name: /abrir relatório/i })).toHaveAttribute(
+      expect(screen.getByRole('link', { name: /open report/i })).toHaveAttribute(
         'href',
         '/audits/audit-p1',
       );
     });
     expect(getProject).toHaveBeenCalledWith('p1');
     expect(getProject).not.toHaveBeenCalledWith('p2');
-    expect(screen.queryByRole('link', { name: /abrir relatório/i, hidden: false })).toBeTruthy();
+    expect(screen.queryByRole('link', { name: /open report/i, hidden: false })).toBeTruthy();
     expect(screen.queryByText('https://acme.com/')).toBeNull();
   });
 });

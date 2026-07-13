@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { deleteChannel, humanError, listChannels, type Channel, type ChannelType } from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 
 export function ChannelsList() {
   const { t } = useTranslation();
@@ -23,9 +24,9 @@ export function ChannelsList() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
-            <Link to={`/projects/${projectId}`} className="muted tiny">{projectId?.slice(0, 8)}</Link>
+            <Link to={localePath('projectDashboard', { projectId: projectId! })} className="muted tiny">{projectId?.slice(0, 8)}</Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('channels.breadcrumb')}</span>
           </div>
@@ -58,7 +59,7 @@ export function ChannelsList() {
         <EmptyState
           titleKey="channels.empty.title"
           hintKey="channels.empty.hint"
-          {...(projectId ? { cta: { to: `/projects/${projectId}/audit`, labelKey: 'channels.empty.cta' } } : {})}
+          {...(projectId ? { cta: { to: () => localePath('auditRunner', { projectId: projectId! }), labelKey: 'channels.empty.cta' } } : {})}
         >
           <svg viewBox="0 0 56 56">
             <path d="M10 28h36" />
@@ -89,7 +90,7 @@ function ChannelRow({ channel, onRemove }: { channel: Channel; onRemove: () => v
   const { t } = useTranslation();
   return (
     <Link
-      to={`/channels/${channel.id}`}
+      to={localePath('channelEditor', { channelId: channel.id })}
       className="card card--interactive"
       style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}
     >

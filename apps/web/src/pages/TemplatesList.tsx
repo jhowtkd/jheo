@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { activateTemplate, humanError, listTemplates, type GenerationTemplate } from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -51,7 +52,7 @@ export function TemplatesList() {
         <EmptyState
           titleKey="templates.empty.title"
           hintKey="templates.empty.hint"
-          cta={{ to: '/templates', labelKey: 'templates.activate' }}
+          cta={{ to: () => localePath('templates'), labelKey: 'templates.activate' }}
         >
           <svg viewBox="0 0 56 56">
             <rect x="10" y="10" width="36" height="36" rx="3" />
@@ -104,7 +105,7 @@ function TemplateRow({
   return (
     <tr>
       <td>
-        <Link to={`/templates/${template.id}`} style={{ fontWeight: 500 }}>
+        <Link to={localePath('templateEditor', { templateId: template.id })} style={{ fontWeight: 500 }}>
           {template.name}
         </Link>
         <div className="tiny mono muted">{template.id.slice(0, 12)}…</div>
@@ -120,7 +121,7 @@ function TemplateRow({
       <td className="tiny tabular muted">{formatDate(template.createdAt)}</td>
       <td style={{ textAlign: 'right' }}>
         <div className="actions" style={{ justifyContent: 'flex-end' }}>
-          <Link to={`/templates/${template.id}`} className="btn btn--ghost btn--sm">
+          <Link to={localePath('templateEditor', { templateId: template.id })} className="btn btn--ghost btn--sm">
             {t('common.edit')}
           </Link>
           {!template.isActive && (

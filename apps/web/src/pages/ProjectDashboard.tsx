@@ -19,6 +19,7 @@ import { ScoreCard } from '../components/ScoreCard.js';
 import { FilterBar, type FilterOption } from '../components/FilterBar.js';
 import { FindingList } from '../components/FindingList.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 import { setLastProjectId } from '../lib/lastProject.js';
 import { scoreHistoryFromAudits } from '../lib/scoreHistory.js';
 
@@ -191,7 +192,7 @@ export function ProjectDashboard() {
       <header className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">
+            <Link to={localePath('projects')} className="muted tiny">
               {t('nav.projects')}
             </Link>
             <span className="muted tiny">/</span>
@@ -200,7 +201,7 @@ export function ProjectDashboard() {
           <h1 className="page__title">{p.name}</h1>
           <p className="page__subtitle mono">{p.rootUrl}</p>
         </div>
-        <Link to={`/projects/${projectId}/audit`} className="btn btn--primary">
+        <Link to={localePath('auditRunner', { projectId: projectId! })} className="btn btn--primary">
           {t('projects.dashboard.runAudit')}
         </Link>
       </header>
@@ -234,13 +235,13 @@ export function ProjectDashboard() {
 
       {/* Actions — secondary navigation (does not compete with Run audit) */}
       <nav className="row" style={{ gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-        <Link to={`/projects/${projectId}/compose`} className="btn btn--secondary btn--sm">
+        <Link to={localePath('compose', { projectId: projectId! })} className="btn btn--secondary btn--sm">
           {t('projects.dashboard.quickLinks.generate')}
         </Link>
-        <Link to={`/projects/${projectId}/channels`} className="btn btn--secondary btn--sm">
+        <Link to={localePath('channelsProject', { projectId: projectId! })} className="btn btn--secondary btn--sm">
           {t('projects.dashboard.quickLinks.channels')}
         </Link>
-        <Link to={`/projects/${projectId}/materials`} className="btn btn--secondary btn--sm">
+        <Link to={localePath('materialsProject', { projectId: projectId! })} className="btn btn--secondary btn--sm">
           {t('projects.dashboard.quickLinks.materials')}
         </Link>
       </nav>
@@ -325,7 +326,7 @@ export function ProjectDashboard() {
         <EmptyState
           titleKey="projects.dashboard.pagesEmpty.title"
           hintKey="projects.dashboard.pagesEmpty.hint"
-          cta={{ to: `/projects/${projectId}/audit`, labelKey: 'projects.dashboard.runAudit' }}
+          cta={{ to: () => localePath('auditRunner', { projectId: projectId! }), labelKey: 'projects.dashboard.runAudit' }}
         />
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'auto' }}>
@@ -487,7 +488,7 @@ export function ProjectDashboard() {
               <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>
                 {t('projects.dashboard.latestAudit')}
               </h2>
-              <Link to={`/audits/${latest.id}`} className="tiny">
+              <Link to={localePath('auditResults', { auditId: latest.id })} className="tiny">
                 {t('projects.dashboard.openFullReport')}
               </Link>
             </div>
@@ -544,7 +545,7 @@ export function ProjectDashboard() {
               <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>
                 {t('projects.dashboard.auditHistory')}
               </h2>
-              <Link to={`/reports?projectId=${projectId}`} className="tiny">
+              <Link to={`${localePath('reports')}?projectId=${encodeURIComponent(projectId!)}`} className="tiny">
                 {t('projects.dashboard.viewAllReports')}
               </Link>
             </div>
@@ -571,7 +572,7 @@ export function ProjectDashboard() {
                         {a.score?.overall ?? '—'}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <Link to={`/audits/${a.id}`} className="tiny">
+                        <Link to={localePath('auditResults', { auditId: a.id })} className="tiny">
                           {t('projects.dashboard.viewLink')}
                         </Link>
                       </td>
@@ -596,19 +597,19 @@ export function ProjectDashboard() {
             }}
           >
             <QuickLink
-              to={`/projects/${projectId}/materials`}
+              to={localePath('materialsProject', { projectId: projectId! })}
               label={t('projects.dashboard.quickLinks.materials')}
               hint={t('projects.dashboard.quickLinks.materialsHint')}
               {...(materials.data ? { count: materials.data.length } : {})}
             />
             <QuickLink
-              to={`/projects/${projectId}/compose`}
+              to={localePath('compose', { projectId: projectId! })}
               label={t('projects.dashboard.quickLinks.generate')}
               hint={t('projects.dashboard.quickLinks.generateHint')}
               {...(generations.data ? { count: generations.data.length } : {})}
             />
             <QuickLink
-              to={`/projects/${projectId}/channels`}
+              to={localePath('channelsProject', { projectId: projectId! })}
               label={t('projects.dashboard.quickLinks.channels')}
               hint={t('projects.dashboard.quickLinks.channelsHint')}
               {...(channels.data ? { count: channels.data.length } : {})}

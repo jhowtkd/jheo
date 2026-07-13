@@ -18,6 +18,7 @@ import { FixCard, type FindingLike } from '../components/fixes/FixCard.js';
 import { FixGroup, type FixGroupData } from '../components/fixes/FixGroup.js';
 import { EmptyFixesState } from '../components/fixes/EmptyFixesState.js';
 import { ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 import { ProjectChooser } from '../components/ProjectChooser.js';
 
 type Filter = {
@@ -228,9 +229,9 @@ export function FixesPage() {
             const detail = await getProject(pid);
             const latest = detail.audits?.[0];
             if (latest) {
-              navigate(`/fixes?auditId=${latest.id}`);
+              navigate(`${localePath('fixes')}?auditId=${encodeURIComponent(latest.id)}`);
             } else {
-              navigate(`/projects/${pid}`);
+              navigate(localePath('projectDashboard', { projectId: pid }));
             }
           }}
         />

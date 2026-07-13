@@ -7,6 +7,7 @@ import { getGeneration, reviewGeneration, type Generation } from '../api.js';
 import { PublishActions } from '../components/PublishActions.js';
 import { useDataTranslations } from '../i18n/useDataTranslations';
 import type { SupportedLocale } from '../i18n';
+import { localePath } from '../i18n/localePath.js';
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -65,9 +66,9 @@ export function GenerationReview() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
-            <Link to={`/projects/${g.projectId}`} className="muted tiny">
+            <Link to={localePath('projectDashboard', { projectId: g.projectId })} className="muted tiny">
               {g.projectId.slice(0, 8)}
             </Link>
             <span className="muted tiny">/</span>

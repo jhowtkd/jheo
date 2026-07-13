@@ -9,6 +9,7 @@ import {
   type PublishEvent,
   type PublishStatus,
 } from '../api.js';
+import { localePath } from '../i18n/localePath.js';
 
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
@@ -63,7 +64,7 @@ export function PublishDetail() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('publish.breadcrumb')}</span>
           </div>
@@ -91,11 +92,11 @@ export function PublishDetail() {
         >
           <div>
             <div className="tiny muted">{t('publish.fields.generation')}</div>
-            <Link to={`/generations/${p.generationId}`} className="mono tiny">{p.generationId.slice(0, 12)}…</Link>
+            <Link to={localePath('generationReview', { generationId: p.generationId })} className="mono tiny">{p.generationId.slice(0, 12)}…</Link>
           </div>
           <div>
             <div className="tiny muted">{t('publish.fields.channel')}</div>
-            <Link to={`/channels/${p.channelId}`} className="mono tiny">{p.channelId.slice(0, 12)}…</Link>
+            <Link to={localePath('channelEditor', { channelId: p.channelId })} className="mono tiny">{p.channelId.slice(0, 12)}…</Link>
           </div>
           <div>
             <div className="tiny muted">{t('publish.fields.started')}</div>
@@ -130,7 +131,7 @@ export function PublishDetail() {
             </button>
           )}
           {p.channel?.type === 'agent' && p.status === 'completed' && (
-            <Link to={`/publishes/${p.id}/bundle`} className="btn btn--primary btn--sm">
+            <Link to={localePath('agentBundle', { publishId: p.id })} className="btn btn--primary btn--sm">
               {t('publish.actions.openBundle')}
             </Link>
           )}

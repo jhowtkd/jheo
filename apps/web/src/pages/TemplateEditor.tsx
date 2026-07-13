@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { getTemplate } from '../api.js';
+import { localePath } from '../i18n/localePath.js';
 
 export function TemplateEditor() {
   const { t } = useTranslation();
@@ -25,7 +26,7 @@ export function TemplateEditor() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/templates" className="muted tiny">{t('templates.breadcrumb')}</Link>
+            <Link to={localePath('templates')} className="muted tiny">{t('templates.breadcrumb')}</Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{tpl.name}</span>
           </div>
