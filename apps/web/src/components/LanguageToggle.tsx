@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { setLocale, type SupportedLocale } from '../i18n';
 import { LOCALE_NAMES } from '../i18n/locale';
+import { activeLocale, siblingPath } from '../i18n/localePath';
 
 const LOCALES: SupportedLocale[] = ['en', 'pt-BR'];
 
@@ -9,6 +11,8 @@ export function LanguageToggle() {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     if (!open) return;
@@ -25,6 +29,18 @@ export function LanguageToggle() {
       document.removeEventListener('keydown', onKey);
     };
   }, [open]);
+
+  function pickLocale(loc: SupportedLocale) {
+    if (loc === activeLocale()) {
+      setOpen(false);
+      return;
+    }
+    const target = siblingPath(activeLocale(), loc, location.pathname);
+    setLocale(loc);
+    // replace so the locale toggle doesn't pollute history
+    navigate(target + (location.search ?? '') + (location.hash ?? ''), { replace: true });
+    setOpen(false);
+  }
 
   return (
     <div className="lang-toggle" ref={ref}>
@@ -52,10 +68,7 @@ export function LanguageToggle() {
                 name="lang"
                 value={loc}
                 checked={i18n.language === loc}
-                onChange={() => {
-                  setLocale(loc);
-                  setOpen(false);
-                }}
+                onChange={() => pickLocale(loc)}
               />
               <span>{LOCALE_NAMES[loc]}</span>
             </label>

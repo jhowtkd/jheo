@@ -3,9 +3,10 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LanguageToggle } from './LanguageToggle.js';
 import { ThemeToggle } from './ThemeToggle.js';
 import { useBackendReachable } from '../hooks/useBackendReachable.js';
+import { localePath, type RouteId } from '../i18n/localePath.js';
 
 interface NavItem {
-  to: string;
+  id: RouteId;
   labelKey: string;
   badge?: string;
   icon: JSX.Element;
@@ -22,7 +23,10 @@ function Logo() {
   );
 }
 
-const CRUMB_ROOT: Record<string, string> = {
+// Crumb root resolution: first segment may be en OR pt-BR.
+// The reverse map is duplicated here (small) so the breadcrumb doesn't have
+// to import the full localePath module for what is essentially a label swap.
+const CRUMB_ROOT_EN: Record<string, string> = {
   projects: 'nav.projects',
   audits: 'nav.audits',
   reports: 'nav.reports',
@@ -33,6 +37,17 @@ const CRUMB_ROOT: Record<string, string> = {
   channels: 'nav.channels',
   settings: 'nav.settings',
 };
+const CRUMB_ROOT_PT: Record<string, string> = {
+  projetos: 'nav.projects',
+  auditorias: 'nav.audits',
+  relatorios: 'nav.reports',
+  modelos: 'nav.templates',
+  materiais: 'nav.materials',
+  geracoes: 'nav.generations',
+  correcoes: 'nav.fixes',
+  canais: 'nav.channels',
+  configuracoes: 'nav.settings',
+};
 
 function Crumb() {
   const { t } = useTranslation();
@@ -41,11 +56,13 @@ function Crumb() {
   if (parts.length === 0) {
     return <span className="topbar__crumb"><span>{t('nav.projects')}</span></span>;
   }
-  const rootKey = CRUMB_ROOT[parts[0]!] ?? 'nav.projects';
-  const rootHref = `/${parts[0]}`;
+  const firstSeg = parts[0]!;
+  const rootKey = CRUMB_ROOT_EN[firstSeg] ?? CRUMB_ROOT_PT[firstSeg] ?? 'nav.projects';
+  // Preserve the *original* first segment in the link target so a pt-BR
+  // user clicking the crumb goes back to the pt-BR list, not the EN one.
   return (
     <nav className="topbar__crumb" aria-label={t('topbar.breadcrumb')}>
-      <NavLink to={rootHref} end>{t(rootKey)}</NavLink>
+      <NavLink to={`/${firstSeg}`} end>{t(rootKey)}</NavLink>
       {parts.slice(1).map((p, i) => (
         <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 'var(--space-2)' }}>
           <span className="topbar__sep">/</span>
@@ -73,11 +90,22 @@ function HealthIndicator() {
   );
 }
 
+const NAV_IDS: RouteId[] = [
+  'projects',
+  'audits',
+  'templates',
+  'materialsGate',
+  'generationsGate',
+  'fixes',
+  'channelsGate',
+  'settings',
+];
+
 export function Layout() {
   const { t } = useTranslation();
   const NAV: NavItem[] = [
     {
-      to: '/projects',
+      id: 'projects',
       labelKey: 'nav.projects',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -88,7 +116,7 @@ export function Layout() {
       ),
     },
     {
-      to: '/audits',
+      id: 'audits',
       labelKey: 'nav.audits',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -98,7 +126,7 @@ export function Layout() {
       ),
     },
     {
-      to: '/templates',
+      id: 'templates',
       labelKey: 'nav.templates',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -110,7 +138,7 @@ export function Layout() {
       ),
     },
     {
-      to: '/materials',
+      id: 'materialsGate',
       labelKey: 'nav.materials',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -120,7 +148,7 @@ export function Layout() {
       ),
     },
     {
-      to: '/generations',
+      id: 'generationsGate',
       labelKey: 'nav.generations',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -129,7 +157,7 @@ export function Layout() {
       ),
     },
     {
-      to: '/fixes',
+      id: 'fixes',
       labelKey: 'nav.fixes',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -139,7 +167,7 @@ export function Layout() {
       ),
     },
     {
-      to: '/channels',
+      id: 'channelsGate',
       labelKey: 'nav.channels',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -150,7 +178,7 @@ export function Layout() {
       ),
     },
     {
-      to: '/settings',
+      id: 'settings',
       labelKey: 'nav.settings',
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -160,6 +188,10 @@ export function Layout() {
       ),
     },
   ];
+  // Compile-time check that NAV_IDS matches NAV (cheap way to keep them in sync)
+  if (NAV_IDS.length !== NAV.length || NAV.some((n, i) => n.id !== NAV_IDS[i])) {
+    throw new Error('NAV_IDS out of sync with NAV — update both');
+  }
 
   return (
     <div className="app-shell">
@@ -175,9 +207,9 @@ export function Layout() {
         <nav className="sidebar__nav">
           {NAV.map((item) => (
             <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/projects'}
+              key={item.id}
+              to={localePath(item.id)}
+              end={item.id === 'projects'}
               className={({ isActive }) =>
                 'sidebar__link' + (isActive ? ' sidebar__link--active' : '')
               }

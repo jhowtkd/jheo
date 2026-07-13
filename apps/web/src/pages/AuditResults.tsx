@@ -8,6 +8,7 @@ import { FindingList } from '../components/FindingList.js';
 import { ScoreCard } from '../components/ScoreCard.js';
 import { getAudit, getProject, type Finding } from '../api.js';
 import { scoreHistoryFromAudits } from '../lib/scoreHistory.js';
+import { localePath } from '../i18n/localePath.js';
 
 export function AuditResults() {
   const { t } = useTranslation();
@@ -55,9 +56,9 @@ export function AuditResults() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to="/projects" className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
             <span className="muted tiny">/</span>
-            <Link to={`/projects/${a.projectId}`} className="muted tiny">
+            <Link to={localePath('projectDashboard', { projectId: a.projectId })} className="muted tiny">
               {a.projectId.slice(0, 8)}
             </Link>
             <span className="muted tiny">/</span>

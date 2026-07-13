@@ -23,6 +23,8 @@ function renderRunner() {
         <MemoryRouter initialEntries={['/projects/p1/audit']}>
           <Routes>
             <Route path="/projects/:projectId/audit" element={<AuditRunner />} />
+            {/* pt-BR audit results route — matches the localized navigate target */}
+            <Route path="/auditorias/:auditId" element={<div data-testid="audit-results" />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import type { Finding, FindingDiff } from '../api.js';
 import { useDataTranslations } from '../i18n/useDataTranslations';
+import { localePath } from '../i18n/localePath.js';
 
 const SEV_CLASS: Record<Finding['severity'], string> = {
   info: 'sev--info',
@@ -180,7 +181,11 @@ function FindingCard({
         </a>
         <button
           className="btn btn--sm btn--link"
-          onClick={() => navigate(`/fixes?auditId=${finding.auditId}&findingId=${finding.id}`)}
+          onClick={() =>
+            navigate(
+              `${localePath('fixes')}?auditId=${encodeURIComponent(finding.auditId)}&findingId=${encodeURIComponent(finding.id)}`,
+            )
+          }
           title={t('fixes.action.generate')}
         >
           {t('fixes.action.generate')}

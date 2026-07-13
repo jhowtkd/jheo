@@ -8,19 +8,25 @@ export type RouteId =
   | 'audits'
   | 'auditResults'
   | 'materialsProject'
+  | 'materialsGate'
   | 'compose'
+  | 'generationsGate'
   | 'templates'
   | 'templateEditor'
   | 'fixes'
   | 'reports'
   | 'generationReview'
   | 'channelsProject'
+  | 'channelsGate'
   | 'channelEditor'
   | 'publishDetail'
   | 'agentBundle'
   | 'settings';
 
-type LocalizedId = Exclude<RouteId, 'publishDetail' | 'agentBundle'>;
+type LocalizedId = Exclude<
+  RouteId,
+  'publishDetail' | 'agentBundle'
+>;
 
 // First-segment localization per S4/D5 spec. Routes whose first segment is
 // intentionally not localized (publishes/*) are absent here and handled in
@@ -32,13 +38,16 @@ const FIRST_SEGMENT: Record<LocalizedId, Record<SupportedLocale, string>> = {
   audits:             { en: 'audits',       'pt-BR': 'auditorias' },
   auditResults:       { en: 'audits',       'pt-BR': 'auditorias' },
   materialsProject:   { en: 'projects',     'pt-BR': 'projetos' },
+  materialsGate:      { en: 'materials',    'pt-BR': 'materiais' },
   compose:            { en: 'projects',     'pt-BR': 'projetos' },
+  generationsGate:    { en: 'generations',  'pt-BR': 'geracoes' },
   templates:          { en: 'templates',    'pt-BR': 'modelos' },
   templateEditor:     { en: 'templates',    'pt-BR': 'modelos' },
   fixes:              { en: 'fixes',        'pt-BR': 'correcoes' },
   reports:            { en: 'reports',      'pt-BR': 'relatorios' },
   generationReview:   { en: 'generations',  'pt-BR': 'geracoes' },
   channelsProject:    { en: 'projects',     'pt-BR': 'projetos' },
+  channelsGate:       { en: 'channels',     'pt-BR': 'canais' },
   channelEditor:      { en: 'channels',     'pt-BR': 'canais' },
   settings:           { en: 'settings',     'pt-BR': 'configuracoes' },
 };
@@ -52,13 +61,16 @@ const TAIL: Record<RouteId, string> = {
   audits:             '',
   auditResults:       '/:auditId',
   materialsProject:   '/:projectId/materials',
+  materialsGate:      '',
   compose:            '/:projectId/compose',
+  generationsGate:    '',
   templates:          '',
   templateEditor:     '/:templateId',
   fixes:              '',
   reports:            '',
   generationReview:   '/:generationId',
   channelsProject:    '/:projectId/channels',
+  channelsGate:       '',
   channelEditor:      '/:channelId',
   publishDetail:      '/publishes/:publishId',
   agentBundle:        '/publishes/:publishId/bundle',
@@ -74,6 +86,7 @@ function fillParams(template: string, params?: Record<string, string>): string {
   });
 }
 
+/** Concrete path for a given locale, with params interpolated. */
 export function pathForLocale(
   locale: SupportedLocale,
   id: RouteId,
@@ -85,7 +98,21 @@ export function pathForLocale(
     const head = first[locale];
     return tail ? `/${head}${tail}` : `/${head}`;
   }
-  // Unlocalized first segment — tail already starts with /publishes.
+  return tail;
+}
+
+/**
+ * Path template for a given locale — same shape as pathForLocale but with
+ * :param placeholders preserved (no interpolation). Useful for redirect
+ * templates like `/projetos/:projectId/materiais`.
+ */
+export function pathTemplateForLocale(locale: SupportedLocale, id: RouteId): string {
+  const tail = TAIL[id];
+  const first = FIRST_SEGMENT[id as LocalizedId];
+  if (first) {
+    const head = first[locale];
+    return tail ? `/${head}${tail}` : `/${head}`;
+  }
   return tail;
 }
 
@@ -136,9 +163,6 @@ export function siblingPath(
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length === 0) return pathname || '/';
   const firstSegment = parts[0]!;
-  // Tolerant lookup: the active URL may already be under the target locale's
-  // segments (e.g. user pasted a bookmark, or hit a redirect). Find the id
-  // by trying both locales instead of only the reported source.
   const id =
     FIRST_BY_LOCALE[fromLocale][firstSegment] ??
     FIRST_BY_LOCALE[toLocale][firstSegment];

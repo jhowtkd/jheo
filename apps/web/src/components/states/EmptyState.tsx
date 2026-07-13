@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
+import { localePath } from '../../i18n/localePath.js';
 
 // Kind discriminant → COPY defaults. Lets callers render a known variant
 // by name (like EmptyFixesState) instead of re-specifying all keys. This is
@@ -8,12 +9,19 @@ import { Link } from 'react-router-dom';
 // holds the three EmptyFixesState entries keyed by their kind strings so
 // S2's migration of EmptyFixesState → <EmptyState kind="..."/> is mechanical.
 // Explicit titleKey/hintKey/cta props override the kind's defaults.
-const COPY: Record<string, { titleKey: string; hintKey?: string; cta?: { to: string; labelKey: string } }> = {
+//
+// `to` is a thunk (lazy path) so kind defaults can stay locale-aware: the
+// path is resolved at render time via localePath().
+const COPY: Record<string, {
+  titleKey: string;
+  hintKey?: string;
+  cta?: { to: string | (() => string); labelKey: string };
+}> = {
   'no-findings': { titleKey: 'fixes.empty' },
   'no-audits': { titleKey: 'fixes.chooseProject.noAudits' },
   'no-projects': {
     titleKey: 'fixes.chooseProject.noProjects',
-    cta: { to: '/projects', labelKey: 'fixes.chooseProject.goProjects' },
+    cta: { to: () => localePath('projects'), labelKey: 'fixes.chooseProject.goProjects' },
   },
 };
 
@@ -24,12 +32,16 @@ export interface EmptyStateProps {
   titleKey?: string;
   /** Optional i18n key for a hint shown below the title. */
   hintKey?: string;
-  /** Optional CTA rendered as a Link. */
-  cta?: { to: string; labelKey: string };
+  /** Optional CTA rendered as a Link. `to` may be a string or a thunk for locale-aware defaults. */
+  cta?: { to: string | (() => string); labelKey: string };
   /** Escape hatch for rich art (SVG) or custom content. */
   children?: ReactNode;
   /** Extra class names. */
   className?: string;
+}
+
+function resolveTo(to: string | (() => string)): string {
+  return typeof to === 'function' ? to() : to;
 }
 
 export function EmptyState({ kind, titleKey, hintKey, cta, children, className }: EmptyStateProps) {
@@ -47,7 +59,7 @@ export function EmptyState({ kind, titleKey, hintKey, cta, children, className }
       <p className="empty__title">{t(resolvedTitle)}</p>
       {resolvedHint && <p className="empty__hint">{t(resolvedHint)}</p>}
       {resolvedCta && (
-        <Link to={resolvedCta.to} className="btn btn--primary empty__action">
+        <Link to={resolveTo(resolvedCta.to)} className="btn btn--primary empty__action">
           {t(resolvedCta.labelKey)}
         </Link>
       )}

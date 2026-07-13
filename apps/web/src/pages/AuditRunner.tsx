@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { humanError, runAudit } from '../api.js';
 import { ErrorState } from '../components/states/index.js';
+import { localePath } from '../i18n/localePath.js';
 
 const SECONDS_PER_PAGE = 8;
 
@@ -21,7 +22,7 @@ export function AuditRunner() {
         maxPages,
         sources,
       }),
-    onSuccess: (audit) => navigate(`/audits/${audit.id}`),
+    onSuccess: (audit) => navigate(localePath('auditResults', { auditId: audit.id })),
   });
 
   const etaSeconds = maxPages * SECONDS_PER_PAGE;
