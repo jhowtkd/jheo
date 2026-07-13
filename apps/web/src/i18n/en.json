@@ -627,6 +627,7 @@
   "fixes": {
     "title": "Fixes",
     "empty": "No pending findings. Run an audit to get started.",
+    "emptyHint": "Suggestions appear here as soon as an audit finishes.",
     "filter": {
       "project": "Project",
       "audit": "Audit",
@@ -640,7 +641,7 @@
       "superseded": "Superseded"
     },
     "action": {
-      "generate": "Generate suggestion",
+      "generate": "Suggest fix",
       "accept": "Accept",
       "reject": "Reject",
       "regenerate": "Regenerate"

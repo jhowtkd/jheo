@@ -16,7 +16,7 @@ describe('FindingList', () => {
   it('renders a Suggest fix button per finding', () => {
     const findings = [{ id: 'f1', category: 'seo', severity: 'warning', message: 'm', url: 'https://e.com' }];
     render(<MemoryRouter><FindingList findings={findings as any} /></MemoryRouter>);
-    expect(screen.getAllByText(/gerar/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/sugerir/i).length).toBeGreaterThan(0);
   });
 
   it('renders evidence keys/values when present', () => {

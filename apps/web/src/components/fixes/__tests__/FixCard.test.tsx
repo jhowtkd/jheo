@@ -33,7 +33,7 @@ describe('FixCard', () => {
   it('shows the Generate button when no suggestion exists', () => {
     const onGenerate = vi.fn();
     render(<FixCard finding={finding} suggestion={null} onGenerate={onGenerate} onAccept={() => {}} onReject={() => {}} onRegenerate={() => {}} />);
-    expect(screen.getByText(/gerar/i)).toBeTruthy();
+    expect(screen.getByText(/sugerir/i)).toBeTruthy();
   });
 
   it('shows the suggestion body when one exists', () => {
@@ -69,7 +69,7 @@ describe('FixCard', () => {
   it('calls onGenerate when the Generate button is clicked', () => {
     const onGenerate = vi.fn();
     render(<FixCard finding={finding} suggestion={null} onGenerate={onGenerate} onAccept={() => {}} onReject={() => {}} onRegenerate={() => {}} />);
-    fireEvent.click(screen.getByText(/gerar/i));
+    fireEvent.click(screen.getByText(/sugerir/i));
     expect(onGenerate).toHaveBeenCalledOnce();
   });
 });

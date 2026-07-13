@@ -627,6 +627,7 @@
   "fixes": {
     "title": "Correções",
     "empty": "Nenhum achado pendente. Rode uma auditoria para começar.",
+    "emptyHint": "As sugestões aparecem aqui assim que uma auditoria termina.",
     "filter": {
       "project": "Projeto",
       "audit": "Auditoria",
@@ -640,7 +641,7 @@
       "superseded": "Substituída"
     },
     "action": {
-      "generate": "Gerar sugestão",
+      "generate": "Sugerir correção",
       "accept": "Aceitar",
       "reject": "Rejeitar",
       "regenerate": "Regenerar"
