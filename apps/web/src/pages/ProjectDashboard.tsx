@@ -20,6 +20,7 @@ import { FilterBar, type FilterOption } from '../components/FilterBar.js';
 import { FindingList } from '../components/FindingList.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
 import { setLastProjectId } from '../lib/lastProject.js';
+import { scoreHistoryFromAudits } from '../lib/scoreHistory.js';
 
 type FilterValue =
   | 'all'
@@ -219,7 +220,17 @@ export function ProjectDashboard() {
       )}
 
       {/* Health card */}
-      <ScoreCard health={h} />
+      <ScoreCard
+        health={h}
+        {...(() => {
+          const { history, previousOverall } = scoreHistoryFromAudits(p.audits);
+          return {
+            history,
+            previousOverall,
+            recomputed: Boolean(latest?.score?.recomputedAt),
+          };
+        })()}
+      />
 
       {/* Actions — secondary navigation (does not compete with Run audit) */}
       <nav className="row" style={{ gap: 'var(--space-2)', flexWrap: 'wrap' }}>
