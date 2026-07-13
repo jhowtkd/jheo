@@ -4,10 +4,12 @@ import { Link } from 'react-router-dom';
 import {
   executiveReportExportUrl,
   getExecutiveReport,
+  humanError,
   type ExecutiveReportResponse,
 } from '../api.js';
 import { CategoryBarChart } from '../components/reports/CategoryBarChart.js';
 import { SeverityChart } from '../components/reports/SeverityChart.js';
+import { ErrorState } from '../components/states/index.js';
 
 interface Props {
   auditId: string;
@@ -31,6 +33,21 @@ export function ExecutiveReportView({ auditId }: Props) {
   const data = q.data;
 
   if (!data) {
+    // Show a translated error state if the load failed and we have no cached
+    // data; otherwise fall through to skeletons during refetches.
+    if (q.isError) {
+      const e = humanError(q.error);
+      return (
+        <div className="page">
+          <ErrorState
+            titleKey={e.key}
+            {...(e.params ? { params: e.params } : {})}
+            {...(e.retry ? { retry: e.retry } : {})}
+            onRetry={() => void q.refetch()}
+          />
+        </div>
+      );
+    }
     return (
       <div className="page">
         <div className="skeleton skeleton--title" style={{ marginBottom: 'var(--space-3)' }} />
