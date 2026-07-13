@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { deleteSetting, listSettings, upsertSetting } from '../api.js';
+import { deleteSetting, humanError, listSettings, upsertSetting } from '../api.js';
+import { EmptyState, ErrorState } from '../components/states/index.js';
 
 const PRESET_KEYS = [
   'openai_api_key',
@@ -74,18 +75,29 @@ export function Settings() {
               <div className="skeleton skeleton--row" />
             </div>
           )}
+          {list.isError &&
+            (() => {
+              const e = humanError(list.error);
+              return (
+                <ErrorState
+                  titleKey={e.key}
+                  {...(e.params ? { params: e.params } : {})}
+                  {...(e.retry ? { retry: e.retry } : {})}
+                  onRetry={() => void list.refetch()}
+                />
+              );
+            })()}
           {list.data && list.data.length === 0 && !list.isLoading && (
-            <div className="empty">
-              <div className="empty__art">
-                <svg viewBox="0 0 56 56">
-                  <rect x="14" y="26" width="28" height="20" rx="2" />
-                  <path d="M20 26v-6a8 8 0 0 1 16 0v6" />
-                  <circle cx="28" cy="36" r="2" />
-                </svg>
-              </div>
-              <p className="empty__title">{t('settings.empty.title')}</p>
-              <p className="empty__hint">{t('settings.empty.hint')}</p>
-            </div>
+            <EmptyState
+              titleKey="settings.empty.title"
+              hintKey="settings.empty.hint"
+            >
+              <svg viewBox="0 0 56 56">
+                <rect x="14" y="26" width="28" height="20" rx="2" />
+                <path d="M20 26v-6a8 8 0 0 1 16 0v6" />
+                <circle cx="28" cy="36" r="2" />
+              </svg>
+            </EmptyState>
           )}
           {list.data && list.data.length > 0 && (
             <div className="col" style={{ gap: 'var(--space-2)' }}>

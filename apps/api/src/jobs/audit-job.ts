@@ -238,11 +238,16 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
         }
         return p;
       };
-      const configuredMax = Number((audit.configSnapshot as { maxPages?: unknown } | undefined)?.maxPages);
+      const configSnapshot = audit.configSnapshot as {
+        maxPages?: unknown;
+        sources?: { root?: boolean; sitemap?: boolean; crawl?: boolean };
+      } | undefined;
+      const configuredMax = Number(configSnapshot?.maxPages);
       const maxPages = Number.isInteger(configuredMax) && configuredMax > 0
         ? Math.min(configuredMax, 5_000)
         : (project.maxPages > 0 ? project.maxPages : 0);
-      const pages = await discoverSite(project.rootUrl, fetchTextDedup, maxPages);
+      const sources = configSnapshot?.sources;
+      const pages = await discoverSite(project.rootUrl, fetchTextDedup, maxPages, sources);
       await prisma.projectPage.createMany({
         data: pages.map((page) => ({ projectId: project.id, ...page })),
         skipDuplicates: true,

@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
-import { deleteChannel, listChannels, type Channel, type ChannelType } from '../api.js';
+import { deleteChannel, humanError, listChannels, type Channel, type ChannelType } from '../api.js';
+import { EmptyState, ErrorState } from '../components/states/index.js';
 
 export function ChannelsList() {
   const { t } = useTranslation();
@@ -40,18 +41,31 @@ export function ChannelsList() {
         </div>
       )}
 
+      {channels.isError &&
+        (() => {
+          const e = humanError(channels.error);
+          return (
+            <ErrorState
+              titleKey={e.key}
+              {...(e.params ? { params: e.params } : {})}
+              {...(e.retry ? { retry: e.retry } : {})}
+              onRetry={() => void channels.refetch()}
+            />
+          );
+        })()}
+
       {channels.data && channels.data.length === 0 && !channels.isLoading && (
-        <div className="empty">
-          <div className="empty__art">
-            <svg viewBox="0 0 56 56">
-              <path d="M10 28h36" />
-              <path d="M28 10v36" />
-              <circle cx="28" cy="28" r="20" />
-            </svg>
-          </div>
-          <p className="empty__title">{t('channels.empty.title')}</p>
-          <p className="empty__hint">{t('channels.empty.hint')}</p>
-        </div>
+        <EmptyState
+          titleKey="channels.empty.title"
+          hintKey="channels.empty.hint"
+          {...(projectId ? { cta: { to: `/projects/${projectId}/audit`, labelKey: 'channels.empty.cta' } } : {})}
+        >
+          <svg viewBox="0 0 56 56">
+            <path d="M10 28h36" />
+            <path d="M28 10v36" />
+            <circle cx="28" cy="28" r="20" />
+          </svg>
+        </EmptyState>
       )}
 
       {channels.data && channels.data.length > 0 && (

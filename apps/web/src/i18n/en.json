@@ -5,10 +5,34 @@
   },
   "nav": {
     "projects": "Projects",
+    "audits": "Audits",
     "reports": "Reports",
     "templates": "Templates",
+    "materials": "Materials",
+    "generations": "Generations",
     "settings": "Settings",
-    "fixes": "Fixes"
+    "fixes": "Fixes",
+    "channels": "Channels"
+  },
+  "chooser": {
+    "title": "Pick a project",
+    "hint": "Choose the project you want to work with.",
+    "pick": "Open"
+  },
+  "audits": {
+    "title": "Audits",
+    "subtitle": "Recent audit runs across all projects.",
+    "empty": {
+      "title": "No audits yet",
+      "hint": "Create a project and run your first audit to see results here."
+    },
+    "table": {
+      "project": "Project",
+      "status": "Status",
+      "score": "Score",
+      "started": "Started",
+      "finished": "Finished"
+    }
   },
   "sidebar": {
     "workspace": "Workspace",
@@ -56,6 +80,7 @@
       "creating": "Creating…",
       "namePlaceholder": "Acme Marketing",
       "urlPlaceholder": "https://acme.com",
+      "urlInvalid": "Enter a valid domain or http(s) URL.",
       "hint": "Give it a name and the root URL to audit."
     },
     "empty": {
@@ -76,6 +101,7 @@
       "inProgress": "In progress",
       "cancelAudit": "Cancel audit",
       "cancelling": "Cancelling…",
+      "eta": "ETA ~{{seconds}}s",
       "pagesTable": {
         "url": "URL",
         "source": "Source",
@@ -139,7 +165,14 @@
       "readyTitle": "Ready to audit",
       "readyHint": "The audit crawls the root URL, then runs 26 plugins across SEO, performance/CWV, GEO/AI-readiness, accessibility, and content. Typical runtime: 5–15s.",
       "start": "Start audit",
-      "starting": "Starting…"
+      "starting": "Starting…",
+      "maxPagesLabel": "Max pages",
+      "maxPagesHint": "Cap the number of pages to discover and audit.",
+      "sourcesLabel": "Discovery sources",
+      "sourceRoot": "Root page",
+      "sourceSitemap": "Sitemap",
+      "sourceCrawl": "Crawl links",
+      "etaHint": "Estimated runtime: ≈ {{seconds}}s ({{perPage}}s per page)"
     },
     "results": {
       "title": "Audit report",
@@ -326,7 +359,9 @@
       "submit": "Compose generation",
       "queueing": "Queueing…",
       "recentTitle": "Recent generations",
-      "noGenerations": "No generations yet."
+      "noGenerations": "No generations yet.",
+      "needTemplateHint": "An active template is required to generate.",
+      "needTemplateLink": "Go to templates →"
     },
     "review": {
       "breadcrumb": "generation",
@@ -365,7 +400,8 @@
     },
     "empty": {
       "title": "No channels configured",
-      "hint": "Channels are managed per-channel via the API. Use the WordPress / HTTP / Agent adapters to route approved generations to a destination."
+      "hint": "Channels are managed per-channel via the API. Use the WordPress / HTTP / Agent adapters to route approved generations to a destination.",
+      "cta": "Configure a channel"
     },
     "deleteConfirm": "Delete channel \"{{name}}\"?",
     "editor": {
@@ -408,6 +444,9 @@
     "auditTrailHint": "Every status transition writes one immutable event row. {{count}} event(s).",
     "actionsPanel": {
       "title": "Publish",
+      "needsApproval": "Approve this generation before publishing.",
+      "noChannels": "No active channels for this project.",
+      "createChannel": "Create a channel →",
       "selectChannels": "Select channels:",
       "publishTo": "Publish to {{count}} channel(s)",
       "tableChannel": "Channel",
@@ -533,6 +572,10 @@
   "reports": {
     "title": "Reports",
     "subtitle": "Completed audit reports across your projects. Open any report to review scores and findings.",
+    "interstitial": {
+      "title": "Reports moved",
+      "hint": "Executive reports now live inside each audit. Open a project or audit to view them."
+    },
     "filterProject": "Project",
     "allProjects": "All projects",
     "filteredBy": "Showing reports for {{name}}.",

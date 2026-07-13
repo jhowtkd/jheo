@@ -45,4 +45,28 @@ describe('AuditRunner errors', () => {
     });
     expect(screen.queryByText('backend_unavailable')).toBeNull();
   });
+
+  it('defaults to maxPages=50 and all sources on', () => {
+    vi.mocked(runAudit).mockResolvedValueOnce({ id: 'a1', projectId: 'p1', status: 'queued', startedAt: null, finishedAt: null });
+    renderRunner();
+    // The maxPages input should default to 50.
+    const maxPagesInput = screen.getByDisplayValue('50');
+    expect(maxPagesInput).toBeInTheDocument();
+    // All three source checkboxes checked by default.
+    const checkboxes = screen.getAllByRole('checkbox') as HTMLInputElement[];
+    expect(checkboxes).toHaveLength(3);
+    expect(checkboxes.every((cb) => cb.checked)).toBe(true);
+  });
+
+  it('calls runAudit with config containing maxPages and sources', async () => {
+    vi.mocked(runAudit).mockResolvedValueOnce({ id: 'a1', projectId: 'p1', status: 'queued', startedAt: null, finishedAt: null });
+    renderRunner();
+    fireEvent.click(screen.getByRole('button'));
+    await waitFor(() => {
+      expect(runAudit).toHaveBeenCalledWith('p1', {
+        maxPages: 50,
+        sources: { root: true, sitemap: true, crawl: true },
+      });
+    });
+  });
 });

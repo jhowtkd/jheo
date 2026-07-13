@@ -31,6 +31,26 @@ function tallyPageAudits(pageAudits: Array<{ status: string; projectPage: { url:
 }
 
 export async function auditRoutes(app: FastifyInstance): Promise<void> {
+  app.get('/api/audits', async (req, reply) => {
+    const limit = Math.min(Number((req.query as { limit?: string }).limit ?? 50), 100);
+    reply.header('cache-control', 'private, max-age=5');
+    const rows = await prisma.audit.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { project: { select: { id: true, name: true, rootUrl: true } } },
+    });
+    return rows.map((a) => ({
+      id: a.id,
+      projectId: a.projectId,
+      projectName: a.project.name,
+      status: a.status,
+      score: a.score,
+      startedAt: a.startedAt,
+      finishedAt: a.finishedAt,
+      createdAt: a.createdAt,
+    }));
+  });
+
   app.post(
     '/api/audits',
     { config: { rateLimit: { max: 20, windowMs: 60_000 } } },

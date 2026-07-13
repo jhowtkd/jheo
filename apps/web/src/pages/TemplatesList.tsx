@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { activateTemplate, listTemplates, type GenerationTemplate } from '../api.js';
+import { activateTemplate, humanError, listTemplates, type GenerationTemplate } from '../api.js';
+import { EmptyState, ErrorState } from '../components/states/index.js';
 
 function formatDate(iso: string): string {
   const d = new Date(iso);
@@ -33,19 +34,32 @@ export function TemplatesList() {
         </div>
       )}
 
+      {templates.isError &&
+        (() => {
+          const e = humanError(templates.error);
+          return (
+            <ErrorState
+              titleKey={e.key}
+              {...(e.params ? { params: e.params } : {})}
+              {...(e.retry ? { retry: e.retry } : {})}
+              onRetry={() => void templates.refetch()}
+            />
+          );
+        })()}
+
       {templates.data && templates.data.length === 0 && !templates.isLoading && (
-        <div className="empty">
-          <div className="empty__art">
-            <svg viewBox="0 0 56 56">
-              <rect x="10" y="10" width="36" height="36" rx="3" />
-              <path d="M16 18h24" />
-              <path d="M16 24h24" />
-              <path d="M16 30h16" />
-            </svg>
-          </div>
-          <p className="empty__title">{t('templates.empty.title')}</p>
-          <p className="empty__hint">{t('templates.empty.hint')}</p>
-        </div>
+        <EmptyState
+          titleKey="templates.empty.title"
+          hintKey="templates.empty.hint"
+          cta={{ to: '/templates', labelKey: 'templates.activate' }}
+        >
+          <svg viewBox="0 0 56 56">
+            <rect x="10" y="10" width="36" height="36" rx="3" />
+            <path d="M16 18h24" />
+            <path d="M16 24h24" />
+            <path d="M16 30h16" />
+          </svg>
+        </EmptyState>
       )}
 
       {templates.data && templates.data.length > 0 && (

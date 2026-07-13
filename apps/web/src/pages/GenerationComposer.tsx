@@ -192,7 +192,7 @@ export function GenerationComposer() {
             </div>
           </div>
 
-          <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--space-2)' }}>
+          <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--space-2)', alignItems: 'center' }}>
             {create.isError &&
               (() => {
                 const e = humanError(create.error);
@@ -206,6 +206,12 @@ export function GenerationComposer() {
                   />
                 );
               })()}
+            {!templateId && !activeTemplate && (
+              <p className="tiny" role="status" style={{ margin: 0 }}>
+                {t('generation.composer.needTemplateHint')}{' '}
+                <Link to="/templates">{t('generation.composer.needTemplateLink')}</Link>
+              </p>
+            )}
             <button type="submit" className="btn btn--primary" disabled={submitDisabled}>
               {create.isPending ? t('generation.composer.queueing') : t('generation.composer.submit')}
             </button>

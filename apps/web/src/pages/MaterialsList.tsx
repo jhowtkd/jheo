@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
-import { createMaterial, deleteMaterial, listMaterials, type Material } from '../api.js';
+import { createMaterial, deleteMaterial, humanError, listMaterials, type Material } from '../api.js';
+import { EmptyState, ErrorState } from '../components/states/index.js';
 
 type MaterialType = 'url' | 'note' | 'file';
 
@@ -141,19 +142,31 @@ export function MaterialsList() {
         </div>
       )}
 
+      {materials.isError &&
+        (() => {
+          const e = humanError(materials.error);
+          return (
+            <ErrorState
+              titleKey={e.key}
+              {...(e.params ? { params: e.params } : {})}
+              {...(e.retry ? { retry: e.retry } : {})}
+              onRetry={() => void materials.refetch()}
+            />
+          );
+        })()}
+
       {materials.data && materials.data.length === 0 && !materials.isLoading && (
-        <div className="empty">
-          <div className="empty__art">
-            <svg viewBox="0 0 56 56">
-              <rect x="10" y="10" width="36" height="36" rx="3" />
-              <path d="M10 18h36" />
-              <path d="M18 26h20" />
-              <path d="M18 32h14" />
-            </svg>
-          </div>
-          <p className="empty__title">{t('materials.empty.title')}</p>
-          <p className="empty__hint">{t('materials.empty.hint')}</p>
-        </div>
+        <EmptyState
+          titleKey="materials.empty.title"
+          hintKey="materials.empty.hint"
+        >
+          <svg viewBox="0 0 56 56">
+            <rect x="10" y="10" width="36" height="36" rx="3" />
+            <path d="M10 18h36" />
+            <path d="M18 26h20" />
+            <path d="M18 32h14" />
+          </svg>
+        </EmptyState>
       )}
 
       {materials.data && materials.data.length > 0 && (

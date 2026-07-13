@@ -154,11 +154,30 @@ export async function getProjectHealth(id: string): Promise<ProjectHealth> {
   if (!res.ok) throw new Error(`Failed to load health: ${res.status}`);
   return res.json();
 }
-export async function runAudit(projectId: string): Promise<Audit> {
+export type AuditListItem = {
+  id: string;
+  projectId: string;
+  projectName: string;
+  status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
+  score: Audit['score'];
+  startedAt: string | null;
+  finishedAt: string | null;
+  createdAt: string;
+};
+
+export async function listAudits(limit = 50): Promise<AuditListItem[]> {
+  const r = await localeFetch(`${API}/audits?limit=${limit}`);
+  return readJsonOrThrow<AuditListItem[]>(r);
+}
+
+export async function runAudit(
+  projectId: string,
+  config: Record<string, unknown> = {},
+): Promise<Audit> {
   const r = await localeFetch(`${API}/audits`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ projectId, config: {} }),
+    body: JSON.stringify({ projectId, config }),
   });
   return readJsonOrThrow(r, 'audits');
 }

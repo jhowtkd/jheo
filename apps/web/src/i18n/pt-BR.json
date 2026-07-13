@@ -5,10 +5,34 @@
   },
   "nav": {
     "projects": "Projetos",
+    "audits": "Auditorias",
     "reports": "Relatórios",
     "templates": "Modelos",
+    "materials": "Materiais",
+    "generations": "Gerações",
     "settings": "Configurações",
-    "fixes": "Correções"
+    "fixes": "Correções",
+    "channels": "Canais"
+  },
+  "chooser": {
+    "title": "Escolha um projeto",
+    "hint": "Selecione o projeto com o qual deseja trabalhar.",
+    "pick": "Abrir"
+  },
+  "audits": {
+    "title": "Auditorias",
+    "subtitle": "Execuções recentes de auditoria em todos os projetos.",
+    "empty": {
+      "title": "Nenhuma auditoria ainda",
+      "hint": "Crie um projeto e execute sua primeira auditoria para ver os resultados aqui."
+    },
+    "table": {
+      "project": "Projeto",
+      "status": "Status",
+      "score": "Pontuação",
+      "started": "Iniciada",
+      "finished": "Concluída"
+    }
   },
   "sidebar": {
     "workspace": "Espaço de trabalho",
@@ -56,6 +80,7 @@
       "creating": "Criando…",
       "namePlaceholder": "Marketing da Acme",
       "urlPlaceholder": "https://acme.com.br",
+      "urlInvalid": "Digite um domínio ou URL http(s) válido.",
       "hint": "Dê um nome e a URL raiz para auditar."
     },
     "empty": {
@@ -76,6 +101,7 @@
       "inProgress": "Em andamento",
       "cancelAudit": "Cancelar auditoria",
       "cancelling": "Cancelando…",
+      "eta": "ETA ~{{seconds}}s",
       "pagesTable": {
         "url": "URL",
         "source": "Origem",
@@ -139,7 +165,14 @@
       "readyTitle": "Pronto para auditar",
       "readyHint": "A auditoria rastreia a URL raiz e roda 26 plugins de SEO, performance/CWV, GEO/leitura por IA, acessibilidade e conteúdo. Tempo típico: 5–15s.",
       "start": "Iniciar auditoria",
-      "starting": "Iniciando…"
+      "starting": "Iniciando…",
+      "maxPagesLabel": "Máx. de páginas",
+      "maxPagesHint": "Limite o número de páginas a descobrir e auditar.",
+      "sourcesLabel": "Fontes de descoberta",
+      "sourceRoot": "Página raiz",
+      "sourceSitemap": "Sitemap",
+      "sourceCrawl": "Rastrear links",
+      "etaHint": "Tempo estimado: ≈ {{seconds}}s ({{perPage}}s por página)"
     },
     "results": {
       "title": "Relatório de auditoria",
@@ -326,7 +359,9 @@
       "submit": "Compor geração",
       "queueing": "Na fila…",
       "recentTitle": "Gerações recentes",
-      "noGenerations": "Nenhuma geração ainda."
+      "noGenerations": "Nenhuma geração ainda.",
+      "needTemplateHint": "Um modelo ativo é necessário para gerar.",
+      "needTemplateLink": "Ir para modelos →"
     },
     "review": {
       "breadcrumb": "geração",
@@ -365,7 +400,8 @@
     },
     "empty": {
       "title": "Nenhum canal configurado",
-      "hint": "Canais são gerenciados por canal via API. Use os adaptadores WordPress / HTTP / Agent para mandar as gerações aprovadas a um destino."
+      "hint": "Canais são gerenciados por canal via API. Use os adaptadores WordPress / HTTP / Agent para mandar as gerações aprovadas a um destino.",
+      "cta": "Configurar um canal"
     },
     "deleteConfirm": "Excluir canal \"{{name}}\"?",
     "editor": {
@@ -408,6 +444,9 @@
     "auditTrailHint": "Cada mudança de status grava uma linha de evento imutável. {{count}} evento(s).",
     "actionsPanel": {
       "title": "Publicar",
+      "needsApproval": "Aprove esta geração antes de publicar.",
+      "noChannels": "Nenhum canal ativo para este projeto.",
+      "createChannel": "Criar um canal →",
       "selectChannels": "Selecione os canais:",
       "publishTo": "Publicar em {{count}} canal(is)",
       "tableChannel": "Canal",
@@ -533,6 +572,10 @@
   "reports": {
     "title": "Relatórios",
     "subtitle": "Relatórios de auditorias concluídas em todos os projetos. Abra qualquer um para ver scores e achados.",
+    "interstitial": {
+      "title": "Relatórios migrados",
+      "hint": "Relatórios executivos agora ficam dentro de cada auditoria. Abra um projeto ou auditoria para vê-los."
+    },
     "filterProject": "Projeto",
     "allProjects": "Todos os projetos",
     "filteredBy": "Mostrando relatórios de {{name}}.",

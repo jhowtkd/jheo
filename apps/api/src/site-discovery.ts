@@ -2,6 +2,8 @@ import type { FetchText } from './jobs/audit-job.js';
 
 export type DiscoveredPage = { url: string; discoveredVia: 'root' | 'sitemap' | 'crawl' };
 
+export type DiscoverySources = { root?: boolean; sitemap?: boolean; crawl?: boolean };
+
 const xmlText = (value: string) =>
   value
     .replace(/&amp;/g, '&')
@@ -36,22 +38,31 @@ export async function discoverSite(
   rootUrl: string,
   fetchText: FetchText,
   maxPages = 0,
+  sources: DiscoverySources = {},
 ): Promise<DiscoveredPage[]> {
+  const useRoot = sources.root ?? true;
+  const useSitemap = sources.sitemap ?? true;
+  const useCrawl = sources.crawl ?? true;
+
   const root = new URL(rootUrl);
   root.hash = '';
-  const found = new Map<string, DiscoveredPage['discoveredVia']>([[root.toString(), 'root']]);
-  const sitemapQueue = [new URL('/sitemap.xml', root).toString()];
+  const found = new Map<string, DiscoveredPage['discoveredVia']>(
+    useRoot ? [[root.toString(), 'root']] : [],
+  );
+  const sitemapQueue = useSitemap ? [new URL('/sitemap.xml', root).toString()] : [];
   const seenSitemaps = new Set<string>();
   let sitemapHead = 0;
 
-  try {
-    const robots = await fetchText(new URL('/robots.txt', root).toString());
-    for (const match of robots.text.matchAll(/^\s*Sitemap:\s*(\S+)/gim)) {
-      const url = new URL(match[1] ?? '', root);
-      if (['http:', 'https:'].includes(url.protocol)) sitemapQueue.push(url.toString());
+  if (useSitemap) {
+    try {
+      const robots = await fetchText(new URL('/robots.txt', root).toString());
+      for (const match of robots.text.matchAll(/^\s*Sitemap:\s*(\S+)/gim)) {
+        const url = new URL(match[1] ?? '', root);
+        if (['http:', 'https:'].includes(url.protocol)) sitemapQueue.push(url.toString());
+      }
+    } catch {
+      // /sitemap.xml remains the conventional fallback.
     }
-  } catch {
-    // /sitemap.xml remains the conventional fallback.
   }
 
   while (sitemapHead < sitemapQueue.length && (maxPages === 0 || found.size < maxPages) && seenSitemaps.size < 50) {
@@ -80,7 +91,7 @@ export async function discoverSite(
     }
   }
 
-  if (found.size === 1) {
+  if (useCrawl && found.size === (useRoot ? 1 : 0)) {
     const crawlQueue = [root.toString()];
     const crawled = new Set<string>();
     let crawlHead = 0;

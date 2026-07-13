@@ -50,4 +50,49 @@ describe('discoverSite', () => {
       'https://example.com/c',
     ]);
   });
+
+  it('respects sources.sitemap=false (skips sitemap, still crawls)', async () => {
+    const fetchText = vi.fn(async (url: string) => {
+      if (url.endsWith('/sitemap.xml')) {
+        return response('<urlset><url><loc>https://example.com/from-sitemap</loc></url></urlset>');
+      }
+      if (url.endsWith('/')) return response('<a href="/from-crawl">C</a>');
+      return response('');
+    });
+
+    const pages = await discoverSite('https://example.com/', fetchText, 0, {
+      sitemap: false,
+    });
+    const urls = pages.map((p) => p.url).sort();
+    expect(urls).toEqual(['https://example.com/', 'https://example.com/from-crawl']);
+  });
+
+  it('respects sources.crawl=false (sitemap only, no link crawling)', async () => {
+    const fetchText = vi.fn(async (url: string) => {
+      if (url.endsWith('/sitemap.xml')) {
+        return response('<urlset><url><loc>https://example.com/from-sitemap</loc></url></urlset>');
+      }
+      if (url.endsWith('/')) return response('<a href="/from-crawl">C</a>');
+      return response('');
+    });
+
+    const pages = await discoverSite('https://example.com/', fetchText, 0, {
+      crawl: false,
+    });
+    const urls = pages.map((p) => p.url).sort();
+    expect(urls).toEqual(['https://example.com/', 'https://example.com/from-sitemap']);
+  });
+
+  it('sources.root=false omits the root page from found set', async () => {
+    const fetchText = vi.fn(async (url: string) => {
+      if (url.endsWith('/sitemap.xml')) return response('', 404);
+      if (url.endsWith('/')) return response('<a href="/a">A</a>');
+      return response('');
+    });
+
+    const pages = await discoverSite('https://example.com/', fetchText, 0, {
+      root: false,
+    });
+    expect(pages.map((p) => p.url)).toEqual(['https://example.com/a']);
+  });
 });
