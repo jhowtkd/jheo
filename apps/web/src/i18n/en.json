@@ -501,6 +501,8 @@
   "settings": {
     "title": "Settings",
     "subtitle": "API keys are encrypted at rest with JHEO_SECRET_KEY (AES-256-GCM). Values are write-only — the API never returns the plaintext over the wire.",
+    "sessionTitle": "Your session",
+    "sessionHint": "Local-only event log. Nothing leaves this browser.",
     "storedKeysTitle": "Stored keys",
     "addOrUpdateTitle": "Add or update",
     "presets": {
@@ -685,6 +687,35 @@
       "findings": "Findings",
       "pending": "Pending",
       "accepted": "Accepted"
+    }
+  },
+  "telemetry": {
+    "section": "Session telemetry",
+    "clear": "Clear",
+    "privacyNote": "Stored only in this browser. No URLs, prompts, or finding text are ever logged.",
+    "counts": {
+      "pageView": "Page views",
+      "navClick": "Nav clicks",
+      "apiError": "API errors",
+      "total": "Total"
+    },
+    "event": {
+      "pageView": "Page view",
+      "navClick": "Nav click",
+      "apiError": "API error"
+    },
+    "apiFamily": {
+      "audits": "audits",
+      "projects": "projects",
+      "templates": "templates",
+      "materials": "materials",
+      "fixes": "fixes",
+      "channels": "channels",
+      "publishes": "publishes",
+      "reports": "reports",
+      "settings": "settings",
+      "gsc": "GSC",
+      "other": "other"
     }
   }
 }

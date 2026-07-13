@@ -4,6 +4,7 @@ import {
   englishPath,
   ptBRPath,
   siblingPath,
+  routeIdFromPath,
 } from './localePath.js';
 
 describe('localePath', () => {
@@ -84,5 +85,25 @@ describe('localePath', () => {
 
   it('siblingPath leaves unlocalized paths alone (publishes)', () => {
     expect(siblingPath('en', 'pt-BR', '/publishes/x')).toBe('/publishes/x');
+  });
+
+  it('routeIdFromPath matches under both locales', () => {
+    expect(routeIdFromPath('/projects')).toBe('projects');
+    expect(routeIdFromPath('/projetos')).toBe('projects');
+    expect(routeIdFromPath('/auditorias/a1')).toBe('auditResults');
+    expect(routeIdFromPath('/audits')).toBe('audits');
+    expect(routeIdFromPath('/correcoes')).toBe('fixes');
+  });
+
+  it('routeIdFromPath picks the most specific id for nested paths', () => {
+    expect(routeIdFromPath('/projects/p1')).toBe('projectDashboard');
+    expect(routeIdFromPath('/projetos/p1/materials')).toBe('materialsProject');
+    expect(routeIdFromPath('/projects/p1/channels')).toBe('channelsProject');
+  });
+
+  it('routeIdFromPath returns null for unknown or empty paths', () => {
+    expect(routeIdFromPath('/')).toBeNull();
+    expect(routeIdFromPath('/publishes/xyz')).toBeNull();
+    expect(routeIdFromPath('')).toBeNull();
   });
 });

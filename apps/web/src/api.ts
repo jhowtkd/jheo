@@ -1,6 +1,7 @@
 import type { AuditSummary, ExecutiveNarrative } from '@jheo/core';
 import { i18n } from './i18n';
 import { readJsonOrThrow } from './api/readJsonOrThrow.js';
+import { apiFamilyFromPath, recordApiError } from './telemetry/sessionTelemetry.js';
 
 const API = '/api';
 
@@ -9,7 +10,14 @@ const API = '/api';
 // useDataTranslations suite replaces `globalThis.fetch` with a mock).
 const DEFAULT_FETCH_TIMEOUT_MS = 30_000;
 
-const localeFetch: typeof fetch = (input, init) => {
+function fetchUrlString(input: RequestInfo | URL): string {
+  if (typeof input === 'string') return input;
+  if (input instanceof URL) return input.toString();
+  return input.url;
+}
+
+const localeFetch: typeof fetch = async (input, init) => {
+  const url = fetchUrlString(input);
   const headers = new Headers(init?.headers);
   if (!headers.has('accept-language')) {
     headers.set('accept-language', i18n.language || 'en');
@@ -19,7 +27,17 @@ const localeFetch: typeof fetch = (input, init) => {
     (typeof AbortSignal !== 'undefined' && 'timeout' in AbortSignal
       ? AbortSignal.timeout(DEFAULT_FETCH_TIMEOUT_MS)
       : undefined);
-  return globalThis.fetch(input as RequestInfo | URL, { ...init, headers, ...(signal ? { signal } : {}) });
+  const r = await globalThis.fetch(input as RequestInfo | URL, {
+    ...init,
+    headers,
+    ...(signal ? { signal } : {}),
+  });
+  // Telemetry: log API errors with a coarse family, never the raw path or
+  // body. Only fire for /api/* calls; external fetches are out of scope.
+  if (!r.ok && url.startsWith(API + '/')) {
+    recordApiError(r.status, apiFamilyFromPath(url.slice(API.length)));
+  }
+  return r;
 };
 
 export { humanError, type HumanError } from './api/errors.js';

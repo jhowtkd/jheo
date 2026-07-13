@@ -501,6 +501,8 @@
   "settings": {
     "title": "Configurações",
     "subtitle": "As API keys são criptografadas em repouso com JHEO_SECRET_KEY (AES-256-GCM). Os valores são write-only — a API nunca devolve o plaintext pela rede.",
+    "sessionTitle": "Sua sessão",
+    "sessionHint": "Registro local de eventos. Nada sai deste navegador.",
     "storedKeysTitle": "Chaves salvas",
     "addOrUpdateTitle": "Adicionar ou atualizar",
     "presets": {
@@ -685,6 +687,35 @@
       "findings": "Achados",
       "pending": "Pendentes",
       "accepted": "Aceitas"
+    }
+  },
+  "telemetry": {
+    "section": "Telemetria da sessão",
+    "clear": "Limpar",
+    "privacyNote": "Salvo só neste navegador. Nunca gravamos URLs, prompts ou texto de achados.",
+    "counts": {
+      "pageView": "Page views",
+      "navClick": "Cliques no menu",
+      "apiError": "Erros de API",
+      "total": "Total"
+    },
+    "event": {
+      "pageView": "Page view",
+      "navClick": "Clique no menu",
+      "apiError": "Erro de API"
+    },
+    "apiFamily": {
+      "audits": "auditorias",
+      "projects": "projetos",
+      "templates": "modelos",
+      "materials": "materiais",
+      "fixes": "correções",
+      "channels": "canais",
+      "publishes": "publicações",
+      "reports": "relatórios",
+      "settings": "configurações",
+      "gsc": "GSC",
+      "other": "outros"
     }
   }
 }

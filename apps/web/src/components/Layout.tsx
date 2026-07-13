@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import { LanguageToggle } from './LanguageToggle.js';
 import { ThemeToggle } from './ThemeToggle.js';
+import { RouteListener } from './RouteListener.js';
+import { recordNavClick } from '../telemetry/sessionTelemetry.js';
 import { useBackendReachable } from '../hooks/useBackendReachable.js';
 import { localePath, type RouteId } from '../i18n/localePath.js';
 
@@ -204,6 +206,7 @@ export function Layout() {
 
   return (
     <div className="app-shell">
+      <RouteListener />
       <aside className="sidebar">
         <div className="sidebar__brand">
           <div className="sidebar__logo"><Logo /></div>
@@ -220,6 +223,7 @@ export function Layout() {
               to={localePath(item.id)}
               end={item.id === 'projects'}
               title={t(item.hintKey)}
+              onClick={() => recordNavClick(item.id)}
               className={({ isActive }) =>
                 'sidebar__link' + (isActive ? ' sidebar__link--active' : '')
               }

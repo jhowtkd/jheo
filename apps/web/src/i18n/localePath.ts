@@ -132,22 +132,66 @@ export function localePath(id: RouteId, params?: Record<string, string>): string
   return pathForLocale(activeLocale(), id, params);
 }
 
-const FIRST_BY_LOCALE: Record<SupportedLocale, Record<string, LocalizedId>> = {
+const FIRST_BY_LOCALE: Record<SupportedLocale, Record<string, LocalizedId[]>> = {
   en: (() => {
-    const m: Record<string, LocalizedId> = {};
+    const m: Record<string, LocalizedId[]> = {};
     for (const [id, segs] of Object.entries(FIRST_SEGMENT) as [LocalizedId, Record<SupportedLocale, string>][]) {
-      m[segs.en] = id;
+      (m[segs.en] ??= []).push(id);
     }
     return m;
   })(),
   'pt-BR': (() => {
-    const m: Record<string, LocalizedId> = {};
+    const m: Record<string, LocalizedId[]> = {};
     for (const [id, segs] of Object.entries(FIRST_SEGMENT) as [LocalizedId, Record<SupportedLocale, string>][]) {
-      m[segs['pt-BR']] = id;
+      (m[segs['pt-BR']] ??= []).push(id);
     }
     return m;
   })(),
 };
+
+// All route id → path template pairs for both locales, with segment count.
+// Used to resolve a pathname to its most specific RouteId.
+const ALL_PATHS: Array<{ id: RouteId; locale: SupportedLocale; template: string; segments: number }> = (() => {
+  const out: Array<{ id: RouteId; locale: SupportedLocale; template: string; segments: number }> = [];
+  for (const id of Object.keys(TAIL) as RouteId[]) {
+    for (const locale of ['en', 'pt-BR'] as const) {
+      const tpl = pathTemplateForLocale(locale, id);
+      out.push({ id, locale, template: tpl, segments: tpl.split('/').filter(Boolean).length });
+    }
+  }
+  return out;
+})();
+
+/**
+ * Resolve a pathname to its most specific RouteId. Matches under either
+ * locale's segments; ties broken by longer template (more segments wins).
+ * Returns null for paths that don't match any known route (e.g. /publishes/...).
+ */
+export function routeIdFromPath(pathname: string): RouteId | null {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length === 0) return null;
+  // Unlocalized first segment (publishes/*) is intentionally excluded from
+  // telemetry + nav tracking per S4 spec — those deep links never resolve
+  // to a section id.
+  if (parts[0] === 'publishes') return null;
+  let best: { id: RouteId; segments: number } | null = null;
+  for (const entry of ALL_PATHS) {
+    if (entry.segments > parts.length) continue;
+    // Walk entry.template segments and verify each against parts.
+    const entrySegs = entry.template.split('/').filter(Boolean);
+    let ok = true;
+    for (let i = 0; i < entrySegs.length; i++) {
+      const want = entrySegs[i]!;
+      const got = parts[i]!;
+      if (want.startsWith(':')) continue; // param — any value ok
+      if (want !== got) { ok = false; break; }
+    }
+    if (ok && (!best || entry.segments > best.segments)) {
+      best = { id: entry.id, segments: entry.segments };
+    }
+  }
+  return best?.id ?? null;
+}
 
 /**
  * Map a pathname under one locale to the equivalent pathname under another.
@@ -163,9 +207,12 @@ export function siblingPath(
   const parts = pathname.split('/').filter(Boolean);
   if (parts.length === 0) return pathname || '/';
   const firstSegment = parts[0]!;
-  const id =
-    FIRST_BY_LOCALE[fromLocale][firstSegment] ??
-    FIRST_BY_LOCALE[toLocale][firstSegment];
+  // The first-segment map holds arrays of candidate ids; pick whichever is
+  // registered for this locale's head. We use the first match under the
+  // target locale if the source has no entry, else the first source entry.
+  const fromIds = FIRST_BY_LOCALE[fromLocale][firstSegment];
+  const toIds = FIRST_BY_LOCALE[toLocale][firstSegment];
+  const id = fromIds?.[0] ?? toIds?.[0];
   if (!id) return pathname;
   const newHead = FIRST_SEGMENT[id][toLocale];
   return '/' + [newHead, ...parts.slice(1)].join('/');

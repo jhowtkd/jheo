@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { deleteSetting, humanError, listSettings, upsertSetting } from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
+import { SessionTelemetryPanel } from '../components/SessionTelemetryPanel.js';
 
 const PRESET_KEYS = [
   'openai_api_key',
@@ -67,6 +68,14 @@ export function Settings() {
       </div>
 
       <div className="col" style={{ gap: 'var(--space-6)' }}>
+        <section>
+          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('settings.sessionTitle')}</h2>
+          <p className="tiny muted" style={{ marginTop: 0, marginBottom: 'var(--space-3)' }}>
+            {t('settings.sessionHint')}
+          </p>
+          <SessionTelemetryPanel />
+        </section>
+
         <section>
           <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('settings.storedKeysTitle')}</h2>
           {list.isLoading && (
