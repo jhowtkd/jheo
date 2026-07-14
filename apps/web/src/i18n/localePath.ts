@@ -77,11 +77,17 @@ const TAIL: Record<RouteId, string> = {
   settings:           '',
 };
 
-function fillParams(template: string, params?: Record<string, string>): string {
+function fillParams(template: string, id: RouteId, params?: Record<string, string>): string {
   if (!/:[a-zA-Z]+/.test(template)) return template;
   return template.replace(/:([a-zA-Z]+)/g, (_, k: string) => {
     const v = params?.[k];
-    if (v == null) throw new Error(`Missing param "${k}" for route`);
+    if (v == null) {
+      throw new Error(
+        `localePath: route "${id}" requires param "${k}" (template: ${template}). ` +
+          `If you need the route shape (e.g. for <Route path=…>), use ` +
+          `englishPathTemplate() / ptBRPathTemplate() instead.`,
+      );
+    }
     return encodeURIComponent(v);
   });
 }
@@ -92,7 +98,7 @@ export function pathForLocale(
   id: RouteId,
   params?: Record<string, string>,
 ): string {
-  const tail = fillParams(TAIL[id], params);
+  const tail = fillParams(TAIL[id], id, params);
   const first = FIRST_SEGMENT[id as LocalizedId];
   if (first) {
     const head = first[locale];
@@ -122,6 +128,18 @@ export function englishPath(id: RouteId, params?: Record<string, string>): strin
 
 export function ptBRPath(id: RouteId, params?: Record<string, string>): string {
   return pathForLocale('pt-BR', id, params);
+}
+
+// Template variants — preserve `:param` placeholders instead of filling them.
+// Use these in <Route path=...> so the placeholder stays as a real react-router
+// dynamic segment, and in any other context that needs a route shape rather
+// than a concrete URL.
+export function englishPathTemplate(id: RouteId): string {
+  return pathTemplateForLocale('en', id);
+}
+
+export function ptBRPathTemplate(id: RouteId): string {
+  return pathTemplateForLocale('pt-BR', id);
 }
 
 export function activeLocale(): SupportedLocale {
@@ -216,4 +234,51 @@ export function siblingPath(
   if (!id) return pathname;
   const newHead = FIRST_SEGMENT[id][toLocale];
   return '/' + [newHead, ...parts.slice(1)].join('/');
+}
+
+// Maps each localizable first segment to the RouteId of the section root
+// (no params, safe to call localePath() on it without filling anything).
+// Used by the Crumb to build a root link regardless of how deep the current
+// pathname is.
+const ROOT_ID_BY_FIRST_SEGMENT: Record<SupportedLocale, Record<string, RouteId>> = {
+  en: {
+    projects: 'projects',
+    audits: 'audits',
+    templates: 'templates',
+    materials: 'materialsGate',
+    generations: 'generationsGate',
+    fixes: 'fixes',
+    reports: 'reports',
+    channels: 'channelsGate',
+    settings: 'settings',
+  },
+  'pt-BR': {
+    projetos: 'projects',
+    auditorias: 'audits',
+    modelos: 'templates',
+    materiais: 'materialsGate',
+    geracoes: 'generationsGate',
+    correcoes: 'fixes',
+    relatorios: 'reports',
+    canais: 'channelsGate',
+    configuracoes: 'settings',
+  },
+};
+
+/**
+ * Resolve a pathname to the RouteId of its section root (the no-param
+ * template for the current first segment). Useful for building breadcrumb
+ * / section links without filling any :param placeholders. Returns null for
+ * empty paths or unlocalized first segments (publishes/*).
+ */
+export function rootRouteIdFromPath(pathname: string): RouteId | null {
+  const parts = pathname.split('/').filter(Boolean);
+  if (parts.length === 0) return null;
+  const firstSeg = parts[0]!;
+  if (firstSeg === 'publishes') return null;
+  return (
+    ROOT_ID_BY_FIRST_SEGMENT.en[firstSeg] ??
+    ROOT_ID_BY_FIRST_SEGMENT['pt-BR'][firstSeg] ??
+    null
+  );
 }

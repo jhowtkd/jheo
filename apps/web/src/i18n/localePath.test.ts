@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import {
   pathForLocale,
+  pathTemplateForLocale,
   englishPath,
   ptBRPath,
+  englishPathTemplate,
+  ptBRPathTemplate,
   siblingPath,
   routeIdFromPath,
+  rootRouteIdFromPath,
+  type RouteId,
 } from './localePath.js';
 
 describe('localePath', () => {
@@ -50,6 +55,24 @@ describe('localePath', () => {
     expect(() => pathForLocale('en', 'auditResults')).toThrow(/auditId/);
   });
 
+  it('error message names the route id and the template (debug aid)', () => {
+    // The thrown error must mention both the id and the template so a
+    // developer hitting it in the console knows exactly which call site
+    // is wrong, plus a hint to use the *Template() variants for shape
+    // use cases.
+    let captured: Error | null = null;
+    try {
+      pathForLocale('en', 'projectDashboard');
+    } catch (e) {
+      captured = e as Error;
+    }
+    expect(captured).not.toBeNull();
+    expect(captured!.message).toContain('projectDashboard');
+    expect(captured!.message).toContain('projectId');
+    expect(captured!.message).toContain('/:projectId');
+    expect(captured!.message).toMatch(/Template/);
+  });
+
   it('leaves unlocalized first segments (publishes) alone', () => {
     expect(pathForLocale('en', 'publishDetail', { publishId: 'x' }))
       .toBe('/publishes/x');
@@ -62,6 +85,39 @@ describe('localePath', () => {
   it('englishPath and ptBRPath helpers are aliases', () => {
     expect(englishPath('projects')).toBe('/projects');
     expect(ptBRPath('projects')).toBe('/projetos');
+  });
+
+  it('englishPathTemplate/ptBRPathTemplate preserve :param placeholders', () => {
+    // Routes with placeholders — must NOT throw and must keep :slug form.
+    expect(englishPathTemplate('projectDashboard')).toBe('/projects/:projectId');
+    expect(ptBRPathTemplate('projectDashboard')).toBe('/projetos/:projectId');
+    expect(englishPathTemplate('auditRunner')).toBe('/projects/:projectId/audit');
+    expect(ptBRPathTemplate('auditRunner')).toBe('/projetos/:projectId/audit');
+    expect(englishPathTemplate('auditResults')).toBe('/audits/:auditId');
+    expect(ptBRPathTemplate('auditResults')).toBe('/auditorias/:auditId');
+    expect(englishPathTemplate('materialsProject')).toBe('/projects/:projectId/materials');
+    expect(ptBRPathTemplate('materialsProject')).toBe('/projetos/:projectId/materials');
+    expect(englishPathTemplate('compose')).toBe('/projects/:projectId/compose');
+    expect(ptBRPathTemplate('compose')).toBe('/projetos/:projectId/compose');
+    expect(englishPathTemplate('templateEditor')).toBe('/templates/:templateId');
+    expect(ptBRPathTemplate('templateEditor')).toBe('/modelos/:templateId');
+    expect(englishPathTemplate('generationReview')).toBe('/generations/:generationId');
+    expect(ptBRPathTemplate('generationReview')).toBe('/geracoes/:generationId');
+    expect(englishPathTemplate('channelsProject')).toBe('/projects/:projectId/channels');
+    expect(ptBRPathTemplate('channelsProject')).toBe('/projetos/:projectId/channels');
+    expect(englishPathTemplate('channelEditor')).toBe('/channels/:channelId');
+    expect(ptBRPathTemplate('channelEditor')).toBe('/canais/:channelId');
+    expect(englishPathTemplate('publishDetail')).toBe('/publishes/:publishId');
+    expect(englishPathTemplate('agentBundle')).toBe('/publishes/:publishId/bundle');
+  });
+
+  it('englishPathTemplate/ptBRPathTemplate work for routes without params', () => {
+    expect(englishPathTemplate('projects')).toBe('/projects');
+    expect(ptBRPathTemplate('projects')).toBe('/projetos');
+    expect(englishPathTemplate('audits')).toBe('/audits');
+    expect(ptBRPathTemplate('audits')).toBe('/auditorias');
+    expect(englishPathTemplate('settings')).toBe('/settings');
+    expect(ptBRPathTemplate('settings')).toBe('/configuracoes');
   });
 
   it('siblingPath maps the first segment and keeps the rest', () => {
@@ -105,5 +161,107 @@ describe('localePath', () => {
     expect(routeIdFromPath('/')).toBeNull();
     expect(routeIdFromPath('/publishes/xyz')).toBeNull();
     expect(routeIdFromPath('')).toBeNull();
+  });
+
+  it('rootRouteIdFromPath always resolves to a no-param section root', () => {
+    // Deeply nested paths collapse to the section root under either locale.
+    expect(rootRouteIdFromPath('/projects/p1')).toBe('projects');
+    expect(rootRouteIdFromPath('/projects/p1/audit')).toBe('projects');
+    expect(rootRouteIdFromPath('/projetos/p1')).toBe('projects');
+    expect(rootRouteIdFromPath('/projetos/p1/audit')).toBe('projects');
+    expect(rootRouteIdFromPath('/audits/a1')).toBe('audits');
+    expect(rootRouteIdFromPath('/auditorias/a1')).toBe('audits');
+    expect(rootRouteIdFromPath('/templates/t1')).toBe('templates');
+    expect(rootRouteIdFromPath('/modelos/t1')).toBe('templates');
+    expect(rootRouteIdFromPath('/fixes')).toBe('fixes');
+    expect(rootRouteIdFromPath('/correcoes')).toBe('fixes');
+    expect(rootRouteIdFromPath('/reports')).toBe('reports');
+    expect(rootRouteIdFromPath('/relatorios')).toBe('reports');
+    expect(rootRouteIdFromPath('/settings')).toBe('settings');
+    expect(rootRouteIdFromPath('/configuracoes')).toBe('settings');
+  });
+
+  it('rootRouteIdFromPath handles gate / first-segment sections', () => {
+    // /materials and /geracoes have no /:projectId segment; they use the
+    // "gate" form which lives at the section root, then redirects to the
+    // project-scoped route. rootRouteIdFromPath returns the gate id.
+    expect(rootRouteIdFromPath('/materials')).toBe('materialsGate');
+    expect(rootRouteIdFromPath('/materiais')).toBe('materialsGate');
+    expect(rootRouteIdFromPath('/generations')).toBe('generationsGate');
+    expect(rootRouteIdFromPath('/geracoes')).toBe('generationsGate');
+    expect(rootRouteIdFromPath('/channels')).toBe('channelsGate');
+    expect(rootRouteIdFromPath('/canais')).toBe('channelsGate');
+  });
+
+  it('rootRouteIdFromPath returns null for empty / unlocalized paths', () => {
+    expect(rootRouteIdFromPath('/')).toBeNull();
+    expect(rootRouteIdFromPath('')).toBeNull();
+    expect(rootRouteIdFromPath('/publishes/xyz')).toBeNull();
+  });
+
+  it('sanity: every RouteId is either fillable without params OR throws a meaningful error', () => {
+    // Regression guard: walk every id, try to build a path under both
+    // locales. If it throws, the error must name the route id and the
+    // missing param; if it doesn't throw, the result must round-trip
+    // against englishPathTemplate / ptBRPathTemplate.
+    const ids: RouteId[] = [
+      'projects', 'projectDashboard', 'auditRunner', 'audits', 'auditResults',
+      'materialsProject', 'materialsGate', 'compose', 'generationsGate',
+      'templates', 'templateEditor', 'fixes', 'reports', 'generationReview',
+      'channelsProject', 'channelsGate', 'channelEditor',
+      'publishDetail', 'agentBundle', 'settings',
+    ];
+    for (const id of ids) {
+      for (const locale of ['en', 'pt-BR'] as const) {
+        // Build the template first (always succeeds).
+        const tpl = pathTemplateForLocale(locale, id);
+        const hasParams = /:[a-zA-Z]+/.test(tpl);
+        if (hasParams) {
+          // The concrete path builder must throw with a useful message.
+          let threw = false;
+          try { pathForLocale(locale, id); } catch (e) {
+            threw = true;
+            // The error must name the id and at least one :param.
+            expect((e as Error).message).toContain(id);
+            expect((e as Error).message).toMatch(/:[a-zA-Z]+/);
+          }
+          expect(threw).toBe(true);
+        } else {
+          // No params: concrete and template must be identical.
+          expect(pathForLocale(locale, id)).toBe(tpl);
+        }
+      }
+    }
+  });
+
+  it('sanity: every RouteId template placeholders are also accepted as params keys', () => {
+    // If you add a :foo in TAIL, the only way fillParams finds it is via
+    // `params.foo` — make sure all placeholders in the live templates
+    // match the param keys the app actually uses.
+    const knownKeys: Record<string, string[]> = {
+      projectDashboard:  ['projectId'],
+      auditRunner:       ['projectId'],
+      auditResults:      ['auditId'],
+      materialsProject:  ['projectId'],
+      compose:           ['projectId'],
+      templateEditor:    ['templateId'],
+      generationReview:  ['generationId'],
+      channelsProject:   ['projectId'],
+      channelEditor:     ['channelId'],
+      publishDetail:     ['publishId'],
+      agentBundle:       ['publishId'],
+    };
+    for (const [id, keys] of Object.entries(knownKeys)) {
+      for (const locale of ['en', 'pt-BR'] as const) {
+        const tpl = pathTemplateForLocale(locale, id as RouteId);
+        const placeholders = (tpl.match(/:[a-zA-Z]+/g) ?? []).map((s) => s.slice(1));
+        expect(new Set(placeholders)).toEqual(new Set(keys));
+        // And we can fill with exactly those keys and get a path.
+        const params: Record<string, string> = {};
+        for (const k of keys) params[k] = 'x';
+        const filled = pathForLocale(locale, id as RouteId, params);
+        expect(filled).not.toContain(':');
+      }
+    }
   });
 });

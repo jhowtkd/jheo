@@ -5,7 +5,7 @@ import { ThemeToggle } from './ThemeToggle.js';
 import { RouteListener } from './RouteListener.js';
 import { recordNavClick } from '../telemetry/sessionTelemetry.js';
 import { useBackendReachable } from '../hooks/useBackendReachable.js';
-import { localePath, routeIdFromPath, type RouteId } from '../i18n/localePath.js';
+import { localePath, rootRouteIdFromPath, type RouteId } from '../i18n/localePath.js';
 
 interface NavItem {
   id: RouteId;
@@ -61,11 +61,13 @@ function Crumb() {
   }
   const firstSeg = parts[0]!;
   const rootKey = CRUMB_ROOT_EN[firstSeg] ?? CRUMB_ROOT_PT[firstSeg] ?? 'nav.projects';
-  // Use the active locale's canonical path for the crumb link, not the URL's
-  // first segment — a pt-BR user on a bookmarked /projects/abc URL still
-  // expects clicking the crumb to land on /projetos.
-  const id = routeIdFromPath(loc.pathname);
-  const crumbTo = id ? localePath(id) : `/${firstSeg}`;
+  // Use the active locale's canonical root path for the crumb link, not the
+  // URL's first segment — a pt-BR user on a bookmarked /projects/abc URL
+  // still expects clicking the crumb to land on /projetos. We resolve to the
+  // section root (no :params) so localePath() can render the link without
+  // needing concrete ids.
+  const rootId = rootRouteIdFromPath(loc.pathname);
+  const crumbTo = rootId ? localePath(rootId) : `/${firstSeg}`;
   return (
     <nav className="topbar__crumb" aria-label={t('topbar.breadcrumb')}>
       <NavLink to={crumbTo} end>{t(rootKey)}</NavLink>

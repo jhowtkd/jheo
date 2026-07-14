@@ -5,8 +5,10 @@ import { ProjectScopedGate } from './components/ProjectScopedGate.js';
 import {
   activeLocale,
   englishPath,
+  englishPathTemplate,
   pathTemplateForLocale,
   ptBRPath,
+  ptBRPathTemplate,
 } from './i18n/localePath.js';
 
 // Every page is a separate chunk. With lazy(), Vite/Rollup produces one JS
@@ -101,48 +103,48 @@ export function AppRoutes() {
           <Route path="/" element={<HomeRedirect />} />
 
           {/* English segment tree */}
-          <Route path={englishPath('projects')} element={<ProjectsList />} />
-          <Route path={englishPath('projectDashboard')} element={<ProjectDashboard />} />
-          <Route path={englishPath('auditRunner')} element={<AuditRunner />} />
-          <Route path={englishPath('audits')} element={<AuditsList />} />
-          <Route path={englishPath('auditResults')} element={<AuditResults />} />
-          <Route path={englishPath('materialsProject')} element={<MaterialsList />} />
-          <Route path={englishPath('materialsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.materialsGate} />} />
-          <Route path={englishPath('compose')} element={<GenerationComposer />} />
-          <Route path={englishPath('generationsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.generationsGate} />} />
-          <Route path={englishPath('templates')} element={<TemplatesList />} />
-          <Route path={englishPath('templateEditor')} element={<TemplateEditor />} />
-          <Route path={englishPath('fixes')} element={<FixesPage />} />
-          <Route path={englishPath('reports')} element={<ReportsList />} />
-          <Route path={englishPath('generationReview')} element={<GenerationReview />} />
-          <Route path={englishPath('channelsProject')} element={<ChannelsList />} />
-          <Route path={englishPath('channelsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.channelsGate} />} />
-          <Route path={englishPath('channelEditor')} element={<ChannelEditor />} />
-          <Route path={englishPath('publishDetail')} element={<PublishDetail />} />
-          <Route path={englishPath('agentBundle')} element={<AgentBundleView />} />
-          <Route path={englishPath('settings')} element={<Settings />} />
+          <Route path={englishPathTemplate('projects')} element={<ProjectsList />} />
+          <Route path={englishPathTemplate('projectDashboard')} element={<ProjectDashboard />} />
+          <Route path={englishPathTemplate('auditRunner')} element={<AuditRunner />} />
+          <Route path={englishPathTemplate('audits')} element={<AuditsList />} />
+          <Route path={englishPathTemplate('auditResults')} element={<AuditResults />} />
+          <Route path={englishPathTemplate('materialsProject')} element={<MaterialsList />} />
+          <Route path={englishPathTemplate('materialsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.materialsGate} />} />
+          <Route path={englishPathTemplate('compose')} element={<GenerationComposer />} />
+          <Route path={englishPathTemplate('generationsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.generationsGate} />} />
+          <Route path={englishPathTemplate('templates')} element={<TemplatesList />} />
+          <Route path={englishPathTemplate('templateEditor')} element={<TemplateEditor />} />
+          <Route path={englishPathTemplate('fixes')} element={<FixesPage />} />
+          <Route path={englishPathTemplate('reports')} element={<ReportsList />} />
+          <Route path={englishPathTemplate('generationReview')} element={<GenerationReview />} />
+          <Route path={englishPathTemplate('channelsProject')} element={<ChannelsList />} />
+          <Route path={englishPathTemplate('channelsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.channelsGate} />} />
+          <Route path={englishPathTemplate('channelEditor')} element={<ChannelEditor />} />
+          <Route path={englishPathTemplate('publishDetail')} element={<PublishDetail />} />
+          <Route path={englishPathTemplate('agentBundle')} element={<AgentBundleView />} />
+          <Route path={englishPathTemplate('settings')} element={<Settings />} />
 
           {/* pt-BR segment tree */}
-          <Route path={ptBRPath('projects')} element={<ProjectsList />} />
-          <Route path={ptBRPath('projectDashboard')} element={<ProjectDashboard />} />
-          <Route path={ptBRPath('auditRunner')} element={<AuditRunner />} />
-          <Route path={ptBRPath('audits')} element={<AuditsList />} />
-          <Route path={ptBRPath('auditResults')} element={<AuditResults />} />
-          <Route path={ptBRPath('materialsProject')} element={<MaterialsList />} />
-          <Route path={ptBRPath('materialsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.ptMaterialsGate} />} />
-          <Route path={ptBRPath('compose')} element={<GenerationComposer />} />
-          <Route path={ptBRPath('generationsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.ptGenerationsGate} />} />
-          <Route path={ptBRPath('templates')} element={<TemplatesList />} />
-          <Route path={ptBRPath('templateEditor')} element={<TemplateEditor />} />
-          <Route path={ptBRPath('fixes')} element={<FixesPage />} />
-          <Route path={ptBRPath('reports')} element={<ReportsList />} />
-          <Route path={ptBRPath('generationReview')} element={<GenerationReview />} />
-          <Route path={ptBRPath('channelsProject')} element={<ChannelsList />} />
-          <Route path={ptBRPath('channelsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.ptChannelsGate} />} />
-          <Route path={ptBRPath('channelEditor')} element={<ChannelEditor />} />
-          <Route path={englishPath('publishDetail')} element={<PublishDetail />} />
-          <Route path={englishPath('agentBundle')} element={<AgentBundleView />} />
-          <Route path={ptBRPath('settings')} element={<Settings />} />
+          <Route path={ptBRPathTemplate('projects')} element={<ProjectsList />} />
+          <Route path={ptBRPathTemplate('projectDashboard')} element={<ProjectDashboard />} />
+          <Route path={ptBRPathTemplate('auditRunner')} element={<AuditRunner />} />
+          <Route path={ptBRPathTemplate('audits')} element={<AuditsList />} />
+          <Route path={ptBRPathTemplate('auditResults')} element={<AuditResults />} />
+          <Route path={ptBRPathTemplate('materialsProject')} element={<MaterialsList />} />
+          <Route path={ptBRPathTemplate('materialsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.ptMaterialsGate} />} />
+          <Route path={ptBRPathTemplate('compose')} element={<GenerationComposer />} />
+          <Route path={ptBRPathTemplate('generationsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.ptGenerationsGate} />} />
+          <Route path={ptBRPathTemplate('templates')} element={<TemplatesList />} />
+          <Route path={ptBRPathTemplate('templateEditor')} element={<TemplateEditor />} />
+          <Route path={ptBRPathTemplate('fixes')} element={<FixesPage />} />
+          <Route path={ptBRPathTemplate('reports')} element={<ReportsList />} />
+          <Route path={ptBRPathTemplate('generationReview')} element={<GenerationReview />} />
+          <Route path={ptBRPathTemplate('channelsProject')} element={<ChannelsList />} />
+          <Route path={ptBRPathTemplate('channelsGate')} element={<ProjectScopedGate redirectTemplate={GATE_REDIRECTS.ptChannelsGate} />} />
+          <Route path={ptBRPathTemplate('channelEditor')} element={<ChannelEditor />} />
+          <Route path={englishPathTemplate('publishDetail')} element={<PublishDetail />} />
+          <Route path={englishPathTemplate('agentBundle')} element={<AgentBundleView />} />
+          <Route path={ptBRPathTemplate('settings')} element={<Settings />} />
         </Route>
       </Routes>
     </Suspense>
