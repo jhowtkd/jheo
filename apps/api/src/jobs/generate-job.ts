@@ -109,10 +109,7 @@ export function makeGenerateHandler(deps: {
     }
 
     // 2. Embed user prompt + retrieve top-K (parameterised).
-    const qEmbedRes = await deps.embedProvider.embed(
-      { inputs: [generation.prompt] },
-      deps.fetchFn,
-    );
+    const qEmbedRes = await deps.embedProvider.embed({ inputs: [generation.prompt] }, deps.fetchFn);
     const qvec = qEmbedRes.embeddings[0];
     if (!qvec) {
       await prisma.generation.update({

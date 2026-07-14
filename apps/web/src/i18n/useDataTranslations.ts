@@ -59,7 +59,9 @@ export function useDataTranslations(opts: {
         setLoading(false);
       });
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [i18n.language, texts.join('\u0000'), sourceLocale, context]);
 
   return { translated, loading, error };

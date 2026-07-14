@@ -40,21 +40,37 @@ describe('useDataTranslations', () => {
     fetchMock.mockResolvedValue({
       ok: true,
       json: async () => ({
-        translations: [{ original: 'Meta description is missing.', translated: 'Falta a descrição.', cached: true }],
+        translations: [
+          {
+            original: 'Meta description is missing.',
+            translated: 'Falta a descrição.',
+            cached: true,
+          },
+        ],
       }),
     } as any);
     const { result } = renderHook(() =>
-      useDataTranslations({ texts: ['Meta description is missing.'], sourceLocale: 'en', context: 'finding' }),
+      useDataTranslations({
+        texts: ['Meta description is missing.'],
+        sourceLocale: 'en',
+        context: 'finding',
+      }),
     );
     await waitFor(() => expect(result.current.loading).toBe(false));
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(result.current.translated.get('Meta description is missing.')).toBe('Falta a descrição.');
+    expect(result.current.translated.get('Meta description is missing.')).toBe(
+      'Falta a descrição.',
+    );
   });
 
   it('reports no_llm_provider error on 503', async () => {
     await ensureI18n();
     i18n.changeLanguage('pt-BR');
-    fetchMock.mockResolvedValue({ ok: false, status: 503, json: async () => ({ error: 'no_llm_provider' }) } as any);
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({ error: 'no_llm_provider' }),
+    } as any);
     const { result } = renderHook(() =>
       useDataTranslations({ texts: ['x'], sourceLocale: 'en', context: 'finding' }),
     );

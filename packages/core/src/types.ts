@@ -26,7 +26,10 @@ export interface AuditContext {
    * Injected by the API/worker. Plugins must not import infra directly.
    * The shape extends with plugins the test can satisfy via mocks.
    */
-  fetchText(url: string, init?: { headers?: Record<string, string> }): Promise<{
+  fetchText(
+    url: string,
+    init?: { headers?: Record<string, string> },
+  ): Promise<{
     status: number;
     headers: Record<string, string>;
     text: string;

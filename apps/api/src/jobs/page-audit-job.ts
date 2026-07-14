@@ -81,7 +81,10 @@ export function makePageAuditHandler(opts: { fetchText: FetchText }) {
       }
     }
 
-    const inflight = new Map<string, Promise<{ status: number; headers: Record<string, string>; text: string }>>();
+    const inflight = new Map<
+      string,
+      Promise<{ status: number; headers: Record<string, string>; text: string }>
+    >();
     const fetchTextDedup: FetchText = (url, init) => {
       const key = fetchDedupKey(url, init);
       let p = inflight.get(key);
@@ -104,13 +107,23 @@ export function makePageAuditHandler(opts: { fetchText: FetchText }) {
         html: htmlRes.text,
         fetchText: fetchTextDedup,
         log() {},
-        [PLAIN_TEXT]: htmlRes.text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean),
-        [JSONLD_BLOCKS]: Array.from(htmlRes.text.matchAll(
-          /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
-        )),
+        [PLAIN_TEXT]: htmlRes.text
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .split(' ')
+          .filter(Boolean),
+        [JSONLD_BLOCKS]: Array.from(
+          htmlRes.text.matchAll(
+            /<script\s+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+          ),
+        ),
       };
       const result = await runAudit(ctx);
-      const pageScore = result.score as { overall: number; byCategory?: Record<string, number | null> };
+      const pageScore = result.score as {
+        overall: number;
+        byCategory?: Record<string, number | null>;
+      };
       const finishedAt = new Date();
       const newFindings = result.findings;
       const findingsData = await attachLineage(newFindings, pageAuditId, projectPageId);

@@ -52,11 +52,7 @@ export function buildFreshness(
   };
 }
 
-export async function fetchGscOverview(
-  prisma: PrismaClient,
-  projectId: string,
-  days: number,
-) {
+export async function fetchGscOverview(prisma: PrismaClient, projectId: string, days: number) {
   const { start, end } = resolveSnapshotDateRange(days);
   const [agg, rowCount] = await Promise.all([
     prisma.gscSnapshot.aggregate({

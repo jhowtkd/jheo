@@ -94,9 +94,7 @@ describe('ProjectDashboard re-audit retry', () => {
       total: 1,
       limit: 200,
       offset: 0,
-      items: [
-        { id: 'pg1', url: 'https://demo.test/', discoveredVia: 'root', lastAuditedAt: null },
-      ],
+      items: [{ id: 'pg1', url: 'https://demo.test/', discoveredVia: 'root', lastAuditedAt: null }],
     });
     // The retry's onSuccess opens the diff modal → detail query fires. Resolve it
     // cleanly so React Query doesn't warn about undefined data.

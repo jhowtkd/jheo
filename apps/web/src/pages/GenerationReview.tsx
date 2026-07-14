@@ -50,7 +50,8 @@ export function GenerationReview() {
   }
   const g = q.data;
   const fm = (g.outputFrontMatter ?? {}) as Record<string, unknown>;
-  const title = (fm.title as string) || t('generation.review.titleFallback', { id: g.id.slice(0, 8) });
+  const title =
+    (fm.title as string) || t('generation.review.titleFallback', { id: g.id.slice(0, 8) });
 
   const { translated: translatedBody, error: bodyError } = useDataTranslations({
     texts: g.outputMarkdown ? [g.outputMarkdown] : [],
@@ -58,7 +59,7 @@ export function GenerationReview() {
     context: 'generation',
   });
   const renderedBody = g.outputMarkdown
-    ? translatedBody.get(g.outputMarkdown) ?? g.outputMarkdown
+    ? (translatedBody.get(g.outputMarkdown) ?? g.outputMarkdown)
     : null;
 
   return (
@@ -66,9 +67,14 @@ export function GenerationReview() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">
+              {t('nav.projects')}
+            </Link>
             <span className="muted tiny">/</span>
-            <Link to={localePath('projectDashboard', { projectId: g.projectId })} className="muted tiny">
+            <Link
+              to={localePath('projectDashboard', { projectId: g.projectId })}
+              className="muted tiny"
+            >
               {g.projectId.slice(0, 8)}
             </Link>
             <span className="muted tiny">/</span>
@@ -100,12 +106,18 @@ export function GenerationReview() {
         <div className="gen-grid">
           <article className="gen-grid__body">
             <ReactMarkdown>{renderedBody ?? ''}</ReactMarkdown>
-            {bodyError && (() => {
-              const label = t(`errors.${bodyError}`, { defaultValue: t('topbar.translationUnavailable') });
-              return (
-                <span className="translation-unavailable" aria-label={label} title={label}> ↻</span>
-              );
-            })()}
+            {bodyError &&
+              (() => {
+                const label = t(`errors.${bodyError}`, {
+                  defaultValue: t('topbar.translationUnavailable'),
+                });
+                return (
+                  <span className="translation-unavailable" aria-label={label} title={label}>
+                    {' '}
+                    ↻
+                  </span>
+                );
+              })()}
           </article>
 
           <aside className="col">
@@ -139,7 +151,9 @@ export function GenerationReview() {
                           {t('generation.review.score')} {s.score.toFixed(3)}
                         </span>
                       </div>
-                      <p className="tiny muted" style={{ margin: '4px 0 0', lineHeight: 1.5 }}>{s.excerpt}</p>
+                      <p className="tiny muted" style={{ margin: '4px 0 0', lineHeight: 1.5 }}>
+                        {s.excerpt}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -151,7 +165,9 @@ export function GenerationReview() {
                 <div className="card__title">{t('generation.review.usage')}</div>
                 <dl className="fm-table">
                   <dt>{t('generation.review.providerModel')}</dt>
-                  <dd>{g.usage.provider}/{g.usage.model}</dd>
+                  <dd>
+                    {g.usage.provider}/{g.usage.model}
+                  </dd>
                   <dt>{t('generation.review.promptTokens')}</dt>
                   <dd className="tabular">{g.usage.promptTokens.toLocaleString()}</dd>
                   <dt>{t('generation.review.completionTokens')}</dt>

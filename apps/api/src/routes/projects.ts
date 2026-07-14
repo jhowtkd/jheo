@@ -3,13 +3,15 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { auditQueue } from '../queue.js';
 
-const CreateProjectBody = z.object({
-  name: z.string().min(1).max(120).optional(),
-  rootUrl: z.string().min(1).optional(),
-  domain: z.string().min(1).optional(),
-}).refine((value) => value.rootUrl || value.domain, {
-  message: 'domain is required',
-});
+const CreateProjectBody = z
+  .object({
+    name: z.string().min(1).max(120).optional(),
+    rootUrl: z.string().min(1).optional(),
+    domain: z.string().min(1).optional(),
+  })
+  .refine((value) => value.rootUrl || value.domain, {
+    message: 'domain is required',
+  });
 
 function domainUrl(input: string): URL {
   const url = new URL(/^https?:\/\//i.test(input) ? input : `https://${input}`);
@@ -20,7 +22,15 @@ function domainUrl(input: string): URL {
 const PagesQuery = z.object({
   limit: z.coerce.number().int().min(1).max(200).default(50),
   offset: z.coerce.number().int().min(0).default(0),
-  filter: z.enum(['not_audited', 'with_error', 'discovered_via:root', 'discovered_via:sitemap', 'discovered_via:crawl']).optional(),
+  filter: z
+    .enum([
+      'not_audited',
+      'with_error',
+      'discovered_via:root',
+      'discovered_via:sitemap',
+      'discovered_via:crawl',
+    ])
+    .optional(),
 });
 
 export async function projectRoutes(app: FastifyInstance): Promise<void> {
@@ -61,7 +71,10 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
     return project;
   });
 
-  app.get<{ Params: { id: string }; Querystring: { limit?: string; offset?: string; filter?: string } }>('/api/projects/:id/pages', async (req, reply) => {
+  app.get<{
+    Params: { id: string };
+    Querystring: { limit?: string; offset?: string; filter?: string };
+  }>('/api/projects/:id/pages', async (req, reply) => {
     reply.header('cache-control', 'private, max-age=5');
     const project = await prisma.project.findUnique({ where: { id: req.params.id } });
     if (!project) return reply.code(404).send({ error: 'not found' });
@@ -152,13 +165,21 @@ export async function projectRoutes(app: FastifyInstance): Promise<void> {
       }),
     ]);
 
-    const score = (lastAudit?.score ?? null) as
-      | { overall: number; byCategory: Record<string, number | null>; pagesAudited: number }
-      | null;
+    const score = (lastAudit?.score ?? null) as {
+      overall: number;
+      byCategory: Record<string, number | null>;
+      pagesAudited: number;
+    } | null;
 
     return {
       overall: score?.overall ?? null,
-      byCategory: score?.byCategory ?? { seo: null, cwv: null, geo: null, a11y: null, content: null },
+      byCategory: score?.byCategory ?? {
+        seo: null,
+        cwv: null,
+        geo: null,
+        a11y: null,
+        content: null,
+      },
       pagesAudited: score?.pagesAudited ?? 0,
       pagesTotal,
       pagesWithError,

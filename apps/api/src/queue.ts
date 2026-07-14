@@ -7,10 +7,7 @@ import { makeAuditHandler, type FetchText } from './jobs/audit-job.js';
 import { makeGenerateHandler } from './jobs/generate-job.js';
 import { makePublishHandler, type PublishJobData } from './jobs/publish-job.js';
 import { makeGscHandler } from './jobs/gsc-job.js';
-import {
-  AUDIT_LOCK_DURATION_MS,
-  AUDIT_ORCHESTRATOR_TIMEOUT_MS,
-} from './audit-timeouts.js';
+import { AUDIT_LOCK_DURATION_MS, AUDIT_ORCHESTRATOR_TIMEOUT_MS } from './audit-timeouts.js';
 
 export { AUDIT_LOCK_DURATION_MS, AUDIT_ORCHESTRATOR_TIMEOUT_MS };
 const env = loadEnv();
@@ -122,16 +119,12 @@ export type { PublishJobData };
 type PublishHandlerDeps = Parameters<typeof makePublishHandler>[0];
 
 export function startPublishWorkers(deps: PublishHandlerDeps) {
-  return new Worker<PublishJobData>(
-    PUBLISH_QUEUE,
-    async (job) => makePublishHandler(deps)(job),
-    {
-      connection,
-      concurrency: readInt('PUBLISH_CONCURRENCY', 3),
-      limiter: readLimiter('PUBLISH_LIMITER', { max: 120, ms: 60_000 }),
-      ...RETRY_POLICY,
-    },
-  );
+  return new Worker<PublishJobData>(PUBLISH_QUEUE, async (job) => makePublishHandler(deps)(job), {
+    connection,
+    concurrency: readInt('PUBLISH_CONCURRENCY', 3),
+    limiter: readLimiter('PUBLISH_LIMITER', { max: 120, ms: 60_000 }),
+    ...RETRY_POLICY,
+  });
 }
 
 export const GSC_QUEUE = 'gsc';
@@ -155,16 +148,12 @@ export type GscJobData =
 type GscHandlerDeps = Parameters<typeof makeGscHandler>[0];
 
 export function startGscWorkers(deps: GscHandlerDeps) {
-  return new Worker<GscJobData>(
-    GSC_QUEUE,
-    async (job) => makeGscHandler(deps)(job),
-    {
-      connection,
-      concurrency: readInt('GSC_CONCURRENCY', 1),
-      limiter: readLimiter('GSC_LIMITER', { max: 5, ms: 60_000 }),
-      ...GSC_RETRY_POLICY,
-    },
-  );
+  return new Worker<GscJobData>(GSC_QUEUE, async (job) => makeGscHandler(deps)(job), {
+    connection,
+    concurrency: readInt('GSC_CONCURRENCY', 1),
+    limiter: readLimiter('GSC_LIMITER', { max: 5, ms: 60_000 }),
+    ...GSC_RETRY_POLICY,
+  });
 }
 
 // Phase 3: per-page audit worker. audit-job.ts fans pages out onto this queue
@@ -218,6 +207,6 @@ export const auditPageQueue = new Queue<PageAuditJobData>(AUDIT_PAGE_QUEUE, {
 export const auditPageConcurrency = readInt('JHEO_AUDIT_PAGE_CONCURRENCY', 5);
 
 /** Orchestrator selection: 'flow' (default, BullMQ flow producer) or 'polling'. */
-export const auditOrchestrator = (
-  process.env.JHEO_AUDIT_ORCHESTRATOR ?? 'flow'
-) as 'flow' | 'polling';
+export const auditOrchestrator = (process.env.JHEO_AUDIT_ORCHESTRATOR ?? 'flow') as
+  | 'flow'
+  | 'polling';

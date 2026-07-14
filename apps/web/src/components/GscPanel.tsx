@@ -120,7 +120,9 @@ export function GscPanel({ projectId }: { projectId: string }) {
             {t('gsc.emptyHint')}
           </p>
           <label className="col" style={{ gap: 'var(--space-1)' }}>
-            <span className="tiny" style={{ fontWeight: 600 }}>{t('gsc.siteUrlLabel')}</span>
+            <span className="tiny" style={{ fontWeight: 600 }}>
+              {t('gsc.siteUrlLabel')}
+            </span>
             <input
               className="input"
               placeholder={t('gsc.siteUrlPlaceholder')}
@@ -129,7 +131,9 @@ export function GscPanel({ projectId }: { projectId: string }) {
             />
           </label>
           <label className="col" style={{ gap: 'var(--space-1)' }}>
-            <span className="tiny" style={{ fontWeight: 600 }}>{t('gsc.serviceAccountLabel')}</span>
+            <span className="tiny" style={{ fontWeight: 600 }}>
+              {t('gsc.serviceAccountLabel')}
+            </span>
             <textarea
               className="input"
               rows={6}
@@ -139,7 +143,11 @@ export function GscPanel({ projectId }: { projectId: string }) {
               style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-xs)' }}
             />
           </label>
-          {formError && <p className="tiny" style={{ color: 'var(--danger)', margin: 0 }}>{formError}</p>}
+          {formError && (
+            <p className="tiny" style={{ color: 'var(--danger)', margin: 0 }}>
+              {formError}
+            </p>
+          )}
           <div className="row" style={{ gap: 'var(--space-2)' }}>
             <button
               type="button"
@@ -187,19 +195,26 @@ export function GscPanel({ projectId }: { projectId: string }) {
           <div className="col" style={{ gap: 'var(--space-1)' }}>
             <span className="mono tiny">{conn.siteUrl}</span>
             {conn.clientEmail && (
-              <span className="tiny muted">{t('gsc.serviceAccountEmail', { email: conn.clientEmail })}</span>
+              <span className="tiny muted">
+                {t('gsc.serviceAccountEmail', { email: conn.clientEmail })}
+              </span>
             )}
           </div>
           <span className={`badge ${syncBadgeClass(conn.syncStatus)}`}>{conn.syncStatus}</span>
         </div>
         {conn.syncError && (
-          <p className="tiny" style={{ color: 'var(--danger)', margin: 0 }}>{conn.syncError}</p>
+          <p className="tiny" style={{ color: 'var(--danger)', margin: 0 }}>
+            {conn.syncError}
+          </p>
         )}
         {freshness && (
           <p className="tiny muted" style={{ margin: 0 }}>
             {t('gsc.dataThrough', { date: freshness.dataThrough })}
             {freshness.lastSyncedAt && (
-              <> · {t('gsc.lastSync', { date: new Date(freshness.lastSyncedAt).toLocaleString() })}</>
+              <>
+                {' '}
+                · {t('gsc.lastSync', { date: new Date(freshness.lastSyncedAt).toLocaleString() })}
+              </>
             )}
           </p>
         )}
@@ -215,9 +230,15 @@ export function GscPanel({ projectId }: { projectId: string }) {
           }}
         >
           <MetricTile label={t('gsc.metrics.clicks')} value={formatNum(overview.data.clicks)} />
-          <MetricTile label={t('gsc.metrics.impressions')} value={formatNum(overview.data.impressions)} />
+          <MetricTile
+            label={t('gsc.metrics.impressions')}
+            value={formatNum(overview.data.impressions)}
+          />
           <MetricTile label={t('gsc.metrics.ctr')} value={formatPct(overview.data.ctr)} />
-          <MetricTile label={t('gsc.metrics.avgPosition')} value={formatNum(overview.data.position)} />
+          <MetricTile
+            label={t('gsc.metrics.avgPosition')}
+            value={formatNum(overview.data.position)}
+          />
         </div>
       )}
 
@@ -229,7 +250,12 @@ export function GscPanel({ projectId }: { projectId: string }) {
             { key: 'clicks', label: t('gsc.tables.columns.clicks'), align: 'right' },
             { key: 'impressions', label: t('gsc.tables.columns.impressions'), align: 'right' },
             { key: 'ctr', label: t('gsc.tables.columns.ctr'), align: 'right', format: formatPct },
-            { key: 'position', label: t('gsc.tables.columns.pos'), align: 'right', format: formatNum },
+            {
+              key: 'position',
+              label: t('gsc.tables.columns.pos'),
+              align: 'right',
+              format: formatNum,
+            },
           ]}
           rows={queries.data!.rows.map((r) => ({ ...r, query: r.query ?? '—' }))}
         />
@@ -243,7 +269,12 @@ export function GscPanel({ projectId }: { projectId: string }) {
             { key: 'clicks', label: t('gsc.tables.columns.clicks'), align: 'right' },
             { key: 'impressions', label: t('gsc.tables.columns.impressions'), align: 'right' },
             { key: 'ctr', label: t('gsc.tables.columns.ctr'), align: 'right', format: formatPct },
-            { key: 'position', label: t('gsc.tables.columns.pos'), align: 'right', format: formatNum },
+            {
+              key: 'position',
+              label: t('gsc.tables.columns.pos'),
+              align: 'right',
+              format: formatNum,
+            },
           ]}
           rows={pages.data!.rows.map((r) => ({ ...r, page: r.page ?? '—' }))}
         />
@@ -258,7 +289,9 @@ function MetricTile({ label, value }: { label: string; value: string }) {
       <span className="tiny muted" style={{ textTransform: 'uppercase', letterSpacing: '0.06em' }}>
         {label}
       </span>
-      <div className="tabular" style={{ fontSize: 'var(--fs-xl)', fontWeight: 700 }}>{value}</div>
+      <div className="tabular" style={{ fontSize: 'var(--fs-xl)', fontWeight: 700 }}>
+        {value}
+      </div>
     </div>
   );
 }
@@ -285,7 +318,10 @@ function GscTable({
           <thead>
             <tr>
               {columns.map((col) => (
-                <th key={col.key} style={col.align === 'right' ? { textAlign: 'right' } : undefined}>
+                <th
+                  key={col.key}
+                  style={col.align === 'right' ? { textAlign: 'right' } : undefined}
+                >
                   {col.label}
                 </th>
               ))}
@@ -296,11 +332,14 @@ function GscTable({
               <tr key={String(row.query ?? row.page ?? i)}>
                 {columns.map((col) => {
                   const raw = row[col.key];
-                  const display = typeof raw === 'number' && col.format ? col.format(raw) : String(raw ?? '—');
+                  const display =
+                    typeof raw === 'number' && col.format ? col.format(raw) : String(raw ?? '—');
                   return (
                     <td
                       key={col.key}
-                      className={col.key === 'page' || col.key === 'query' ? 'tiny mono' : 'tabular tiny'}
+                      className={
+                        col.key === 'page' || col.key === 'query' ? 'tiny mono' : 'tabular tiny'
+                      }
                       style={col.align === 'right' ? { textAlign: 'right' } : undefined}
                     >
                       {display}

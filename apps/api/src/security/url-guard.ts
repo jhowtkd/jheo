@@ -48,11 +48,7 @@ function ipToBigInt(ip: string): bigint {
       return 0n;
     }
     const implicit = 8 - (headParts.length + tailParts.length);
-    groups = [
-      ...headParts.map(pad),
-      ...Array(implicit).fill('0000'),
-      ...tailParts.map(pad),
-    ];
+    groups = [...headParts.map(pad), ...Array(implicit).fill('0000'), ...tailParts.map(pad)];
   }
   let acc = 0n;
   for (const g of groups) acc = (acc << 16n) + BigInt(parseInt(g, 16));
@@ -149,7 +145,11 @@ export function assertSafeUrl(input: string): URL {
     // Distinguish the most common failure modes for the throw message so
     // schema-validation errors stay readable.
     let parsed: URL | null = null;
-    try { parsed = new URL(input); } catch { /* not a URL */ }
+    try {
+      parsed = new URL(input);
+    } catch {
+      /* not a URL */
+    }
     if (parsed === null) throw new UnsafeUrlError('not a valid URL');
     if (!ALLOWED_SCHEMES.has(parsed.protocol)) {
       throw new UnsafeUrlError(`protocol ${parsed.protocol} not allowed`);

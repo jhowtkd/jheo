@@ -4,7 +4,11 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../db.js';
 
 const CreateBody = z.object({
-  name: z.string().min(1).max(120).regex(/^[a-z0-9-]+$/),
+  name: z
+    .string()
+    .min(1)
+    .max(120)
+    .regex(/^[a-z0-9-]+$/),
   prompt: z.string().min(1).max(20000),
   outputSchema: z.unknown(),
 });

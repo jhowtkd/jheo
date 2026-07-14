@@ -11,7 +11,9 @@ export async function checkLangConsistency(ctx: AuditContext): Promise<Finding[]
   const declared = /<html\s+[^>]*\blang=["']([a-zA-Z-]+)["']/i.exec(ctx.html);
   const declaredLang = declared?.[1]?.toLowerCase().slice(0, 2);
   if (!declaredLang) return out;
-  const tokens = plainTextWords(ctx).map((w) => w.toLowerCase()).slice(0, 1000);
+  const tokens = plainTextWords(ctx)
+    .map((w) => w.toLowerCase())
+    .slice(0, 1000);
   let en = 0;
   let pt = 0;
   for (const tok of tokens) {

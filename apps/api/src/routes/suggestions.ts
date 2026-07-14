@@ -1,6 +1,11 @@
 import type { FastifyInstance, FastifyPluginAsync } from 'fastify';
 import { z } from 'zod';
-import { runSuggestion, LlmOutputError, buildSuggestionContext, type LLMProvider } from '@jheo/core';
+import {
+  runSuggestion,
+  LlmOutputError,
+  buildSuggestionContext,
+  type LLMProvider,
+} from '@jheo/core';
 import type { PrismaClient } from '@prisma/client';
 import { checkSuggestionRate } from '../i18n/suggestion-rate-limit.js';
 
@@ -77,8 +82,11 @@ export const suggestionRoutes: FastifyPluginAsync<SuggestionDeps> = async (
     const locale = (parsed.data.locale ?? req.locale ?? 'en') as 'en' | 'pt-BR';
     const context = buildSuggestionContext({
       finding: {
-        id: finding.id, category: finding.category, severity: finding.severity,
-        message: finding.message, url: finding.url,
+        id: finding.id,
+        category: finding.category,
+        severity: finding.severity,
+        message: finding.message,
+        url: finding.url,
       },
       page: { id: page.id, url: page.url, htmlSnapshot: page.htmlSnapshot },
       locale,
@@ -89,10 +97,14 @@ export const suggestionRoutes: FastifyPluginAsync<SuggestionDeps> = async (
     try {
       const provider = pickProvider(deps.llmProviders);
       output = await runSuggestion(provider, context, deps.fetchFn);
-      providerName = provider === deps.llmProviders.openai ? 'openai'
-        : provider === deps.llmProviders.anthropic ? 'anthropic'
-        : provider === deps.llmProviders.openrouter ? 'openrouter'
-        : 'llm';
+      providerName =
+        provider === deps.llmProviders.openai
+          ? 'openai'
+          : provider === deps.llmProviders.anthropic
+            ? 'anthropic'
+            : provider === deps.llmProviders.openrouter
+              ? 'openrouter'
+              : 'llm';
     } catch (e) {
       if (e instanceof LlmOutputError) {
         return reply.code(502).send({ error: 'LLM_OUTPUT_INVALID', detail: e.raw.slice(0, 200) });
@@ -123,19 +135,20 @@ export const suggestionRoutes: FastifyPluginAsync<SuggestionDeps> = async (
     return reply.code(201).send(created);
   });
 
-  app.get<{ Querystring: { findingId?: string; auditId?: string } }>('/api/suggestions', async (req, reply) => {
-    const q = ListQuery.safeParse(req.query);
-    if (!q.success) return reply.code(400).send({ error: q.error.flatten() });
-    const { findingId, auditId } = q.data;
-    reply.header('cache-control', 'private, max-age=5');
-    const list = await deps.prisma.suggestion.findMany({
-      where: findingId
-        ? { findingId }
-        : { finding: { auditId: auditId! } },
-      orderBy: { createdAt: 'asc' },
-    });
-    return reply.send(list);
-  });
+  app.get<{ Querystring: { findingId?: string; auditId?: string } }>(
+    '/api/suggestions',
+    async (req, reply) => {
+      const q = ListQuery.safeParse(req.query);
+      if (!q.success) return reply.code(400).send({ error: q.error.flatten() });
+      const { findingId, auditId } = q.data;
+      reply.header('cache-control', 'private, max-age=5');
+      const list = await deps.prisma.suggestion.findMany({
+        where: findingId ? { findingId } : { finding: { auditId: auditId! } },
+        orderBy: { createdAt: 'asc' },
+      });
+      return reply.send(list);
+    },
+  );
 
   app.get<{ Params: { id: string } }>('/api/suggestions/:id', async (req, reply) => {
     const s = await deps.prisma.suggestion.findUnique({ where: { id: req.params.id } });
@@ -163,7 +176,11 @@ export const suggestionRoutes: FastifyPluginAsync<SuggestionDeps> = async (
     if (!pageId) return reply.code(422).send({ error: 'FINDING_NOT_PAGE_SCOPED' });
     let reAuditId: string | null = null;
     try {
-      const r = await app.inject({ method: 'POST', url: `/api/pages/${pageId}/audit`, payload: {} });
+      const r = await app.inject({
+        method: 'POST',
+        url: `/api/pages/${pageId}/audit`,
+        payload: {},
+      });
       if (r.statusCode === 200) {
         reAuditId = r.json().pageAuditId ?? null;
       } else if (r.statusCode === 409) {

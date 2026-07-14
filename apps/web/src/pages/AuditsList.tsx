@@ -73,7 +73,10 @@ export function AuditsList() {
               {audits.data.map((a: AuditListItem) => (
                 <tr key={a.id}>
                   <td>
-                    <Link to={localePath('projectDashboard', { projectId: a.projectId })} style={{ fontWeight: 500 }}>
+                    <Link
+                      to={localePath('projectDashboard', { projectId: a.projectId })}
+                      style={{ fontWeight: 500 }}
+                    >
                       {a.projectName}
                     </Link>
                   </td>

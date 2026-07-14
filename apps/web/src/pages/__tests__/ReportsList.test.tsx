@@ -46,7 +46,10 @@ describe('ReportsList', () => {
     await waitFor(() => {
       expect(screen.getByText(/no completed reports yet/i)).toBeTruthy();
     });
-    expect(screen.getByRole('link', { name: /go to projects/i })).toHaveAttribute('href', '/projects');
+    expect(screen.getByRole('link', { name: /go to projects/i })).toHaveAttribute(
+      'href',
+      '/projects',
+    );
   });
 
   it('lists completed audits with a link to the report page', async () => {
@@ -86,7 +89,10 @@ describe('ReportsList', () => {
       expect(screen.getByText('Cenbrap')).toBeTruthy();
     });
     expect(screen.getByText('88')).toBeTruthy();
-    expect(screen.getByRole('link', { name: /open report/i })).toHaveAttribute('href', '/audits/a1');
+    expect(screen.getByRole('link', { name: /open report/i })).toHaveAttribute(
+      'href',
+      '/audits/a1',
+    );
     expect(screen.queryByText(/running/i)).toBeNull();
   });
 

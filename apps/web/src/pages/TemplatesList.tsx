@@ -105,7 +105,10 @@ function TemplateRow({
   return (
     <tr>
       <td>
-        <Link to={localePath('templateEditor', { templateId: template.id })} style={{ fontWeight: 500 }}>
+        <Link
+          to={localePath('templateEditor', { templateId: template.id })}
+          style={{ fontWeight: 500 }}
+        >
           {template.name}
         </Link>
         <div className="tiny mono muted">{template.id.slice(0, 12)}…</div>
@@ -121,7 +124,10 @@ function TemplateRow({
       <td className="tiny tabular muted">{formatDate(template.createdAt)}</td>
       <td style={{ textAlign: 'right' }}>
         <div className="actions" style={{ justifyContent: 'flex-end' }}>
-          <Link to={localePath('templateEditor', { templateId: template.id })} className="btn btn--ghost btn--sm">
+          <Link
+            to={localePath('templateEditor', { templateId: template.id })}
+            className="btn btn--ghost btn--sm"
+          >
             {t('common.edit')}
           </Link>
           {!template.isActive && (

@@ -9,13 +9,23 @@ vi.mock('react-router-dom', async () => {
 });
 
 vi.mock('../i18n/useDataTranslations', () => ({
-  useDataTranslations: () => ({ translated: new Map<string, string>(), loading: false, error: null }),
+  useDataTranslations: () => ({
+    translated: new Map<string, string>(),
+    loading: false,
+    error: null,
+  }),
 }));
 
 describe('FindingList', () => {
   it('renders a Suggest fix button per finding', () => {
-    const findings = [{ id: 'f1', category: 'seo', severity: 'warning', message: 'm', url: 'https://e.com' }];
-    render(<MemoryRouter><FindingList findings={findings as any} /></MemoryRouter>);
+    const findings = [
+      { id: 'f1', category: 'seo', severity: 'warning', message: 'm', url: 'https://e.com' },
+    ];
+    render(
+      <MemoryRouter>
+        <FindingList findings={findings as any} />
+      </MemoryRouter>,
+    );
     expect(screen.getAllByText(/sugerir/i).length).toBeGreaterThan(0);
   });
 
@@ -31,7 +41,9 @@ describe('FindingList', () => {
       },
     ];
     const { container } = render(
-      <MemoryRouter><FindingList findings={findings as any} /></MemoryRouter>,
+      <MemoryRouter>
+        <FindingList findings={findings as any} />
+      </MemoryRouter>,
     );
     expect(container.querySelector('.finding__evidence')).toBeTruthy();
     expect(screen.getByText('actualH1')).toBeTruthy();
@@ -40,10 +52,19 @@ describe('FindingList', () => {
 
   it('does not render an evidence region when evidence is empty', () => {
     const findings = [
-      { id: 'f1', category: 'seo', severity: 'info', message: 'm', url: 'https://e.com', evidence: {} },
+      {
+        id: 'f1',
+        category: 'seo',
+        severity: 'info',
+        message: 'm',
+        url: 'https://e.com',
+        evidence: {},
+      },
     ];
     const { container } = render(
-      <MemoryRouter><FindingList findings={findings as any} /></MemoryRouter>,
+      <MemoryRouter>
+        <FindingList findings={findings as any} />
+      </MemoryRouter>,
     );
     expect(container.querySelector('.finding__evidence')).toBeFalsy();
   });

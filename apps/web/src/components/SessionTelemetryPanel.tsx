@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-  telemetry,
-  type TelemetryEvent,
-} from '../telemetry/sessionTelemetry.js';
+import { telemetry, type TelemetryEvent } from '../telemetry/sessionTelemetry.js';
 
 const DISPLAY_LIMIT = 50;
 
@@ -63,10 +60,18 @@ export function SessionTelemetryPanel() {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }}>
         <div style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
-          <span className="tiny muted">{t('telemetry.counts.pageView')}: <strong>{counts.page_view ?? 0}</strong></span>
-          <span className="tiny muted">{t('telemetry.counts.navClick')}: <strong>{counts.nav_click ?? 0}</strong></span>
-          <span className="tiny muted">{t('telemetry.counts.apiError')}: <strong>{counts.api_error ?? 0}</strong></span>
-          <span className="tiny muted">{t('telemetry.counts.total')}: <strong>{events.length}</strong></span>
+          <span className="tiny muted">
+            {t('telemetry.counts.pageView')}: <strong>{counts.page_view ?? 0}</strong>
+          </span>
+          <span className="tiny muted">
+            {t('telemetry.counts.navClick')}: <strong>{counts.nav_click ?? 0}</strong>
+          </span>
+          <span className="tiny muted">
+            {t('telemetry.counts.apiError')}: <strong>{counts.api_error ?? 0}</strong>
+          </span>
+          <span className="tiny muted">
+            {t('telemetry.counts.total')}: <strong>{events.length}</strong>
+          </span>
         </div>
         <button
           type="button"

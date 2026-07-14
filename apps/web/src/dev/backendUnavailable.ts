@@ -7,10 +7,7 @@ export interface WritableProxyResponse {
 /** JSON body the SPA maps via humanError(new Error('backend_unavailable')). */
 export const BACKEND_UNAVAILABLE_BODY = { error: 'backend_unavailable' as const };
 
-export function sendBackendUnavailable(
-  res: WritableProxyResponse,
-  retryAfterSec = 5,
-): void {
+export function sendBackendUnavailable(res: WritableProxyResponse, retryAfterSec = 5): void {
   if (res.headersSent) return;
   res.writeHead(503, {
     'Content-Type': 'application/json',

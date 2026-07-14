@@ -57,7 +57,10 @@ export function parseMarkdownWithFrontmatter(raw: string): ParseResult {
     return { ok: false, raw, error: 'no-frontmatter', detail: 'closing --- not found' };
   }
   const yamlText = lines.slice(1, endIdx).join('\n');
-  let body = lines.slice(endIdx + 1).join('\n').replace(/^\n+/, '');
+  let body = lines
+    .slice(endIdx + 1)
+    .join('\n')
+    .replace(/^\n+/, '');
   let parsedYaml: unknown;
   try {
     parsedYaml = parseYaml(yamlText);

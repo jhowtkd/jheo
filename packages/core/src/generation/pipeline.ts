@@ -105,7 +105,10 @@ export async function runGeneration(
   if (!provider) throw new Error(`unknown LLM provider: ${ctx.llmConfig.provider}`);
 
   const { prompt: firstPrompt, system } = buildPrompt(ctx);
-  const req1: LLMRequest = { prompt: firstPrompt, config: buildConfig(ctx.llmConfig.model, ctx.llmConfig.temperature, ctx.llmConfig.maxTokens) };
+  const req1: LLMRequest = {
+    prompt: firstPrompt,
+    config: buildConfig(ctx.llmConfig.model, ctx.llmConfig.temperature, ctx.llmConfig.maxTokens),
+  };
   if (system !== undefined) req1.system = system;
   if (ctx.signal !== undefined) req1.signal = ctx.signal;
 
@@ -118,7 +121,11 @@ export async function runGeneration(
       // downstream consumers (UI markdown render, exports) don't surface
       // the model's chain-of-thought.
       raw: serializeMarkdown(p1.parsed),
-      sources: ctx.retrievedMaterials.map((m) => ({ id: m.id, score: m.score, excerpt: m.excerpt })),
+      sources: ctx.retrievedMaterials.map((m) => ({
+        id: m.id,
+        score: m.score,
+        excerpt: m.excerpt,
+      })),
       usage: r1.usage,
     };
   }

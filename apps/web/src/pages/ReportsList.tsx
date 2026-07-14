@@ -95,7 +95,11 @@ export function ReportsList() {
 
       {projects.data && (
         <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
-          <label className="tiny" htmlFor="reports-project-filter" style={{ display: 'block', marginBottom: 'var(--space-2)' }}>
+          <label
+            className="tiny"
+            htmlFor="reports-project-filter"
+            style={{ display: 'block', marginBottom: 'var(--space-2)' }}
+          >
             {t('reports.filterProject')}
           </label>
           <select
@@ -115,7 +119,9 @@ export function ReportsList() {
           {filterProject && (
             <p className="tiny muted" style={{ marginTop: 'var(--space-2)', marginBottom: 0 }}>
               {t('reports.filteredBy', { name: filterProject.name })}{' '}
-              <Link to={localePath('projectDashboard', { projectId: filterProject.id })}>{t('reports.openProject')}</Link>
+              <Link to={localePath('projectDashboard', { projectId: filterProject.id })}>
+                {t('reports.openProject')}
+              </Link>
             </p>
           )}
         </div>
@@ -132,8 +138,15 @@ export function ReportsList() {
           titleKey="reports.empty.title"
           hintKey="reports.empty.hint"
           {...(projectId
-            ? { cta: { to: () => localePath('auditRunner', { projectId }), labelKey: 'reports.empty.action' } }
-            : { cta: { to: () => localePath('projects'), labelKey: 'reports.empty.actionProjects' } })}
+            ? {
+                cta: {
+                  to: () => localePath('auditRunner', { projectId }),
+                  labelKey: 'reports.empty.action',
+                },
+              }
+            : {
+                cta: { to: () => localePath('projects'), labelKey: 'reports.empty.actionProjects' },
+              })}
         >
           <svg viewBox="0 0 56 56">
             <rect x="10" y="8" width="36" height="40" rx="3" />
@@ -163,7 +176,9 @@ export function ReportsList() {
                     <div style={{ fontWeight: 600 }}>{row.projectName}</div>
                     <div className="tiny muted mono">{row.projectRootUrl}</div>
                   </td>
-                  <td className="tiny tabular muted">{formatDate(row.finishedAt ?? row.startedAt)}</td>
+                  <td className="tiny tabular muted">
+                    {formatDate(row.finishedAt ?? row.startedAt)}
+                  </td>
                   <td className="tabular" style={{ textAlign: 'right', fontWeight: 600 }}>
                     {row.score?.overall ?? '—'}
                   </td>

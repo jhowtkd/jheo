@@ -14,7 +14,10 @@ export class OpenRouterProvider implements LLMProvider {
     if (req.config.temperature !== undefined) body.temperature = req.config.temperature;
     if (req.config.maxTokens !== undefined) body.max_tokens = req.config.maxTokens;
     body.messages = req.system
-      ? [{ role: 'system', content: req.system }, { role: 'user', content: req.prompt }]
+      ? [
+          { role: 'system', content: req.system },
+          { role: 'user', content: req.prompt },
+        ]
       : [{ role: 'user', content: req.prompt }];
 
     const init: RequestInit = {

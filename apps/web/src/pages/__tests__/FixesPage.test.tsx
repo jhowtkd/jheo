@@ -44,7 +44,11 @@ describe('FixesPage', () => {
   it('shows the project chooser when there are no projects', async () => {
     const { listProjects } = await import('../../api.js');
     (listProjects as ReturnType<typeof vi.fn>).mockResolvedValueOnce([]);
-    render(<MemoryRouter><FixesPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <FixesPage />
+      </MemoryRouter>,
+    );
     await waitFor(() => {
       expect(screen.getByText(/você ainda não tem projetos/i)).toBeTruthy();
     });
@@ -53,10 +57,26 @@ describe('FixesPage', () => {
   it('lists projects as cards when projects exist', async () => {
     const { listProjects } = await import('../../api.js');
     (listProjects as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
-      { id: 'p1', name: 'Marketing Acme', rootUrl: 'https://acme.com/', maxPages: 0, createdAt: '2026-01-01' },
-      { id: 'p2', name: 'Cenbrap', rootUrl: 'https://cenbrap.edu.br/', maxPages: 0, createdAt: '2026-01-01' },
+      {
+        id: 'p1',
+        name: 'Marketing Acme',
+        rootUrl: 'https://acme.com/',
+        maxPages: 0,
+        createdAt: '2026-01-01',
+      },
+      {
+        id: 'p2',
+        name: 'Cenbrap',
+        rootUrl: 'https://cenbrap.edu.br/',
+        maxPages: 0,
+        createdAt: '2026-01-01',
+      },
     ]);
-    render(<MemoryRouter><FixesPage /></MemoryRouter>);
+    render(
+      <MemoryRouter>
+        <FixesPage />
+      </MemoryRouter>,
+    );
     await waitFor(() => {
       expect(screen.getByText('Marketing Acme')).toBeTruthy();
       expect(screen.getByText('Cenbrap')).toBeTruthy();

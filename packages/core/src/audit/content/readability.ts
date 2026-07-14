@@ -8,7 +8,8 @@ export async function checkReadability(ctx: AuditContext): Promise<Finding[]> {
   const sentences = words.filter((w) => /[.!?]$/.test(w));
   // When the worker pre-stripped, sentences array may be empty; fall back
   // to at-least-one for the Flesch calc.
-  const sentenceCount = sentences.length > 0 ? sentences.length : Math.max(1, Math.floor(words.length / 15));
+  const sentenceCount =
+    sentences.length > 0 ? sentences.length : Math.max(1, Math.floor(words.length / 15));
   if (words.length === 0) return [];
   const syllables = words.reduce((acc, w) => acc + countSyllables(w), 0);
   const wordsPerSentence = words.length / sentenceCount;

@@ -34,10 +34,7 @@ export async function enqueueDueGscSnapshots(deps: {
 
   const skippedRows = await deps.prisma.gscConnection.findMany({
     where: {
-      OR: [
-        { syncStatus: 'syncing' },
-        { lastSyncAt: { gte: cutoff } },
-      ],
+      OR: [{ syncStatus: 'syncing' }, { lastSyncAt: { gte: cutoff } }],
     },
     select: { projectId: true },
   });

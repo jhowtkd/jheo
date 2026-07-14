@@ -21,32 +21,33 @@ export async function pageRoutes(app: FastifyInstance): Promise<void> {
     '/api/pages/:id/audit',
     { config: { rateLimit: { max: 15, windowMs: 60_000 } } },
     async (req, reply) => {
-    const page = await prisma.projectPage.findUnique({ where: { id: req.params.id } });
-    if (!page) return reply.code(404).send({ error: 'not found' });
+      const page = await prisma.projectPage.findUnique({ where: { id: req.params.id } });
+      if (!page) return reply.code(404).send({ error: 'not found' });
 
-    const existing = await prisma.pageAudit.findFirst({
-      where: { projectPageId: page.id, status: { in: ['queued', 'running'] } },
-    });
-    if (existing) return reply.code(409).send({ error: 're-audit in progress' });
+      const existing = await prisma.pageAudit.findFirst({
+        where: { projectPageId: page.id, status: { in: ['queued', 'running'] } },
+      });
+      if (existing) return reply.code(409).send({ error: 're-audit in progress' });
 
-    const pageAudit = await prisma.pageAudit.create({
-      data: {
+      const pageAudit = await prisma.pageAudit.create({
+        data: {
+          projectPageId: page.id,
+          status: 'queued',
+        },
+      });
+      // Enqueue via the page-audit queue. auditId is null because this is a
+      // standalone re-audit (F5.4) — the worker treats null as standalone and
+      // skips the parent-Audit cancellation check.
+      const { auditPageQueue } = await import('../queue.js');
+      await auditPageQueue.add('standalone', {
+        pageAuditId: pageAudit.id,
+        auditId: null,
         projectPageId: page.id,
-        status: 'queued',
-      },
-    });
-    // Enqueue via the page-audit queue. auditId is null because this is a
-    // standalone re-audit (F5.4) — the worker treats null as standalone and
-    // skips the parent-Audit cancellation check.
-    const { auditPageQueue } = await import('../queue.js');
-    await auditPageQueue.add('standalone', {
-      pageAuditId: pageAudit.id,
-      auditId: null,
-      projectPageId: page.id,
-      url: page.url,
-    });
-    return { pageAuditId: pageAudit.id };
-  });
+        url: page.url,
+      });
+      return { pageAuditId: pageAudit.id };
+    },
+  );
 
   app.get<{ Params: { id: string } }>('/api/page-audits/:id', async (req, reply) => {
     reply.header('cache-control', 'private, max-age=5');
@@ -63,7 +64,9 @@ export async function pageRoutes(app: FastifyInstance): Promise<void> {
     const findings = pageAudit.findings.map((f) => {
       const label = diffLabel(
         { severity: f.severity, message: f.message, previousFindingId: f.previousFindingId },
-        f.previousFinding ? { severity: f.previousFinding.severity, message: f.previousFinding.message } : null,
+        f.previousFinding
+          ? { severity: f.previousFinding.severity, message: f.previousFinding.message }
+          : null,
       );
       return {
         id: f.id,
@@ -93,14 +96,19 @@ export async function pageRoutes(app: FastifyInstance): Promise<void> {
       include: {
         findings: {
           where: { previousFindingId: null },
-          select: { id: true, rule: true, category: true, severity: true, message: true, url: true },
+          select: {
+            id: true,
+            rule: true,
+            category: true,
+            severity: true,
+            message: true,
+            url: true,
+          },
         },
       },
     });
     const currentHeads = new Set(
-      pageAudit.findings
-        .map((f) => f.previousFindingId)
-        .filter((id): id is string => Boolean(id)),
+      pageAudit.findings.map((f) => f.previousFindingId).filter((id): id is string => Boolean(id)),
     );
     const fixed = priorPageAudit
       ? priorPageAudit.findings

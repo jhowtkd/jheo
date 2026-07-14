@@ -127,7 +127,14 @@ export type PageAuditDetail = {
   finishedAt: string | null;
   errorMessage: string | null;
   findings: FindingWithDiff[];
-  fixed: Array<{ id: string; category: string; severity: string; rule: string; message: string; url: string }>;
+  fixed: Array<{
+    id: string;
+    category: string;
+    severity: string;
+    rule: string;
+    message: string;
+    url: string;
+  }>;
 };
 
 export async function reAuditPage(pageId: string): Promise<{ pageAuditId: string }> {
@@ -329,7 +336,12 @@ export async function createGeneration(
     prompt: string;
     templateId: string;
     materialIds: string[];
-    llmConfig: { provider: 'openai' | 'anthropic' | 'openrouter'; model: string; temperature?: number; maxTokens?: number };
+    llmConfig: {
+      provider: 'openai' | 'anthropic' | 'openrouter';
+      model: string;
+      temperature?: number;
+      maxTokens?: number;
+    };
   },
 ): Promise<Generation> {
   const r = await localeFetch(`/api/projects/${projectId}/generations`, {
@@ -354,7 +366,10 @@ export async function reviewGeneration(
   });
   return r.json();
 }
-export async function editGenerationMarkdown(id: string, outputMarkdown: string): Promise<Generation> {
+export async function editGenerationMarkdown(
+  id: string,
+  outputMarkdown: string,
+): Promise<Generation> {
   const r = await localeFetch(`/api/generations/${id}`, {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
@@ -451,7 +466,10 @@ export type Publish = {
 export async function listPublishes(generationId: string): Promise<Publish[]> {
   return (await localeFetch(`/api/generations/${generationId}/publishes`)).json();
 }
-export async function createPublishes(generationId: string, channelIds: string[]): Promise<{ publishes: string[] }> {
+export async function createPublishes(
+  generationId: string,
+  channelIds: string[],
+): Promise<{ publishes: string[] }> {
   const r = await localeFetch(`/api/generations/${generationId}/publish`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -468,7 +486,9 @@ export async function cancelPublish(id: string): Promise<{ id: string }> {
 export async function getPublish(id: string): Promise<Publish> {
   return (await localeFetch(`/api/publishes/${id}`)).json();
 }
-export async function getPublishFiles(id: string): Promise<{ dir: string; files: { name: string; content: string }[] }> {
+export async function getPublishFiles(
+  id: string,
+): Promise<{ dir: string; files: { name: string; content: string }[] }> {
   return (await localeFetch(`/api/publishes/${id}/files`)).json();
 }
 
@@ -531,7 +551,9 @@ export async function deleteGscConnection(projectId: string): Promise<{ projectI
   return readJsonOrThrow(r);
 }
 
-export async function syncGsc(projectId: string): Promise<{ status: string; freshness: GscFreshness }> {
+export async function syncGsc(
+  projectId: string,
+): Promise<{ status: string; freshness: GscFreshness }> {
   const r = await localeFetch(`/api/projects/${projectId}/gsc/sync`, { method: 'POST' });
   return readJsonOrThrow(r);
 }
@@ -541,12 +563,20 @@ export async function getGscOverview(projectId: string, days = 28): Promise<GscO
   return readJsonOrThrow<GscOverview>(r);
 }
 
-export async function getGscQueries(projectId: string, days = 28, limit = 10): Promise<{ rows: GscMetricRow[]; freshness: GscFreshness }> {
+export async function getGscQueries(
+  projectId: string,
+  days = 28,
+  limit = 10,
+): Promise<{ rows: GscMetricRow[]; freshness: GscFreshness }> {
   const r = await localeFetch(`/api/projects/${projectId}/gsc/queries?days=${days}&limit=${limit}`);
   return readJsonOrThrow(r);
 }
 
-export async function getGscPages(projectId: string, days = 28, limit = 10): Promise<{ rows: GscMetricRow[]; freshness: GscFreshness }> {
+export async function getGscPages(
+  projectId: string,
+  days = 28,
+  limit = 10,
+): Promise<{ rows: GscMetricRow[]; freshness: GscFreshness }> {
   const r = await localeFetch(`/api/projects/${projectId}/gsc/pages?days=${days}&limit=${limit}`);
   return readJsonOrThrow(r);
 }
@@ -635,12 +665,16 @@ export async function createSuggestion(input: CreateSuggestionInput): Promise<Su
 }
 
 export async function listSuggestions(findingId: string): Promise<Suggestion[]> {
-  return (await localeFetch(`/api/suggestions?findingId=${encodeURIComponent(findingId)}`).then((r) => r.json())) as Suggestion[];
+  return (await localeFetch(`/api/suggestions?findingId=${encodeURIComponent(findingId)}`).then(
+    (r) => r.json(),
+  )) as Suggestion[];
 }
 
 /** One round-trip for all suggestions belonging to findings of an audit. */
 export async function listSuggestionsByAudit(auditId: string): Promise<Suggestion[]> {
-  return (await localeFetch(`/api/suggestions?auditId=${encodeURIComponent(auditId)}`).then((r) => r.json())) as Suggestion[];
+  return (await localeFetch(`/api/suggestions?auditId=${encodeURIComponent(auditId)}`).then((r) =>
+    r.json(),
+  )) as Suggestion[];
 }
 
 export async function getSuggestion(id: string): Promise<Suggestion> {
@@ -648,11 +682,15 @@ export async function getSuggestion(id: string): Promise<Suggestion> {
 }
 
 export async function acceptSuggestion(id: string): Promise<AcceptSuggestionResult> {
-  return (await localeFetch(`/api/suggestions/${id}/accept`, { method: 'POST' }).then((r) => r.json())) as AcceptSuggestionResult;
+  return (await localeFetch(`/api/suggestions/${id}/accept`, { method: 'POST' }).then((r) =>
+    r.json(),
+  )) as AcceptSuggestionResult;
 }
 
 export async function rejectSuggestion(id: string): Promise<Suggestion> {
-  return (await localeFetch(`/api/suggestions/${id}/reject`, { method: 'POST' }).then((r) => r.json())) as Suggestion;
+  return (await localeFetch(`/api/suggestions/${id}/reject`, { method: 'POST' }).then((r) =>
+    r.json(),
+  )) as Suggestion;
 }
 
 // ---------- Executive report (F8) ----------

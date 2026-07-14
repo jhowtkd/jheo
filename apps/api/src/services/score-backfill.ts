@@ -37,7 +37,15 @@ export async function ensureScoreSnapshot(audit: AuditLike): Promise<unknown> {
 
   const findings = await prisma.finding.findMany({
     where: { auditId: audit.id },
-    select: { category: true, severity: true, rule: true, message: true, url: true, evidence: true, selector: true },
+    select: {
+      category: true,
+      severity: true,
+      rule: true,
+      message: true,
+      url: true,
+      evidence: true,
+      selector: true,
+    },
   });
   const pageAudits = await prisma.pageAudit.findMany({
     where: { auditId: audit.id },

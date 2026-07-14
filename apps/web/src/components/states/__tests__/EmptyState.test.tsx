@@ -55,7 +55,9 @@ describe('EmptyState', () => {
   it('renders a known kind title from COPY (no explicit titleKey)', () => {
     renderWith(<EmptyState kind="no-findings" />);
     // COPY['no-findings'] = { titleKey: 'fixes.empty' } → en catalog.
-    expect(screen.getByText('No pending findings. Run an audit to get started.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No pending findings. Run an audit to get started.'),
+    ).toBeInTheDocument();
   });
 
   it("renders a known kind's COPY CTA when present", () => {

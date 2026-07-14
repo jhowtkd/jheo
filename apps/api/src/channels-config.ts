@@ -28,7 +28,11 @@ const WordPressConfigSchema = z.object({
 
 const HttpAuthSchema = z.discriminatedUnion('scheme', [
   z.object({ scheme: z.literal('none') }),
-  z.object({ scheme: z.literal('basic'), username: z.string().min(1), password: z.string().min(1) }),
+  z.object({
+    scheme: z.literal('basic'),
+    username: z.string().min(1),
+    password: z.string().min(1),
+  }),
   z.object({ scheme: z.literal('bearer'), token: z.string().min(1) }),
 ]);
 
@@ -57,7 +61,10 @@ const HttpConfigSchema = z.object({
 
 const AgentConfigSchema = z.object({
   siteName: z.string().min(1),
-  themeColor: z.string().regex(/^#[0-9a-fA-F]{6}$/).default('#0ea5e9'),
+  themeColor: z
+    .string()
+    .regex(/^#[0-9a-fA-F]{6}$/)
+    .default('#0ea5e9'),
   assetFolder: z.string().default('assets'),
 });
 

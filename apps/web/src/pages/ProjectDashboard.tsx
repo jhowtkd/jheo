@@ -201,7 +201,10 @@ export function ProjectDashboard() {
           <h1 className="page__title">{p.name}</h1>
           <p className="page__subtitle mono">{p.rootUrl}</p>
         </div>
-        <Link to={localePath('auditRunner', { projectId: projectId! })} className="btn btn--primary">
+        <Link
+          to={localePath('auditRunner', { projectId: projectId! })}
+          className="btn btn--primary"
+        >
           {t('projects.dashboard.runAudit')}
         </Link>
       </header>
@@ -235,13 +238,22 @@ export function ProjectDashboard() {
 
       {/* Actions — secondary navigation (does not compete with Run audit) */}
       <nav className="row" style={{ gap: 'var(--space-2)', flexWrap: 'wrap' }}>
-        <Link to={localePath('compose', { projectId: projectId! })} className="btn btn--secondary btn--sm">
+        <Link
+          to={localePath('compose', { projectId: projectId! })}
+          className="btn btn--secondary btn--sm"
+        >
           {t('projects.dashboard.quickLinks.generate')}
         </Link>
-        <Link to={localePath('channelsProject', { projectId: projectId! })} className="btn btn--secondary btn--sm">
+        <Link
+          to={localePath('channelsProject', { projectId: projectId! })}
+          className="btn btn--secondary btn--sm"
+        >
           {t('projects.dashboard.quickLinks.channels')}
         </Link>
-        <Link to={localePath('materialsProject', { projectId: projectId! })} className="btn btn--secondary btn--sm">
+        <Link
+          to={localePath('materialsProject', { projectId: projectId! })}
+          className="btn btn--secondary btn--sm"
+        >
           {t('projects.dashboard.quickLinks.materials')}
         </Link>
       </nav>
@@ -289,18 +301,23 @@ export function ProjectDashboard() {
                   }}
                 />
               </div>
-              {progress.data.pagesCompleted >= 2 && lastAudit.startedAt && (() => {
-                const elapsedSec = (Date.now() - new Date(lastAudit.startedAt).getTime()) / 1000;
-                const pagesPerSec = progress.data.pagesCompleted / elapsedSec;
-                if (!isFinite(pagesPerSec) || pagesPerSec <= 0) return null;
-                const remaining = Math.max(0, progress.data.pagesTotal - progress.data.pagesCompleted);
-                const etaSec = Math.round(remaining / pagesPerSec);
-                return (
-                  <p className="tiny muted" style={{ marginTop: 'var(--space-2)' }}>
-                    {t('projects.dashboard.eta', { seconds: etaSec })}
-                  </p>
-                );
-              })()}
+              {progress.data.pagesCompleted >= 2 &&
+                lastAudit.startedAt &&
+                (() => {
+                  const elapsedSec = (Date.now() - new Date(lastAudit.startedAt).getTime()) / 1000;
+                  const pagesPerSec = progress.data.pagesCompleted / elapsedSec;
+                  if (!isFinite(pagesPerSec) || pagesPerSec <= 0) return null;
+                  const remaining = Math.max(
+                    0,
+                    progress.data.pagesTotal - progress.data.pagesCompleted,
+                  );
+                  const etaSec = Math.round(remaining / pagesPerSec);
+                  return (
+                    <p className="tiny muted" style={{ marginTop: 'var(--space-2)' }}>
+                      {t('projects.dashboard.eta', { seconds: etaSec })}
+                    </p>
+                  );
+                })()}
             </>
           )}
           {(lastAudit.status === 'queued' || lastAudit.status === 'running') && (
@@ -326,7 +343,10 @@ export function ProjectDashboard() {
         <EmptyState
           titleKey="projects.dashboard.pagesEmpty.title"
           hintKey="projects.dashboard.pagesEmpty.hint"
-          cta={{ to: () => localePath('auditRunner', { projectId: projectId! }), labelKey: 'projects.dashboard.runAudit' }}
+          cta={{
+            to: () => localePath('auditRunner', { projectId: projectId! }),
+            labelKey: 'projects.dashboard.runAudit',
+          }}
         />
       ) : (
         <div className="card" style={{ padding: 0, overflow: 'auto' }}>
@@ -545,7 +565,10 @@ export function ProjectDashboard() {
               <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0 }}>
                 {t('projects.dashboard.auditHistory')}
               </h2>
-              <Link to={`${localePath('reports')}?projectId=${encodeURIComponent(projectId!)}`} className="tiny">
+              <Link
+                to={`${localePath('reports')}?projectId=${encodeURIComponent(projectId!)}`}
+                className="tiny"
+              >
                 {t('projects.dashboard.viewAllReports')}
               </Link>
             </div>

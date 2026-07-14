@@ -8,9 +8,15 @@ export async function checkFaqStructure(ctx: AuditContext): Promise<Finding[]> {
   for (const b of blocks) {
     try {
       const json = JSON.parse(b[1] ?? '');
-      if (json['@type'] === 'FAQPage' || json['@graph']?.some?.((g: unknown) =>
-        typeof g === 'object' && g !== null && (g as Record<string, unknown>)['@type'] === 'FAQPage',
-      )) {
+      if (
+        json['@type'] === 'FAQPage' ||
+        json['@graph']?.some?.(
+          (g: unknown) =>
+            typeof g === 'object' &&
+            g !== null &&
+            (g as Record<string, unknown>)['@type'] === 'FAQPage',
+        )
+      ) {
         hasFaqSchema = true;
       }
     } catch {

@@ -45,7 +45,9 @@ export async function responseCompressionPlugin(app: FastifyInstance): Promise<v
     if (useBrotli) {
       compressed = await new Promise<Buffer>((resolve, reject) => {
         const chunks: Buffer[] = [];
-        const src = Readable.from([Buffer.isBuffer(payload) ? payload : Buffer.from(payload as string)]);
+        const src = Readable.from([
+          Buffer.isBuffer(payload) ? payload : Buffer.from(payload as string),
+        ]);
         const dst = createBrotliCompress();
         src.pipe(dst);
         dst.on('data', (c) => chunks.push(c));
@@ -56,7 +58,9 @@ export async function responseCompressionPlugin(app: FastifyInstance): Promise<v
     } else if (useGzip) {
       compressed = await new Promise<Buffer>((resolve, reject) => {
         const chunks: Buffer[] = [];
-        const src = Readable.from([Buffer.isBuffer(payload) ? payload : Buffer.from(payload as string)]);
+        const src = Readable.from([
+          Buffer.isBuffer(payload) ? payload : Buffer.from(payload as string),
+        ]);
         const dst = createGzip();
         src.pipe(dst);
         dst.on('data', (c) => chunks.push(c));

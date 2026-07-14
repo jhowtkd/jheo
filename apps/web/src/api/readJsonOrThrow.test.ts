@@ -21,15 +21,15 @@ describe('readJsonOrThrow', () => {
   });
 
   it('throws backend_unavailable on 503 even without body', async () => {
-    await expect(
-      readJsonOrThrow(new Response('', { status: 503 }), 'projects'),
-    ).rejects.toThrow('backend_unavailable');
+    await expect(readJsonOrThrow(new Response('', { status: 503 }), 'projects')).rejects.toThrow(
+      'backend_unavailable',
+    );
   });
 
   it('throws Failed to load <label>: <status> for other errors without error field', async () => {
-    await expect(
-      readJsonOrThrow(jsonResponse(500, {}), 'health'),
-    ).rejects.toThrow('Failed to load health: 500');
+    await expect(readJsonOrThrow(jsonResponse(500, {}), 'health')).rejects.toThrow(
+      'Failed to load health: 500',
+    );
   });
 
   it('throws body.error string when present', async () => {

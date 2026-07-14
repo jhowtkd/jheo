@@ -35,5 +35,3 @@ export function makeAuditHarness(opts: { html: string; url: string; fetches?: Fe
 // Used by tests that import `{ type Finding }` — kept here so a single
 // import surfaces all public artifacts.
 export type { Finding };
-
-

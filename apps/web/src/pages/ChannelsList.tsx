@@ -24,9 +24,16 @@ export function ChannelsList() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">
+              {t('nav.projects')}
+            </Link>
             <span className="muted tiny">/</span>
-            <Link to={localePath('projectDashboard', { projectId: projectId! })} className="muted tiny">{projectId?.slice(0, 8)}</Link>
+            <Link
+              to={localePath('projectDashboard', { projectId: projectId! })}
+              className="muted tiny"
+            >
+              {projectId?.slice(0, 8)}
+            </Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('channels.breadcrumb')}</span>
           </div>
@@ -59,7 +66,14 @@ export function ChannelsList() {
         <EmptyState
           titleKey="channels.empty.title"
           hintKey="channels.empty.hint"
-          {...(projectId ? { cta: { to: () => localePath('auditRunner', { projectId: projectId! }), labelKey: 'channels.empty.cta' } } : {})}
+          {...(projectId
+            ? {
+                cta: {
+                  to: () => localePath('auditRunner', { projectId: projectId! }),
+                  labelKey: 'channels.empty.cta',
+                },
+              }
+            : {})}
         >
           <svg viewBox="0 0 56 56">
             <path d="M10 28h36" />
@@ -97,7 +111,9 @@ function ChannelRow({ channel, onRemove }: { channel: Channel; onRemove: () => v
       <div className="spread">
         <div>
           <div style={{ fontWeight: 600 }}>{channel.name}</div>
-          <div className="tiny muted" style={{ marginTop: 2 }}>{t(`channels.typeDescriptions.${channel.type}`)}</div>
+          <div className="tiny muted" style={{ marginTop: 2 }}>
+            {t(`channels.typeDescriptions.${channel.type}`)}
+          </div>
         </div>
         <div className="row">
           <span className="badge badge--neutral">{t(`channels.types.${channel.type}`)}</span>
@@ -115,7 +131,11 @@ function ChannelRow({ channel, onRemove }: { channel: Channel; onRemove: () => v
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <button
           className="btn btn--ghost btn--sm"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onRemove(); }}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRemove();
+          }}
         >
           {t('common.delete')}
         </button>
@@ -126,6 +146,8 @@ function ChannelRow({ channel, onRemove }: { channel: Channel; onRemove: () => v
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, {
-    month: 'short', day: 'numeric', year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
   });
 }

@@ -8,7 +8,7 @@ export function buildTranslationSystemPrompt(targetLocale: SupportedLocale): str
     'no marketing jargon, no enterprise vocabulary, no "execute" / "leverage" / "utilize".',
     'The translated text will be read by people with limited formal education,',
     'so clarity matters more than cleverness.',
-    'Preserve technical terms that are jargon in the auditor\'s market',
+    "Preserve technical terms that are jargon in the auditor's market",
     '(e.g. SEO, CWV, GEO, audit, finding) when they are shorter and more',
     'recognizable than any translation.',
     'Return ONLY the translations, one per line, in the same order as the input.',

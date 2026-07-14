@@ -47,7 +47,10 @@ function reportModel(): string {
   return process.env.JHEO_REPORT_MODEL ?? process.env.JHEO_SUGGESTION_MODEL ?? 'gpt-4o-mini';
 }
 
-function sanitizeNarrative(narrative: ExecutiveNarrative, aggregates: AuditSummary): ExecutiveNarrative {
+function sanitizeNarrative(
+  narrative: ExecutiveNarrative,
+  aggregates: AuditSummary,
+): ExecutiveNarrative {
   const ruleSet = new Set(aggregates.topRules.map((r) => r.rule));
   return {
     ...narrative,
@@ -68,7 +71,9 @@ export async function loadOrGenerateExecutiveReport(
     where: { id: auditId },
     include: {
       project: { select: { name: true, rootUrl: true } },
-      findings: { select: { rule: true, category: true, severity: true, message: true, url: true } },
+      findings: {
+        select: { rule: true, category: true, severity: true, message: true, url: true },
+      },
     },
   });
   if (!audit) throw new ExecutiveReportNotFoundError();

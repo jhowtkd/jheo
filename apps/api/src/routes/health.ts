@@ -17,7 +17,7 @@ export async function healthRoutes(app: FastifyInstance): Promise<void> {
       pg = false;
     }
     // Touch the queue's connection if available — this works whether or not
-      // a queue has been instantiated (the import is hoisted in queue.ts).
+    // a queue has been instantiated (the import is hoisted in queue.ts).
     try {
       const { publishQueue } = await import('../queue.js');
       const client = await publishQueue.client;

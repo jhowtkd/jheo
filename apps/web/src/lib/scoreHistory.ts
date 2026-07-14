@@ -21,9 +21,7 @@ export function scoreHistoryFromAudits(audits: Audit[]): ScoreHistory {
       const tb = b.finishedAt ? Date.parse(b.finishedAt) : 0;
       return ta - tb;
     });
-  const history = completed
-    .slice(-MAX_HISTORY)
-    .map((a) => a.score!.overall as number);
+  const history = completed.slice(-MAX_HISTORY).map((a) => a.score!.overall as number);
   const previousOverall =
     completed.length >= 2 ? (completed[completed.length - 2]!.score!.overall as number) : null;
   return { history, previousOverall };

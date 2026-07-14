@@ -26,7 +26,10 @@ export function buildAuditSummary(input: {
   gsc?: AuditSummary['gsc'];
 }): AuditSummary {
   const severityCounts = { error: 0, warning: 0, info: 0 };
-  const byRule = new Map<string, { urls: Set<string>; maxSeverity: FindingInput['severity']; sampleMessage: string }>();
+  const byRule = new Map<
+    string,
+    { urls: Set<string>; maxSeverity: FindingInput['severity']; sampleMessage: string }
+  >();
   const seen = new Set<string>();
 
   for (const f of input.findings) {
@@ -35,7 +38,11 @@ export function buildAuditSummary(input: {
       seen.add(key);
       severityCounts[f.severity]++;
     }
-    const entry = byRule.get(f.rule) ?? { urls: new Set(), maxSeverity: f.severity, sampleMessage: f.message };
+    const entry = byRule.get(f.rule) ?? {
+      urls: new Set(),
+      maxSeverity: f.severity,
+      sampleMessage: f.message,
+    };
     entry.urls.add(f.url);
     if (SEV_SORT[f.severity] > SEV_SORT[entry.maxSeverity]) entry.maxSeverity = f.severity;
     byRule.set(f.rule, entry);

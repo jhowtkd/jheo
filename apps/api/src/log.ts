@@ -3,8 +3,7 @@ import pino from 'pino';
 import pinoHttp from 'pino-http';
 import type { FastifyRequest, FastifyReply } from 'fastify';
 
-const isHex16 = (s: unknown): s is string =>
-  typeof s === 'string' && /^[0-9a-f]{16}$/i.test(s);
+const isHex16 = (s: unknown): s is string => typeof s === 'string' && /^[0-9a-f]{16}$/i.test(s);
 
 // `base: undefined` removes the default `{pid,hostname}` child from each log
 // line. Pino's `LoggerOptions` types it as `{[k:string]:any} | null`, so we
@@ -70,8 +69,10 @@ export const httpLogger = pinoHttp({
     return 'info';
   },
   customProps: (req) => ({ requestId: (req as ReqShape).id }),
-  customSuccessMessage: (req, res) => `${(req as ReqShape).method} ${(req as ReqShape).url} ${res.statusCode}`,
-  customErrorMessage: (req, res, err) => `${(req as ReqShape).method} ${(req as ReqShape).url} ${res.statusCode} ${err.message}`,
+  customSuccessMessage: (req, res) =>
+    `${(req as ReqShape).method} ${(req as ReqShape).url} ${res.statusCode}`,
+  customErrorMessage: (req, res, err) =>
+    `${(req as ReqShape).method} ${(req as ReqShape).url} ${res.statusCode} ${err.message}`,
   serializers: {
     req: (req) => ({ method: req.method, url: req.url, id: req.id }),
     res: (res) => ({ statusCode: res.statusCode }),

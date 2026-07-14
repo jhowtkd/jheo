@@ -60,7 +60,15 @@ export function FindingList({ findings, byCategory, fixed }: Props) {
           <h3 style={{ margin: 0, marginBottom: 'var(--space-3)', fontSize: 'var(--fs-md)' }}>
             {t('findings.list.fixedTitle')} ({fixed.length})
           </h3>
-          <ul style={{ margin: 0, paddingLeft: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: 'var(--space-4)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-2)',
+            }}
+          >
             {fixed.map((f) => (
               <li key={f.id}>
                 <span className={`tag tag--${f.severity}`}>{f.severity}</span>{' '}
@@ -96,7 +104,10 @@ export function FindingList({ findings, byCategory, fixed }: Props) {
                   marginBottom: 'var(--space-3)',
                 }}
               >
-                {category} <span className="tabular muted" style={{ marginLeft: 4 }}>· {items.length}</span>
+                {category}{' '}
+                <span className="tabular muted" style={{ marginLeft: 4 }}>
+                  · {items.length}
+                </span>
               </h3>
               <div className="finding-list">
                 {items.map((f) => (
@@ -143,16 +154,13 @@ function FindingCard({
   const { t } = useTranslation();
   const url = (() => {
     try {
-      return (
-        new URL(finding.url).hostname +
-        (finding.selector ? ' › ' + finding.selector : '')
-      );
+      return new URL(finding.url).hostname + (finding.selector ? ' › ' + finding.selector : '');
     } catch {
       return finding.url;
     }
   })();
   const messageText = translated.get(finding.message) ?? finding.message;
-  const errorText = error ? (t(errorKey(error), { defaultValue: translationUnavailableLabel })) : '';
+  const errorText = error ? t(errorKey(error), { defaultValue: translationUnavailableLabel }) : '';
   const navigate = useNavigate();
   return (
     <article className="finding">
@@ -169,7 +177,10 @@ function FindingCard({
         <div className="finding__msg">
           {messageText}
           {error && (
-            <span className="translation-unavailable" aria-label={errorText} title={errorText}> ↻</span>
+            <span className="translation-unavailable" aria-label={errorText} title={errorText}>
+              {' '}
+              ↻
+            </span>
           )}
         </div>
         <FindingEvidence {...(finding.evidence ? { evidence: finding.evidence } : {})} />
@@ -235,7 +246,14 @@ function FindingEvidence({ evidence }: { evidence?: Record<string, unknown> }) {
       {Object.entries(evidence).map(([k, v]) => (
         <div key={k} style={{ display: 'contents' }}>
           <dt style={{ color: 'var(--text-muted)', textTransform: 'none' }}>{k}</dt>
-          <dd style={{ margin: 0, color: 'var(--text)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <dd
+            style={{
+              margin: 0,
+              color: 'var(--text)',
+              whiteSpace: 'pre-wrap',
+              wordBreak: 'break-word',
+            }}
+          >
             {truncate(formatValue(v), EVIDENCE_VALUE_MAX)}
           </dd>
         </div>

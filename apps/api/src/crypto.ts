@@ -29,7 +29,11 @@ export function createCuid(): string {
   const ts = Date.now().toString(36);
   const rand = randomBytes(8).toString('hex');
   const input = `${(cuidCounter = (cuidCounter + 1) | 0).toString(36)}:${ts}:${rand}`;
-  const h = createHmac('sha256', key).update(input).digest('base64').replace(/[+/=]/g, '').toLowerCase();
+  const h = createHmac('sha256', key)
+    .update(input)
+    .digest('base64')
+    .replace(/[+/=]/g, '')
+    .toLowerCase();
   return `c${h.slice(0, 24)}`;
 }
 

@@ -27,8 +27,7 @@ export function ExecutiveReportView({ auditId }: Props) {
   const q = useQuery({
     queryKey: ['executive-report', auditId],
     queryFn: () => getExecutiveReport(auditId),
-    refetchInterval: (query) =>
-      query.state.data?.status === 'generating' ? 2000 : false,
+    refetchInterval: (query) => (query.state.data?.status === 'generating' ? 2000 : false),
   });
 
   const data = q.data;
@@ -78,7 +77,9 @@ export function ExecutiveReportView({ auditId }: Props) {
             {t('audit.executive.failed')}
           </span>
           {data.errorMessage && (
-            <p className="muted" style={{ marginBottom: 'var(--space-4)' }}>{data.errorMessage}</p>
+            <p className="muted" style={{ marginBottom: 'var(--space-4)' }}>
+              {data.errorMessage}
+            </p>
           )}
           <button className="btn" onClick={() => q.refetch()}>
             {t('audit.executive.retry')}
@@ -103,7 +104,12 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
           <p className="page__subtitle mono tiny">{aggregates.projectName}</p>
         </div>
         <div className="status-meta">
-          <a className="btn" href={executiveReportExportUrl(auditId)} target="_blank" rel="noreferrer">
+          <a
+            className="btn"
+            href={executiveReportExportUrl(auditId)}
+            target="_blank"
+            rel="noreferrer"
+          >
             {t('audit.executive.exportHtml')}
           </a>
         </div>
@@ -122,18 +128,35 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
         </section>
       )}
 
-      <div className="row" style={{ gap: 'var(--space-6)', marginBottom: 'var(--space-6)', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+      <div
+        className="row"
+        style={{
+          gap: 'var(--space-6)',
+          marginBottom: 'var(--space-6)',
+          flexWrap: 'wrap',
+          alignItems: 'flex-start',
+        }}
+      >
         <section className="card" style={{ flex: '1 1 320px' }}>
           <h2 className="card__title" style={{ marginBottom: 'var(--space-3)' }}>
             {t('audit.executive.sections.scores')}
           </h2>
           <CategoryBarChart byCategory={aggregates.byCategory} />
-          <div className="row" style={{ gap: 'var(--space-5)', marginTop: 'var(--space-4)', flexWrap: 'wrap' }}>
+          <div
+            className="row"
+            style={{ gap: 'var(--space-5)', marginTop: 'var(--space-4)', flexWrap: 'wrap' }}
+          >
             <Metric label={t('audit.executive.overallScore')} value={String(aggregates.overall)} />
-            <Metric label={t('audit.executive.pagesAudited')} value={String(aggregates.pagesAudited)} />
+            <Metric
+              label={t('audit.executive.pagesAudited')}
+              value={String(aggregates.pagesAudited)}
+            />
             <Metric label={t('audit.executive.pagesTotal')} value={String(aggregates.pagesTotal)} />
             {aggregates.pagesFailed > 0 && (
-              <Metric label={t('audit.executive.pagesFailed')} value={String(aggregates.pagesFailed)} />
+              <Metric
+                label={t('audit.executive.pagesFailed')}
+                value={String(aggregates.pagesFailed)}
+              />
             )}
           </div>
         </section>
@@ -144,9 +167,21 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
           </h2>
           <SeverityChart counts={aggregates.severityCounts} />
           <div className="col" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-3)' }}>
-            <SevRow color="var(--danger)" label={t('audit.results.error')} value={aggregates.severityCounts.error} />
-            <SevRow color="var(--warning)" label={t('audit.results.warning')} value={aggregates.severityCounts.warning} />
-            <SevRow color="var(--info)" label={t('audit.results.info')} value={aggregates.severityCounts.info} />
+            <SevRow
+              color="var(--danger)"
+              label={t('audit.results.error')}
+              value={aggregates.severityCounts.error}
+            />
+            <SevRow
+              color="var(--warning)"
+              label={t('audit.results.warning')}
+              value={aggregates.severityCounts.warning}
+            />
+            <SevRow
+              color="var(--info)"
+              label={t('audit.results.info')}
+              value={aggregates.severityCounts.info}
+            />
           </div>
         </section>
       </div>
@@ -159,7 +194,9 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ textAlign: 'left', borderBottom: '1px solid var(--border)' }}>
-                <th style={{ padding: 'var(--space-2)' }}>{t('audit.executive.sections.topIssues')}</th>
+                <th style={{ padding: 'var(--space-2)' }}>
+                  {t('audit.executive.sections.topIssues')}
+                </th>
                 <th style={{ padding: 'var(--space-2)' }}>{t('audit.executive.affectedPages')}</th>
                 <th style={{ padding: 'var(--space-2)' }}>{t('audit.executive.impact')}</th>
               </tr>
@@ -171,9 +208,13 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
                     <div style={{ fontWeight: 600 }}>{issue.title}</div>
                     <div className="tiny muted">{issue.businessImpact}</div>
                   </td>
-                  <td style={{ padding: 'var(--space-2)' }} className="tabular">{issue.affectedPages}</td>
+                  <td style={{ padding: 'var(--space-2)' }} className="tabular">
+                    {issue.affectedPages}
+                  </td>
                   <td style={{ padding: 'var(--space-2)' }}>
-                    <span className={`badge badge--${issue.impactLevel === 'high' ? 'danger' : issue.impactLevel === 'medium' ? 'warning' : 'info'}`}>
+                    <span
+                      className={`badge badge--${issue.impactLevel === 'high' ? 'danger' : issue.impactLevel === 'medium' ? 'warning' : 'info'}`}
+                    >
                       {t(IMPACT_KEY[issue.impactLevel])}
                     </span>
                   </td>
@@ -190,10 +231,22 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
             {t('audit.executive.sections.gsc')}
           </h2>
           <div className="row" style={{ gap: 'var(--space-6)', flexWrap: 'wrap' }}>
-            <Metric label={t('audit.executive.clicks')} value={aggregates.gsc.clicks.toLocaleString()} />
-            <Metric label={t('audit.executive.impressions')} value={aggregates.gsc.impressions.toLocaleString()} />
-            <Metric label={t('audit.executive.ctr')} value={`${(aggregates.gsc.ctr * 100).toFixed(1)}%`} />
-            <Metric label={t('audit.executive.lowCtrQueries')} value={String(aggregates.gsc.lowCtrQueryCount)} />
+            <Metric
+              label={t('audit.executive.clicks')}
+              value={aggregates.gsc.clicks.toLocaleString()}
+            />
+            <Metric
+              label={t('audit.executive.impressions')}
+              value={aggregates.gsc.impressions.toLocaleString()}
+            />
+            <Metric
+              label={t('audit.executive.ctr')}
+              value={`${(aggregates.gsc.ctr * 100).toFixed(1)}%`}
+            />
+            <Metric
+              label={t('audit.executive.lowCtrQueries')}
+              value={String(aggregates.gsc.lowCtrQueryCount)}
+            />
           </div>
         </section>
       ) : (
@@ -201,7 +254,9 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
           <h2 className="card__title" style={{ marginBottom: 'var(--space-2)' }}>
             {t('audit.executive.sections.gsc')}
           </h2>
-          <p className="muted" style={{ margin: 0 }}>{t('audit.executive.gscEmpty')}</p>
+          <p className="muted" style={{ margin: 0 }}>
+            {t('audit.executive.gscEmpty')}
+          </p>
         </section>
       )}
 
@@ -213,13 +268,18 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
           <div className="col" style={{ gap: 'var(--space-4)' }}>
             {narrative.scenarios.map((s) => (
               <div key={s.label}>
-                <div className="row" style={{ gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}>
+                <div
+                  className="row"
+                  style={{ gap: 'var(--space-2)', marginBottom: 'var(--space-1)' }}
+                >
                   <span style={{ fontWeight: 600 }}>{s.label}</span>
                   <span className="badge badge--neutral">
                     {s.estimatedScoreFrom} → {s.estimatedScoreTo}
                   </span>
                 </div>
-                <p className="tiny muted" style={{ margin: 0 }}>{s.rationale}</p>
+                <p className="tiny muted" style={{ margin: 0 }}>
+                  {s.rationale}
+                </p>
               </div>
             ))}
           </div>
@@ -233,7 +293,9 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
           </h2>
           <ol style={{ margin: 0, paddingLeft: 'var(--space-5)', lineHeight: 1.6 }}>
             {narrative.recommendations.map((rec, i) => (
-              <li key={i} style={{ marginBottom: 'var(--space-2)' }}>{rec}</li>
+              <li key={i} style={{ marginBottom: 'var(--space-2)' }}>
+                {rec}
+              </li>
             ))}
           </ol>
         </section>
@@ -251,8 +313,12 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
 function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="col" style={{ gap: 'var(--space-1)' }}>
-      <span className="tiny muted" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
-      <span className="tabular" style={{ fontSize: 'var(--fs-xl)', fontWeight: 700 }}>{value}</span>
+      <span className="tiny muted" style={{ textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+        {label}
+      </span>
+      <span className="tabular" style={{ fontSize: 'var(--fs-xl)', fontWeight: 700 }}>
+        {value}
+      </span>
     </div>
   );
 }
@@ -260,9 +326,13 @@ function Metric({ label, value }: { label: string; value: string }) {
 function SevRow({ color, label, value }: { color: string; label: string; value: number }) {
   return (
     <span className="row" style={{ gap: 'var(--space-2)' }}>
-      <span style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }} />
+      <span
+        style={{ width: 10, height: 10, borderRadius: '50%', background: color, flexShrink: 0 }}
+      />
       <span className="tiny">{label}</span>
-      <span className="tabular" style={{ fontWeight: 600 }}>{value}</span>
+      <span className="tabular" style={{ fontWeight: 600 }}>
+        {value}
+      </span>
     </span>
   );
 }

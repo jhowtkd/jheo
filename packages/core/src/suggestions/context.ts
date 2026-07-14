@@ -27,7 +27,9 @@ function sliceSeo(html: string): string {
 
 function sliceGeo(html: string): string {
   const head = html.match(/<head[\s\S]*?<\/head>/i)?.[0] ?? '';
-  const ld = (html.match(/<script[^>]*type=["']application\/ld\+json["'][\s\S]*?<\/script>/gi) ?? []).join('\n');
+  const ld = (
+    html.match(/<script[^>]*type=["']application\/ld\+json["'][\s\S]*?<\/script>/gi) ?? []
+  ).join('\n');
   const llms = html.match(/<link[^>]+rel=["']llms[^"']*["'][^>]*>/i)?.[0] ?? '';
   const body = html.match(/<body[\s\S]*?<\/body>/i)?.[0]?.slice(0, 1024) ?? '';
   return (head + '\n' + ld + '\n' + llms + '\n' + body).slice(0, MAX_SLICE);
@@ -37,7 +39,10 @@ function sliceCwv(html: string, findingMessage: string): string {
   // Try to pull the node hinted at in the message; fall back to first 1KB of body.
   const hint = findingMessage.match(/(?:src|href)=["']([^"']+)["']/i)?.[1];
   if (hint) {
-    const re = new RegExp(`<[^>]*(?:src|href)=["']${hint.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}["'][^>]*>`, 'i');
+    const re = new RegExp(
+      `<[^>]*(?:src|href)=["']${hint.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}["'][^>]*>`,
+      'i',
+    );
     const m = html.match(re);
     if (m) return m[0].slice(0, MAX_SLICE);
   }
@@ -68,12 +73,23 @@ export function buildSuggestionContext(input: SuggestionContextInput): Suggestio
 
   let htmlSlice: string;
   switch (cat) {
-    case 'seo': htmlSlice = sliceSeo(input.page.htmlSnapshot); break;
-    case 'geo': htmlSlice = sliceGeo(input.page.htmlSnapshot); break;
-    case 'cwv': htmlSlice = sliceCwv(input.page.htmlSnapshot, input.finding.message); break;
-    case 'a11y': htmlSlice = sliceA11y(input.page.htmlSnapshot, input.finding.message); break;
-    case 'content': htmlSlice = sliceContent(input.page.htmlSnapshot); break;
-    default: htmlSlice = input.page.htmlSnapshot.slice(0, MAX_SLICE);
+    case 'seo':
+      htmlSlice = sliceSeo(input.page.htmlSnapshot);
+      break;
+    case 'geo':
+      htmlSlice = sliceGeo(input.page.htmlSnapshot);
+      break;
+    case 'cwv':
+      htmlSlice = sliceCwv(input.page.htmlSnapshot, input.finding.message);
+      break;
+    case 'a11y':
+      htmlSlice = sliceA11y(input.page.htmlSnapshot, input.finding.message);
+      break;
+    case 'content':
+      htmlSlice = sliceContent(input.page.htmlSnapshot);
+      break;
+    default:
+      htmlSlice = input.page.htmlSnapshot.slice(0, MAX_SLICE);
   }
 
   const ctx: SuggestionContext = {

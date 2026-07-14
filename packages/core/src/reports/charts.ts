@@ -17,7 +17,9 @@ export function renderCategoryBarsSvg(
   byCategory: Record<string, number | null>,
   labels?: Record<string, string>,
 ): string {
-  const entries = CAT_ORDER.filter((k) => k in byCategory).map((k) => [k, byCategory[k] ?? null] as const);
+  const entries = CAT_ORDER.filter((k) => k in byCategory).map(
+    (k) => [k, byCategory[k] ?? null] as const,
+  );
 
   const rows = entries
     .map(([key, score], i) => {
@@ -57,19 +59,20 @@ export function renderSeverityDonutSvg(counts: SeverityCounts): string {
   ];
 
   let offset = 0;
-  const circles = total > 0
-    ? segments
-        .filter((s) => s.value > 0)
-        .map((s) => {
-          const len = (s.value / total) * circumference;
-          const dash = `stroke-dasharray="${len.toFixed(2)} ${(circumference - len).toFixed(2)}"`;
-          const dashOffset = `stroke-dashoffset="${(-offset).toFixed(2)}"`;
-          const c = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="20" ${dash} ${dashOffset} transform="rotate(-90 ${cx} ${cy})"/>`;
-          offset += len;
-          return c;
-        })
-        .join('')
-    : `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="20"/>`;
+  const circles =
+    total > 0
+      ? segments
+          .filter((s) => s.value > 0)
+          .map((s) => {
+            const len = (s.value / total) * circumference;
+            const dash = `stroke-dasharray="${len.toFixed(2)} ${(circumference - len).toFixed(2)}"`;
+            const dashOffset = `stroke-dashoffset="${(-offset).toFixed(2)}"`;
+            const c = `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="20" ${dash} ${dashOffset} transform="rotate(-90 ${cx} ${cy})"/>`;
+            offset += len;
+            return c;
+          })
+          .join('')
+      : `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e5e7eb" stroke-width="20"/>`;
 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" role="img" aria-label="Severity breakdown">${circles}<text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="28" font-family="sans-serif" font-weight="bold" fill="#111827">${total}</text><text x="${cx}" y="${cy + 16}" text-anchor="middle" font-size="11" font-family="sans-serif" fill="#6b7280">issues</text></svg>`;
 }

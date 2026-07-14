@@ -50,7 +50,7 @@ export function FixGroup({
     .map((f) => suggestions[f.id]!)
     .sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt))[0];
   const headFinding = headSuggestion
-    ? group.findings.find((f) => f.id === headSuggestion.findingId) ?? null
+    ? (group.findings.find((f) => f.id === headSuggestion.findingId) ?? null)
     : null;
 
   const showAll = expanded || group.findings.length <= PAGE_COLLAPSE_THRESHOLD;
@@ -67,11 +67,12 @@ export function FixGroup({
             <code className="mono muted">{group.rule}</code>
           </div>
         </div>
-        <div className="fixgroup__counts" aria-label={t('fixes.group.count', { count: group.findings.length })}>
+        <div
+          className="fixgroup__counts"
+          aria-label={t('fixes.group.count', { count: group.findings.length })}
+        >
           <span className="fixgroup__count-num">{group.findings.length}</span>
-          <span className="muted">
-            {t('fixes.group.count', { count: group.findings.length })}
-          </span>
+          <span className="muted">{t('fixes.group.count', { count: group.findings.length })}</span>
         </div>
       </header>
 

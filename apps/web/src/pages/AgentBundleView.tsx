@@ -18,7 +18,12 @@ export function AgentBundleView() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={localePath('publishDetail', { publishId: publishId! })} className="muted tiny">{t('publish.title')}</Link>
+            <Link
+              to={localePath('publishDetail', { publishId: publishId! })}
+              className="muted tiny"
+            >
+              {t('publish.title')}
+            </Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('publish.bundle.breadcrumb')}</span>
           </div>
@@ -53,13 +58,34 @@ export function AgentBundleView() {
                   gap: 'var(--space-2)',
                 }}
               >
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)' }}>
+                <svg
+                  viewBox="0 0 24 24"
+                  width="14"
+                  height="14"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{ color: 'var(--text-muted)' }}
+                >
                   <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
                   <polyline points="14 2 14 8 20 8" />
                 </svg>
                 <span style={{ fontWeight: 500, fontSize: 'var(--fs-sm)' }}>{f.name}</span>
               </div>
-              <pre style={{ margin: 0, padding: 'var(--space-4)', borderRadius: 0, border: 'none', maxHeight: 360, overflow: 'auto' }}>{f.content}</pre>
+              <pre
+                style={{
+                  margin: 0,
+                  padding: 'var(--space-4)',
+                  borderRadius: 0,
+                  border: 'none',
+                  maxHeight: 360,
+                  overflow: 'auto',
+                }}
+              >
+                {f.content}
+              </pre>
             </div>
           ))}
         </div>

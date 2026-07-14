@@ -61,7 +61,7 @@ export function scoreFindings(findings: Finding[], opts: ScoreOptions = {}): Sco
 
   for (const cat of CATEGORIES) {
     const acc = accums[cat];
-    const present = acc !== undefined && (acc.errors + acc.warnings + (acc.hasInfo ? 1 : 0)) > 0;
+    const present = acc !== undefined && acc.errors + acc.warnings + (acc.hasInfo ? 1 : 0) > 0;
     if (!present) {
       byCategory[cat] = null;
       continue;

@@ -18,10 +18,7 @@ if (globalThis.__jheoPrisma === undefined) {
  */
 export function isPrismaUniqueViolation(e: unknown): boolean {
   return (
-    typeof e === 'object' &&
-    e !== null &&
-    'code' in e &&
-    (e as { code: unknown }).code === 'P2002'
+    typeof e === 'object' && e !== null && 'code' in e && (e as { code: unknown }).code === 'P2002'
   );
 }
 

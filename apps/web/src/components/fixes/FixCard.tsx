@@ -23,7 +23,14 @@ type Props = {
   onRegenerate: (suggestionId: string) => void;
 };
 
-export function FixCard({ finding, suggestion, onGenerate, onAccept, onReject, onRegenerate }: Props) {
+export function FixCard({
+  finding,
+  suggestion,
+  onGenerate,
+  onAccept,
+  onReject,
+  onRegenerate,
+}: Props) {
   const { t } = useTranslation();
   const [mode, setMode] = useState<'inline' | 'sideBySide'>('inline');
 
@@ -34,7 +41,9 @@ export function FixCard({ finding, suggestion, onGenerate, onAccept, onReject, o
         <div className="fixcard__meta">
           <span className={`badge badge--cat-${finding.category}`}>{finding.category}</span>
           <span className={`badge badge--sev-${finding.severity}`}>{finding.severity}</span>
-          <a className="fixcard__url" href={finding.url} target="_blank" rel="noreferrer">{finding.url}</a>
+          <a className="fixcard__url" href={finding.url} target="_blank" rel="noreferrer">
+            {finding.url}
+          </a>
         </div>
       </header>
 

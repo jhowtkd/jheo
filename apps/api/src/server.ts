@@ -119,7 +119,9 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
     }
   });
   app.addHook('onRequest', async (req, reply) => {
-    const cfg = (req.routeOptions?.config ?? {}) as { rateLimit?: { max: number; windowMs: number } };
+    const cfg = (req.routeOptions?.config ?? {}) as {
+      rateLimit?: { max: number; windowMs: number };
+    };
     const limit = cfg.rateLimit;
     if (!limit) return;
     const limiterKey = `m${limit.max}:w${limit.windowMs}`;
@@ -161,32 +163,29 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
   await app.register(pageRoutes);
   await app.register(translateRoutes, {
     prisma: defaultPrisma,
-    llmProviders:
-      opts?.llmProviders ?? {
-        openai: new OpenAIProvider({ apiKey: '' }),
-        anthropic: new AnthropicProvider({ apiKey: '' }),
-        openrouter: new OpenRouterProvider({ apiKey: '' }),
-      },
+    llmProviders: opts?.llmProviders ?? {
+      openai: new OpenAIProvider({ apiKey: '' }),
+      anthropic: new AnthropicProvider({ apiKey: '' }),
+      openrouter: new OpenRouterProvider({ apiKey: '' }),
+    },
     fetchFn: withFetchTimeout(globalThis.fetch),
   });
   await app.register(suggestionRoutes, {
     prisma: defaultPrisma,
-    llmProviders:
-      opts?.llmProviders ?? {
-        openai: new OpenAIProvider({ apiKey: '' }),
-        anthropic: new AnthropicProvider({ apiKey: '' }),
-        openrouter: new OpenRouterProvider({ apiKey: '' }),
-      },
+    llmProviders: opts?.llmProviders ?? {
+      openai: new OpenAIProvider({ apiKey: '' }),
+      anthropic: new AnthropicProvider({ apiKey: '' }),
+      openrouter: new OpenRouterProvider({ apiKey: '' }),
+    },
     fetchFn: withFetchTimeout(globalThis.fetch),
   });
   await app.register(executiveReportRoutes, {
     prisma: defaultPrisma,
-    llmProviders:
-      opts?.llmProviders ?? {
-        openai: new OpenAIProvider({ apiKey: '' }),
-        anthropic: new AnthropicProvider({ apiKey: '' }),
-        openrouter: new OpenRouterProvider({ apiKey: '' }),
-      },
+    llmProviders: opts?.llmProviders ?? {
+      openai: new OpenAIProvider({ apiKey: '' }),
+      anthropic: new AnthropicProvider({ apiKey: '' }),
+      openrouter: new OpenRouterProvider({ apiKey: '' }),
+    },
     fetchFn: withFetchTimeout(globalThis.fetch),
   });
   return app;
@@ -199,7 +198,11 @@ export async function buildServer(opts?: { llmProviders?: TranslateDeps['llmProv
  */
 function buildLlmProviders(
   env: ReturnType<typeof loadEnv>,
-  keys: { openai?: string | undefined; anthropic?: string | undefined; openrouter?: string | undefined },
+  keys: {
+    openai?: string | undefined;
+    anthropic?: string | undefined;
+    openrouter?: string | undefined;
+  },
 ) {
   return {
     openai: new OpenAIProvider({
@@ -288,12 +291,16 @@ if (isMain) {
             inspectionUrl: string;
             publishId: string;
           }) => {
-            const connection = await defaultPrisma.gscConnection.findUnique({ where: { projectId } });
+            const connection = await defaultPrisma.gscConnection.findUnique({
+              where: { projectId },
+            });
             if (!connection) return;
-            await gscQueue.add(
-              `gsc-inspect:${publishId}`,
-              { action: 'inspect', projectId, inspectionUrl, publishId },
-            );
+            await gscQueue.add(`gsc-inspect:${publishId}`, {
+              action: 'inspect',
+              projectId,
+              inspectionUrl,
+              publishId,
+            });
           },
         }
       : {}),

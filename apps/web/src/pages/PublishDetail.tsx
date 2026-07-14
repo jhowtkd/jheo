@@ -14,8 +14,10 @@ import { localePath } from '../i18n/localePath.js';
 function formatDate(iso: string | null): string {
   if (!iso) return '—';
   return new Date(iso).toLocaleString(undefined, {
-    month: 'short', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -64,7 +66,9 @@ export function PublishDetail() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">
+              {t('nav.projects')}
+            </Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('publish.breadcrumb')}</span>
           </div>
@@ -73,7 +77,9 @@ export function PublishDetail() {
         </div>
         <div className="status-meta">
           <span className={`badge badge--${p.status}`}>{p.status}</span>
-          <span className="tiny tabular muted">{t('publish.fields.attempts', { count: p.attempts })}</span>
+          <span className="tiny tabular muted">
+            {t('publish.fields.attempts', { count: p.attempts })}
+          </span>
         </div>
       </div>
 
@@ -92,11 +98,21 @@ export function PublishDetail() {
         >
           <div>
             <div className="tiny muted">{t('publish.fields.generation')}</div>
-            <Link to={localePath('generationReview', { generationId: p.generationId })} className="mono tiny">{p.generationId.slice(0, 12)}…</Link>
+            <Link
+              to={localePath('generationReview', { generationId: p.generationId })}
+              className="mono tiny"
+            >
+              {p.generationId.slice(0, 12)}…
+            </Link>
           </div>
           <div>
             <div className="tiny muted">{t('publish.fields.channel')}</div>
-            <Link to={localePath('channelEditor', { channelId: p.channelId })} className="mono tiny">{p.channelId.slice(0, 12)}…</Link>
+            <Link
+              to={localePath('channelEditor', { channelId: p.channelId })}
+              className="mono tiny"
+            >
+              {p.channelId.slice(0, 12)}…
+            </Link>
           </div>
           <div>
             <div className="tiny muted">{t('publish.fields.started')}</div>
@@ -109,29 +125,57 @@ export function PublishDetail() {
           {p.externalUrl && (
             <div>
               <div className="tiny muted">{t('publish.fields.external')}</div>
-              <a href={p.externalUrl} target="_blank" rel="noreferrer" className="tiny">{p.externalUrl} ↗</a>
+              <a href={p.externalUrl} target="_blank" rel="noreferrer" className="tiny">
+                {p.externalUrl} ↗
+              </a>
             </div>
           )}
         </div>
         {p.lastError && (
-          <div style={{ marginTop: 'var(--space-4)', padding: 'var(--space-3)', background: 'rgba(239,68,68,0.08)', borderRadius: 'var(--radius-sm)', border: '1px solid rgba(239,68,68,0.2)' }}>
-            <div className="tiny" style={{ color: 'var(--danger)', fontWeight: 600, marginBottom: 4 }}>{t('publish.fields.lastError')}</div>
-            <code className="mono tiny" style={{ color: 'var(--text-dim)' }}>{p.lastError}</code>
+          <div
+            style={{
+              marginTop: 'var(--space-4)',
+              padding: 'var(--space-3)',
+              background: 'rgba(239,68,68,0.08)',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid rgba(239,68,68,0.2)',
+            }}
+          >
+            <div
+              className="tiny"
+              style={{ color: 'var(--danger)', fontWeight: 600, marginBottom: 4 }}
+            >
+              {t('publish.fields.lastError')}
+            </div>
+            <code className="mono tiny" style={{ color: 'var(--text-dim)' }}>
+              {p.lastError}
+            </code>
           </div>
         )}
         <div className="row" style={{ marginTop: 'var(--space-5)', gap: 'var(--space-2)' }}>
           {(p.status === 'failed' || p.status === 'cancelled') && (
-            <button className="btn btn--secondary btn--sm" onClick={() => retry.mutate()} disabled={retry.isPending}>
+            <button
+              className="btn btn--secondary btn--sm"
+              onClick={() => retry.mutate()}
+              disabled={retry.isPending}
+            >
               {retry.isPending ? t('publish.actions.retrying') : t('publish.actions.retry')}
             </button>
           )}
           {(p.status === 'queued' || p.status === 'running') && (
-            <button className="btn btn--danger btn--sm" onClick={() => cancel.mutate()} disabled={cancel.isPending}>
+            <button
+              className="btn btn--danger btn--sm"
+              onClick={() => cancel.mutate()}
+              disabled={cancel.isPending}
+            >
               {cancel.isPending ? t('publish.actions.cancelling') : t('publish.actions.cancel')}
             </button>
           )}
           {p.channel?.type === 'agent' && p.status === 'completed' && (
-            <Link to={localePath('agentBundle', { publishId: p.id })} className="btn btn--primary btn--sm">
+            <Link
+              to={localePath('agentBundle', { publishId: p.id })}
+              className="btn btn--primary btn--sm"
+            >
               {t('publish.actions.openBundle')}
             </Link>
           )}
@@ -141,14 +185,22 @@ export function PublishDetail() {
       {p.events && p.events.length > 0 && (
         <div className="card">
           <div className="card__title">{t('publish.auditTrail')}</div>
-          <p className="tiny muted" style={{ marginTop: 'var(--space-1)', marginBottom: 'var(--space-4)' }}>
+          <p
+            className="tiny muted"
+            style={{ marginTop: 'var(--space-1)', marginBottom: 'var(--space-4)' }}
+          >
             {t('publish.auditTrailHint', { count: p.events.length })}
           </p>
           <div className="col" style={{ gap: 'var(--space-3)' }}>
             {p.events.map((e) => (
               <div key={e.id} className="row" style={{ gap: 'var(--space-3)' }}>
-                <span className="tiny tabular muted" style={{ minWidth: 120 }}>{formatDate(e.createdAt)}</span>
-                <span className="row" style={{ gap: 'var(--space-1)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+                <span className="tiny tabular muted" style={{ minWidth: 120 }}>
+                  {formatDate(e.createdAt)}
+                </span>
+                <span
+                  className="row"
+                  style={{ gap: 'var(--space-1)', fontFamily: 'var(--font-mono)', fontSize: 12 }}
+                >
                   {e.fromStatus && (
                     <>
                       <span className="badge badge--neutral">{e.fromStatus}</span>

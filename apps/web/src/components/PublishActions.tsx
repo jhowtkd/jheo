@@ -22,7 +22,10 @@ interface Props {
 export function PublishActions({ generationId, projectId, reviewState }: Props) {
   const { t } = useTranslation();
   const qc = useQueryClient();
-  const channels = useQuery({ queryKey: ['channels', projectId], queryFn: () => listChannels(projectId) });
+  const channels = useQuery({
+    queryKey: ['channels', projectId],
+    queryFn: () => listChannels(projectId),
+  });
   const publishes = useQuery({
     queryKey: ['publishes', generationId],
     queryFn: () => listPublishes(generationId),
@@ -80,7 +83,9 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
           {activeChannels.length === 0 ? (
             <p className="tiny muted">
               {t('publish.actionsPanel.noChannels')}{' '}
-              <Link to={localePath('channelsProject', { projectId })}>{t('publish.actionsPanel.createChannel')}</Link>
+              <Link to={localePath('channelsProject', { projectId })}>
+                {t('publish.actionsPanel.createChannel')}
+              </Link>
             </p>
           ) : (
             <>
@@ -131,18 +136,31 @@ export function PublishActions({ generationId, projectId, reviewState }: Props) 
                 </td>
                 <td>
                   {p.externalUrl ? (
-                    <a href={p.externalUrl} target="_blank" rel="noreferrer">{t('publish.actionsPanel.link')}</a>
+                    <a href={p.externalUrl} target="_blank" rel="noreferrer">
+                      {t('publish.actionsPanel.link')}
+                    </a>
+                  ) : p.lastError ? (
+                    <code>{p.lastError}</code>
                   ) : (
-                    p.lastError ? <code>{p.lastError}</code> : '—'
+                    '—'
                   )}
-                  {p.channelId && <Link to={localePath('publishDetail', { publishId: p.id })}> {t('publish.actionsPanel.detail')}</Link>}
+                  {p.channelId && (
+                    <Link to={localePath('publishDetail', { publishId: p.id })}>
+                      {' '}
+                      {t('publish.actionsPanel.detail')}
+                    </Link>
+                  )}
                 </td>
                 <td>
                   {(p.status === 'queued' || p.status === 'running') && (
-                    <button onClick={() => cancel.mutate(p.id)}>{t('publish.actionsPanel.cancel')}</button>
+                    <button onClick={() => cancel.mutate(p.id)}>
+                      {t('publish.actionsPanel.cancel')}
+                    </button>
                   )}
                   {(p.status === 'failed' || p.status === 'cancelled') && (
-                    <button onClick={() => retry.mutate(p.id)}>{t('publish.actionsPanel.retry')}</button>
+                    <button onClick={() => retry.mutate(p.id)}>
+                      {t('publish.actionsPanel.retry')}
+                    </button>
                   )}
                 </td>
               </tr>

@@ -23,7 +23,11 @@ vi.mock('../../api.js', async (importOriginal) => {
 // Router context).
 function renderWith(node: ReactNode) {
   const QueryWrapper = createQueryClientWrapper();
-  return render(<MemoryRouter><QueryWrapper>{node}</QueryWrapper></MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <QueryWrapper>{node}</QueryWrapper>
+    </MemoryRouter>,
+  );
 }
 
 describe('ProjectsList', () => {
@@ -79,7 +83,12 @@ describe('ProjectsList', () => {
     // First call rejects; second resolves so we can observe the retried args.
     mock.mockReset();
     mock.mockRejectedValueOnce(new Error('Failed to load health: 500'));
-    mock.mockResolvedValueOnce({ id: 'p1', name: 'Acme', rootUrl: 'https://acme.com', createdAt: '2026-01-01' });
+    mock.mockResolvedValueOnce({
+      id: 'p1',
+      name: 'Acme',
+      rootUrl: 'https://acme.com',
+      createdAt: '2026-01-01',
+    });
 
     renderWith(<ProjectsList />);
 

@@ -15,7 +15,11 @@ vi.mock('../../api.js', async (importOriginal) => {
 
 function renderWith(node: ReactNode) {
   const QueryWrapper = createQueryClientWrapper();
-  return render(<MemoryRouter><QueryWrapper>{node}</QueryWrapper></MemoryRouter>);
+  return render(
+    <MemoryRouter>
+      <QueryWrapper>{node}</QueryWrapper>
+    </MemoryRouter>,
+  );
 }
 
 describe('AuditsList', () => {

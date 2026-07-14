@@ -4,11 +4,14 @@ import { EmptyState } from '../states/EmptyState.js';
 
 type Kind = 'no-findings' | 'no-audits' | 'no-projects';
 
-const COPY: Record<Kind, {
-  titleKey: string;
-  hintKey?: string;
-  cta?: { to: () => string; labelKey: string };
-}> = {
+const COPY: Record<
+  Kind,
+  {
+    titleKey: string;
+    hintKey?: string;
+    cta?: { to: () => string; labelKey: string };
+  }
+> = {
   'no-findings': {
     titleKey: 'fixes.empty',
     hintKey: 'fixes.emptyHint',
@@ -29,7 +32,14 @@ function FixesEmptyArt() {
   return (
     <svg viewBox="0 0 56 56" aria-hidden>
       <circle cx="28" cy="28" r="22" stroke="var(--border)" strokeWidth="2" fill="none" />
-      <path d="M18 30l8 8 14-16" stroke="var(--text-muted)" strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M18 30l8 8 14-16"
+        stroke="var(--text-muted)"
+        strokeWidth="2"
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   );
 }

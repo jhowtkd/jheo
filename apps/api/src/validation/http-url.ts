@@ -1,16 +1,19 @@
 import { z } from 'zod';
 
-export const httpUrl = z.string().url().refine(
-  (u) => {
-    try {
-      const p = new URL(u).protocol;
-      return p === 'http:' || p === 'https:';
-    } catch {
-      return false;
-    }
-  },
-  { message: 'URL must be http(s)' },
-);
+export const httpUrl = z
+  .string()
+  .url()
+  .refine(
+    (u) => {
+      try {
+        const p = new URL(u).protocol;
+        return p === 'http:' || p === 'https:';
+      } catch {
+        return false;
+      }
+    },
+    { message: 'URL must be http(s)' },
+  );
 export type HttpUrl = z.infer<typeof httpUrl>;
 
 /**
@@ -19,7 +22,5 @@ export type HttpUrl = z.infer<typeof httpUrl>;
  * error code (HTTP 400) rather than a generic Zod-validation 400.
  */
 export function isHttpUrlProtocolError(err: z.ZodError): boolean {
-  return err.issues.some(
-    (i) => i.code === 'custom' && i.message === 'URL must be http(s)',
-  );
+  return err.issues.some((i) => i.code === 'custom' && i.message === 'URL must be http(s)');
 }

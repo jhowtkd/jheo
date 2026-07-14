@@ -49,7 +49,13 @@ describe('AuditRunner errors', () => {
   });
 
   it('defaults to maxPages=50 and all sources on', () => {
-    vi.mocked(runAudit).mockResolvedValueOnce({ id: 'a1', projectId: 'p1', status: 'queued', startedAt: null, finishedAt: null });
+    vi.mocked(runAudit).mockResolvedValueOnce({
+      id: 'a1',
+      projectId: 'p1',
+      status: 'queued',
+      startedAt: null,
+      finishedAt: null,
+    });
     renderRunner();
     // The maxPages input should default to 50.
     const maxPagesInput = screen.getByDisplayValue('50');
@@ -61,7 +67,13 @@ describe('AuditRunner errors', () => {
   });
 
   it('calls runAudit with config containing maxPages and sources', async () => {
-    vi.mocked(runAudit).mockResolvedValueOnce({ id: 'a1', projectId: 'p1', status: 'queued', startedAt: null, finishedAt: null });
+    vi.mocked(runAudit).mockResolvedValueOnce({
+      id: 'a1',
+      projectId: 'p1',
+      status: 'queued',
+      startedAt: null,
+      finishedAt: null,
+    });
     renderRunner();
     fireEvent.click(screen.getByRole('button'));
     await waitFor(() => {

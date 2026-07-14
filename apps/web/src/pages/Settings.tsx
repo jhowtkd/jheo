@@ -11,7 +11,7 @@ const PRESET_KEYS = [
   'anthropic_api_key',
   'openrouter_api_key',
 ] as const;
-type PresetKey = typeof PRESET_KEYS[number];
+type PresetKey = (typeof PRESET_KEYS)[number];
 
 function isPresetKey(k: string): k is PresetKey {
   return (PRESET_KEYS as readonly string[]).includes(k);
@@ -19,8 +19,11 @@ function isPresetKey(k: string): k is PresetKey {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
-    month: 'short', day: 'numeric', year: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   });
 }
 
@@ -69,7 +72,9 @@ export function Settings() {
 
       <div className="col" style={{ gap: 'var(--space-6)' }}>
         <section>
-          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('settings.sessionTitle')}</h2>
+          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>
+            {t('settings.sessionTitle')}
+          </h2>
           <p className="tiny muted" style={{ marginTop: 0, marginBottom: 'var(--space-3)' }}>
             {t('settings.sessionHint')}
           </p>
@@ -77,7 +82,9 @@ export function Settings() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('settings.storedKeysTitle')}</h2>
+          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>
+            {t('settings.storedKeysTitle')}
+          </h2>
           {list.isLoading && (
             <div className="col" style={{ gap: 'var(--space-2)' }}>
               <div className="skeleton skeleton--row" />
@@ -97,10 +104,7 @@ export function Settings() {
               );
             })()}
           {list.data && list.data.length === 0 && !list.isLoading && (
-            <EmptyState
-              titleKey="settings.empty.title"
-              hintKey="settings.empty.hint"
-            >
+            <EmptyState titleKey="settings.empty.title" hintKey="settings.empty.hint">
               <svg viewBox="0 0 56 56">
                 <rect x="14" y="26" width="28" height="20" rx="2" />
                 <path d="M20 26v-6a8 8 0 0 1 16 0v6" />
@@ -113,7 +117,11 @@ export function Settings() {
               {list.data.map((s) => {
                 const preset = isPresetKey(s.key) ? presetsByKey.get(s.key) : undefined;
                 return (
-                  <div key={s.key} className="card" style={{ padding: 'var(--space-4) var(--space-5)' }}>
+                  <div
+                    key={s.key}
+                    className="card"
+                    style={{ padding: 'var(--space-4) var(--space-5)' }}
+                  >
                     <div className="spread" style={{ marginBottom: 'var(--space-2)' }}>
                       <div>
                         <div style={{ fontWeight: 600 }}>{preset?.label ?? s.key}</div>
@@ -133,11 +141,14 @@ export function Settings() {
                         {s.key} = {reveal[s.key] ? '••••value-revealed••••' : maskKey()}
                       </code>
                       <div className="row" style={{ gap: 'var(--space-3)' }}>
-                        <span className="tiny tabular muted">{t('settings.updatedAt', { date: formatDate(s.updatedAt) })}</span>
+                        <span className="tiny tabular muted">
+                          {t('settings.updatedAt', { date: formatDate(s.updatedAt) })}
+                        </span>
                         <button
                           className="btn btn--danger btn--sm"
                           onClick={() => {
-                            if (confirm(t('settings.deleteConfirm', { key: s.key }))) del.mutate(s.key);
+                            if (confirm(t('settings.deleteConfirm', { key: s.key })))
+                              del.mutate(s.key);
                           }}
                         >
                           {t('common.delete')}
@@ -152,10 +163,15 @@ export function Settings() {
         </section>
 
         <section>
-          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>{t('settings.addOrUpdateTitle')}</h2>
+          <h2 style={{ fontSize: 'var(--fs-lg)', margin: 0, marginBottom: 'var(--space-3)' }}>
+            {t('settings.addOrUpdateTitle')}
+          </h2>
           <div className="card">
             <form
-              onSubmit={(e) => { e.preventDefault(); put.mutate(); }}
+              onSubmit={(e) => {
+                e.preventDefault();
+                put.mutate();
+              }}
               className="col"
               style={{ gap: 'var(--space-3)' }}
             >
@@ -171,7 +187,9 @@ export function Settings() {
                 />
                 <datalist id="settings-presets">
                   {presets.map((p) => (
-                    <option key={p.key} value={p.key}>{p.label}</option>
+                    <option key={p.key} value={p.key}>
+                      {p.label}
+                    </option>
                   ))}
                 </datalist>
                 {isPresetKey(key) && (

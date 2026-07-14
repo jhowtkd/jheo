@@ -38,7 +38,10 @@ function makeCacheKey(text: string, locale: SupportedLocale, ctx: TranslateConte
  * operator logs.
  */
 function splitTranslations(blob: string, expected: number, log?: (msg: string) => void): string[] {
-  const lines = blob.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  const lines = blob
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
   if (lines.length === expected) return lines;
   // Defensive: the LLM sometimes adds a trailing explanation. Trim until we
   // have at least `expected` non-empty lines, or fall back to the whole blob.
@@ -91,9 +94,7 @@ export async function translateBatch(
     // if a key is missing. Same provider is reused for the whole batch to
     // keep the prompt consistent.
     const provider =
-      deps.llmProviders.openai ??
-      deps.llmProviders.anthropic ??
-      deps.llmProviders.openrouter;
+      deps.llmProviders.openai ?? deps.llmProviders.anthropic ?? deps.llmProviders.openrouter;
     if (!provider) throw new Error('no_llm_provider');
 
     const system = buildTranslationSystemPrompt(targetLocale);
@@ -103,11 +104,27 @@ export async function translateBatch(
     // Prefer a translate-specific override, then fall back to the suggestion
     // model so a single `JHEO_SUGGESTION_MODEL=MiniMax-M3` covers both.
     const model =
-      process.env.JHEO_TRANSLATE_MODEL ??
-      process.env.JHEO_SUGGESTION_MODEL ??
-      'gpt-4o-mini';
+      process.env.JHEO_TRANSLATE_MODEL ?? process.env.JHEO_SUGGESTION_MODEL ?? 'gpt-4o-mini';
     // #region agent log
-    fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fb8da3'},body:JSON.stringify({sessionId:'fb8da3',runId:'post-fix',hypothesisId:'A',location:'translate.ts:model',message:'translateBatch model selected',data:{model,baseUrlSet:Boolean(process.env.OPENAI_BASE_URL),missCount:toTranslate.length,targetLocale,context},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'fb8da3' },
+      body: JSON.stringify({
+        sessionId: 'fb8da3',
+        runId: 'post-fix',
+        hypothesisId: 'A',
+        location: 'translate.ts:model',
+        message: 'translateBatch model selected',
+        data: {
+          model,
+          baseUrlSet: Boolean(process.env.OPENAI_BASE_URL),
+          missCount: toTranslate.length,
+          targetLocale,
+          context,
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
     // #endregion
     const req: LLMRequest = {
       prompt: userPrompt,
@@ -120,13 +137,45 @@ export async function translateBatch(
       res = await provider.complete(req, deps.fetchFn);
     } catch (e) {
       // #region agent log
-      fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fb8da3'},body:JSON.stringify({sessionId:'fb8da3',runId:'post-fix',hypothesisId:'A',location:'translate.ts:complete-error',message:'translateBatch LLM complete failed',data:{model,err:e instanceof Error ? e.message.slice(0,200) : String(e)},timestamp:Date.now()})}).catch(()=>{});
+      fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'fb8da3' },
+        body: JSON.stringify({
+          sessionId: 'fb8da3',
+          runId: 'post-fix',
+          hypothesisId: 'A',
+          location: 'translate.ts:complete-error',
+          message: 'translateBatch LLM complete failed',
+          data: { model, err: e instanceof Error ? e.message.slice(0, 200) : String(e) },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
       // #endregion
       throw e;
     }
     const cleaned = stripLlmThinking(res.text);
     // #region agent log
-    fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'fb8da3'},body:JSON.stringify({sessionId:'fb8da3',runId:'post-fix',hypothesisId:'B',location:'translate.ts:complete-ok',message:'translateBatch LLM complete ok',data:{model,provider:res.provider,resModel:res.model,rawLen:res.text.length,cleanedLen:cleaned.length,rawHadThink:/<think>/i.test(res.text),cleanedPreview:cleaned.slice(0,120)},timestamp:Date.now()})}).catch(()=>{});
+    fetch('http://host.docker.internal:7266/ingest/6183d87d-7163-44e1-b4c0-8eeb01a85d67', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': 'fb8da3' },
+      body: JSON.stringify({
+        sessionId: 'fb8da3',
+        runId: 'post-fix',
+        hypothesisId: 'B',
+        location: 'translate.ts:complete-ok',
+        message: 'translateBatch LLM complete ok',
+        data: {
+          model,
+          provider: res.provider,
+          resModel: res.model,
+          rawLen: res.text.length,
+          cleanedLen: cleaned.length,
+          rawHadThink: /<think>/i.test(res.text),
+          cleanedPreview: cleaned.slice(0, 120),
+        },
+        timestamp: Date.now(),
+      }),
+    }).catch(() => {});
     // #endregion
     const translated = splitTranslations(cleaned, toTranslate.length, deps.logFn);
 

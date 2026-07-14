@@ -12,11 +12,14 @@ import { localePath } from '../../i18n/localePath.js';
 //
 // `to` is a thunk (lazy path) so kind defaults can stay locale-aware: the
 // path is resolved at render time via localePath().
-const COPY: Record<string, {
-  titleKey: string;
-  hintKey?: string;
-  cta?: { to: string | (() => string); labelKey: string };
-}> = {
+const COPY: Record<
+  string,
+  {
+    titleKey: string;
+    hintKey?: string;
+    cta?: { to: string | (() => string); labelKey: string };
+  }
+> = {
   'no-findings': { titleKey: 'fixes.empty' },
   'no-audits': { titleKey: 'fixes.chooseProject.noAudits' },
   'no-projects': {

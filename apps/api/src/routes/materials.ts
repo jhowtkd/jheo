@@ -194,15 +194,12 @@ export async function materialRoutes(app: FastifyInstance): Promise<void> {
     },
   );
 
-  app.delete<{ Params: { id: string } }>(
-    '/api/materials/:id',
-    async (req, reply) => {
-      // Single round-trip: deleteMany is a no-op when nothing matches, so we
-      // can return 404 based on the affected-row count instead of doing a
-      // findUnique + delete pair.
-      const result = await prisma.material.deleteMany({ where: { id: req.params.id } });
-      if (result.count === 0) return reply.code(404).send({ error: 'not found' });
-      return { id: req.params.id };
-    },
-  );
+  app.delete<{ Params: { id: string } }>('/api/materials/:id', async (req, reply) => {
+    // Single round-trip: deleteMany is a no-op when nothing matches, so we
+    // can return 404 based on the affected-row count instead of doing a
+    // findUnique + delete pair.
+    const result = await prisma.material.deleteMany({ where: { id: req.params.id } });
+    if (result.count === 0) return reply.code(404).send({ error: 'not found' });
+    return { id: req.params.id };
+  });
 }

@@ -57,7 +57,9 @@ export async function publishRoutes(app: FastifyInstance): Promise<void> {
       const gen = await prisma.generation.findUnique({ where: { id: req.params.id } });
       if (!gen) return reply.code(404).send({ error: 'not found' });
       if (gen.reviewState !== 'approved') {
-        return reply.code(409).send({ error: `cannot publish from reviewState=${gen.reviewState}` });
+        return reply
+          .code(409)
+          .send({ error: `cannot publish from reviewState=${gen.reviewState}` });
       }
       const channels = await prisma.distributionChannel.findMany({
         where: { id: { in: parsed.data.channelIds }, projectId: gen.projectId, isActive: true },

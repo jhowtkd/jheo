@@ -125,7 +125,9 @@ export async function generationRoutes(app: FastifyInstance): Promise<void> {
           ? 'in_review'
           : 'draft';
     if (!allowed.includes(targetState)) {
-      return reply.code(409).send({ error: `cannot transition from ${row.reviewState} to ${targetState}` });
+      return reply
+        .code(409)
+        .send({ error: `cannot transition from ${row.reviewState} to ${targetState}` });
     }
     return prisma.generation.update({
       where: { id: row.id },

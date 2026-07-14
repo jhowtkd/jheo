@@ -112,16 +112,12 @@ async function runFlowOrchestrator(
     where: { auditId, status: 'queued' },
     orderBy: { id: 'asc' },
   });
-  const pageAuditIdByProjectPageId = new Map(
-    pageAudits.map((pa) => [pa.projectPageId, pa.id]),
-  );
+  const pageAuditIdByProjectPageId = new Map(pageAudits.map((pa) => [pa.projectPageId, pa.id]));
 
   const children = pages.map((page) => {
     const pageAuditId = pageAuditIdByProjectPageId.get(page.id);
     if (!pageAuditId) {
-      throw new Error(
-        `PageAudit not found for projectPageId ${page.id}`,
-      );
+      throw new Error(`PageAudit not found for projectPageId ${page.id}`);
     }
     return {
       name: 'page',
@@ -239,14 +235,19 @@ export function makeAuditHandler(opts: { fetchText: FetchText }) {
         }
         return p;
       };
-      const configSnapshot = audit.configSnapshot as {
-        maxPages?: unknown;
-        sources?: { root?: boolean; sitemap?: boolean; crawl?: boolean };
-      } | undefined;
+      const configSnapshot = audit.configSnapshot as
+        | {
+            maxPages?: unknown;
+            sources?: { root?: boolean; sitemap?: boolean; crawl?: boolean };
+          }
+        | undefined;
       const configuredMax = Number(configSnapshot?.maxPages);
-      const maxPages = Number.isInteger(configuredMax) && configuredMax > 0
-        ? Math.min(configuredMax, 5_000)
-        : (project.maxPages > 0 ? project.maxPages : 0);
+      const maxPages =
+        Number.isInteger(configuredMax) && configuredMax > 0
+          ? Math.min(configuredMax, 5_000)
+          : project.maxPages > 0
+            ? project.maxPages
+            : 0;
       const sources = configSnapshot?.sources;
       const pages = await discoverSite(project.rootUrl, fetchTextDedup, maxPages, sources);
       await prisma.projectPage.createMany({
@@ -341,7 +342,15 @@ export async function completeAuditFromPageScores(
   const [findings, pageAudits, pagesWithError] = await Promise.all([
     prisma.finding.findMany({
       where: { auditId },
-      select: { category: true, severity: true, rule: true, message: true, url: true, evidence: true, selector: true },
+      select: {
+        category: true,
+        severity: true,
+        rule: true,
+        message: true,
+        url: true,
+        evidence: true,
+        selector: true,
+      },
     }),
     prisma.pageAudit.findMany({
       where: { auditId },
@@ -351,8 +360,7 @@ export async function completeAuditFromPageScores(
   ]);
 
   const pagesAudited = pageAudits.filter((p) => p.status === 'completed').length;
-  const pagesTotal =
-    opts?.pagesTotal ?? pageAudits.length;
+  const pagesTotal = opts?.pagesTotal ?? pageAudits.length;
 
   const rollup = scoreFindings(
     findings.map((f) => ({
@@ -382,4 +390,3 @@ export async function completeAuditFromPageScores(
   });
   return result.count > 0;
 }
-

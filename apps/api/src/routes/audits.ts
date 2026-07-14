@@ -26,7 +26,8 @@ function tallyPageAudits(pageAudits: Array<{ status: string; projectPage: { url:
     if (p.status === 'completed') completed++;
     else if (p.status === 'failed') failed++;
     else if (p.status === 'skipped') skipped++;
-    else if (p.status === 'running' && currentPages.length < 5) currentPages.push(p.projectPage.url);
+    else if (p.status === 'running' && currentPages.length < 5)
+      currentPages.push(p.projectPage.url);
   }
   return { completed, failed, skipped, currentPages };
 }
@@ -56,18 +57,19 @@ export async function auditRoutes(app: FastifyInstance): Promise<void> {
     '/api/audits',
     { config: { rateLimit: { max: 20, windowMs: 60_000 } } },
     async (req, reply) => {
-    const parsed = CreateAuditBody.safeParse(req.body);
-    if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
-    const audit = await prisma.audit.create({
-      data: {
-        projectId: parsed.data.projectId,
-        status: 'queued',
-        configSnapshot: parsed.data.config as Prisma.InputJsonValue,
-      },
-    });
-    await auditQueue.add('run', { auditId: audit.id });
-    return audit;
-  });
+      const parsed = CreateAuditBody.safeParse(req.body);
+      if (!parsed.success) return reply.code(400).send({ error: parsed.error.flatten() });
+      const audit = await prisma.audit.create({
+        data: {
+          projectId: parsed.data.projectId,
+          status: 'queued',
+          configSnapshot: parsed.data.config as Prisma.InputJsonValue,
+        },
+      });
+      await auditQueue.add('run', { auditId: audit.id });
+      return audit;
+    },
+  );
 
   app.get<{ Params: { id: string } }>('/api/audits/:id', async (req, reply) => {
     const audit = await prisma.audit.findUnique({

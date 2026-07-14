@@ -10,7 +10,10 @@ import { buildContentPrompt } from './prompts/content.js';
 import { buildOverallPrompt } from './prompts/overall.js';
 
 export class LlmOutputError extends Error {
-  constructor(public readonly raw: string, message: string) {
+  constructor(
+    public readonly raw: string,
+    message: string,
+  ) {
     super(message);
     this.name = 'LlmOutputError';
   }
@@ -18,12 +21,18 @@ export class LlmOutputError extends Error {
 
 function selectPrompt(ctx: SuggestionContext): string {
   switch (ctx.category as SuggestionCategory) {
-    case 'seo': return buildSeoPrompt(ctx);
-    case 'geo': return buildGeoPrompt(ctx);
-    case 'cwv': return buildCwvPrompt(ctx);
-    case 'a11y': return buildA11yPrompt(ctx);
-    case 'content': return buildContentPrompt(ctx);
-    case 'overall': throw new Error('CATEGORY_NOT_SUPPORTED');
+    case 'seo':
+      return buildSeoPrompt(ctx);
+    case 'geo':
+      return buildGeoPrompt(ctx);
+    case 'cwv':
+      return buildCwvPrompt(ctx);
+    case 'a11y':
+      return buildA11yPrompt(ctx);
+    case 'content':
+      return buildContentPrompt(ctx);
+    case 'overall':
+      throw new Error('CATEGORY_NOT_SUPPORTED');
   }
 }
 
@@ -34,11 +43,19 @@ function tryParseJson(text: string): unknown | undefined {
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/, '')
     .trim();
-  try { return JSON.parse(stripped); } catch { /* fall through */ }
+  try {
+    return JSON.parse(stripped);
+  } catch {
+    /* fall through */
+  }
   const firstBrace = stripped.indexOf('{');
   const lastBrace = stripped.lastIndexOf('}');
   if (firstBrace >= 0 && lastBrace > firstBrace) {
-    try { return JSON.parse(stripped.slice(firstBrace, lastBrace + 1)); } catch { /* fall through */ }
+    try {
+      return JSON.parse(stripped.slice(firstBrace, lastBrace + 1));
+    } catch {
+      /* fall through */
+    }
   }
   return undefined;
 }

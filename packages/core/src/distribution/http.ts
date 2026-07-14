@@ -78,7 +78,11 @@ export class HttpPublisher implements Publisher {
     }
 
     const result: PublishResult = {
-      raw: { status: res.status, headers: Object.fromEntries(res.headers.entries()), body: text.slice(0, 4096) },
+      raw: {
+        status: res.status,
+        headers: Object.fromEntries(res.headers.entries()),
+        body: text.slice(0, 4096),
+      },
     };
     if (externalId !== undefined) result.externalId = externalId;
     if (externalUrl !== undefined) result.externalUrl = externalUrl;

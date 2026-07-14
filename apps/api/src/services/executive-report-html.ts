@@ -71,8 +71,20 @@ const LABELS = {
 } as const;
 
 const CATEGORY_LABELS = {
-  en: { seo: 'SEO', cwv: 'Core Web Vitals', geo: 'Generative SEO', a11y: 'Accessibility', content: 'Content' },
-  'pt-BR': { seo: 'SEO', cwv: 'Core Web Vitals', geo: 'SEO Generativo', a11y: 'Acessibilidade', content: 'Conteúdo' },
+  en: {
+    seo: 'SEO',
+    cwv: 'Core Web Vitals',
+    geo: 'Generative SEO',
+    a11y: 'Accessibility',
+    content: 'Content',
+  },
+  'pt-BR': {
+    seo: 'SEO',
+    cwv: 'Core Web Vitals',
+    geo: 'SEO Generativo',
+    a11y: 'Acessibilidade',
+    content: 'Conteúdo',
+  },
 } as const;
 
 function impactColor(level: 'high' | 'medium' | 'low'): string {
@@ -125,9 +137,7 @@ export function renderExecutiveReportHtml(record: ExecutiveReportRecord): string
         .join('')
     : '';
 
-  const recommendationsList = n
-    ? n.recommendations.map((r) => `<li>${esc(r)}</li>`).join('')
-    : '';
+  const recommendationsList = n ? n.recommendations.map((r) => `<li>${esc(r)}</li>`).join('') : '';
 
   const gscSection = a.gsc
     ? `<section class="card">
@@ -211,10 +221,14 @@ export function renderExecutiveReportHtml(record: ExecutiveReportRecord): string
   </div>
 </header>
 
-${n ? `<section class="card">
+${
+  n
+    ? `<section class="card">
   <h2>${esc(t.executiveSummary)}</h2>
   <p>${esc(n.executiveSummary)}</p>
-</section>` : `<section class="card"><p>${esc(t.reportNotReady)}</p></section>`}
+</section>`
+    : `<section class="card"><p>${esc(t.reportNotReady)}</p></section>`
+}
 
 <section class="card">
   <h2>${esc(t.categoryScores)}</h2>
@@ -226,25 +240,37 @@ ${n ? `<section class="card">
   <div class="chart-wrap">${severitySvg}</div>
 </section>
 
-${n && n.topIssues.length > 0 ? `<section class="card">
+${
+  n && n.topIssues.length > 0
+    ? `<section class="card">
   <h2>${esc(t.topIssues)}</h2>
   <table>
     <thead><tr><th>${esc(t.issue)}</th><th>${esc(t.businessImpact)}</th><th>${esc(t.impact)}</th><th>${esc(t.affectedPages)}</th></tr></thead>
     <tbody>${topIssuesRows}</tbody>
   </table>
-</section>` : ''}
+</section>`
+    : ''
+}
 
 ${gscSection}
 
-${n && n.scenarios.length > 0 ? `<section class="card">
+${
+  n && n.scenarios.length > 0
+    ? `<section class="card">
   <h2>${esc(t.scenarios)}</h2>
   ${scenarioCards}
-</section>` : ''}
+</section>`
+    : ''
+}
 
-${n && n.recommendations.length > 0 ? `<section class="card">
+${
+  n && n.recommendations.length > 0
+    ? `<section class="card">
   <h2>${esc(t.recommendations)}</h2>
   <ol>${recommendationsList}</ol>
-</section>` : ''}
+</section>`
+    : ''
+}
 
 <div class="footer">
   ${esc(t.auditId)}: ${esc(a.auditId)} · ${esc(generatedDate)}

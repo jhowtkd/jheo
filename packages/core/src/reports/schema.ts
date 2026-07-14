@@ -39,19 +39,29 @@ export const AuditSummarySchema = z.object({
 
 export const ExecutiveNarrativeSchema = z.object({
   executiveSummary: z.string().min(50).max(2000),
-  topIssues: z.array(z.object({
-    rule: z.string(),
-    title: z.string(),
-    businessImpact: z.string(),
-    impactLevel: z.enum(['high', 'medium', 'low']),
-    affectedPages: z.number().int().nonnegative(),
-  })).min(1).max(15),
-  scenarios: z.array(z.object({
-    label: z.string(),
-    estimatedScoreFrom: z.number().int().min(0).max(100),
-    estimatedScoreTo: z.number().int().min(0).max(100),
-    rationale: z.string(),
-  })).min(1).max(5),
+  topIssues: z
+    .array(
+      z.object({
+        rule: z.string(),
+        title: z.string(),
+        businessImpact: z.string(),
+        impactLevel: z.enum(['high', 'medium', 'low']),
+        affectedPages: z.number().int().nonnegative(),
+      }),
+    )
+    .min(1)
+    .max(15),
+  scenarios: z
+    .array(
+      z.object({
+        label: z.string(),
+        estimatedScoreFrom: z.number().int().min(0).max(100),
+        estimatedScoreTo: z.number().int().min(0).max(100),
+        rationale: z.string(),
+      }),
+    )
+    .min(1)
+    .max(5),
   recommendations: z.array(z.string()).min(1).max(8),
 });
 

@@ -32,7 +32,10 @@ export function ProjectsList() {
   const [urlError, setUrlError] = useState(false);
   const create = useMutation({
     mutationFn: (input: { name: string; rootUrl: string }) =>
-      createProject({ domain: normalizeProjectUrl(input.rootUrl) }).then((p) => ({ ...p, name: input.name })),
+      createProject({ domain: normalizeProjectUrl(input.rootUrl) }).then((p) => ({
+        ...p,
+        name: input.name,
+      })),
     onSuccess: async (p) => {
       await qc.invalidateQueries({ queryKey: ['projects'] });
       // Clear the inputs only on success. Clearing on submit would wipe
@@ -92,7 +95,11 @@ export function ProjectsList() {
           </button>
         </form>
         {urlError && (
-          <p className="tiny" role="alert" style={{ color: 'var(--danger)', marginTop: 'var(--space-2)' }}>
+          <p
+            className="tiny"
+            role="alert"
+            style={{ color: 'var(--danger)', marginTop: 'var(--space-2)' }}
+          >
             {t('projects.create.urlInvalid')}
           </p>
         )}

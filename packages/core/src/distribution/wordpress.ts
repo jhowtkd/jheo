@@ -1,7 +1,10 @@
 import type { Publisher, PublishRequest, PublishResult } from './types.js';
 
 export class WordPressPublishError extends Error {
-  constructor(public readonly status: number, public readonly bodyText: string) {
+  constructor(
+    public readonly status: number,
+    public readonly bodyText: string,
+  ) {
     super(`WordPress publish failed (${status}): ${bodyText.slice(0, 200)}`);
     this.name = 'WordPressPublishError';
   }
@@ -111,7 +114,8 @@ export class WordPressPublisher implements Publisher {
         // installs are diagnosable in production logs.
         // Best-effort: avoid console.* — surface once via structured stderr JSON.
         process.stderr.write(
-          JSON.stringify({ level: 'warn', msg: 'wp tag resolution failed', tag, err: String(e) }) + '\n',
+          JSON.stringify({ level: 'warn', msg: 'wp tag resolution failed', tag, err: String(e) }) +
+            '\n',
         );
       }
     }
@@ -122,7 +126,11 @@ export class WordPressPublisher implements Publisher {
 
     const result: PublishResult = {
       externalId: String(json.id),
-      raw: { status: res.status, headers: Object.fromEntries(res.headers.entries()), body: text.slice(0, 4096) },
+      raw: {
+        status: res.status,
+        headers: Object.fromEntries(res.headers.entries()),
+        body: text.slice(0, 4096),
+      },
     };
     if (json.link !== undefined) result.externalUrl = json.link;
     return result;

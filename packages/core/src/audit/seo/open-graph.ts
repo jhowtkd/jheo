@@ -5,7 +5,10 @@ const REQUIRED = ['og:title', 'og:description', 'og:image', 'og:url', 'og:type']
 const OG_META_RE = new Map<string, RegExp>(
   REQUIRED.map((prop) => [
     prop,
-    new RegExp(`<meta\\s+[^>]*property=["']${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`, 'i'),
+    new RegExp(
+      `<meta\\s+[^>]*property=["']${prop.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}["']`,
+      'i',
+    ),
   ]),
 );
 

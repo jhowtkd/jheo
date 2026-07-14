@@ -22,16 +22,16 @@ export function ScoreCard({ health, previousOverall, history, recomputed }: Prop
   }
   return (
     <div className="card scorecard col" style={{ gap: 'var(--space-3)' }}>
-      <div className="row" style={{ alignItems: 'baseline', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+      <div
+        className="row"
+        style={{ alignItems: 'baseline', gap: 'var(--space-3)', flexWrap: 'wrap' }}
+      >
         <h2 style={{ margin: 0 }}>{t('findings.scoreCard.overall')}</h2>
         {typeof previousOverall === 'number' && health.overall !== null && (
           <DeltaBadge current={health.overall} previous={previousOverall} />
         )}
         {recomputed && (
-          <span
-            className="tag tag--info"
-            title={t('findings.scoreCard.recomputedHint')}
-          >
+          <span className="tag tag--info" title={t('findings.scoreCard.recomputedHint')}>
             {t('findings.scoreCard.recomputed')}
           </span>
         )}

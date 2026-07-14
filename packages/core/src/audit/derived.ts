@@ -25,9 +25,7 @@ export function plainTextWords(ctx: { html: string }): string[] {
 }
 
 /** Pre-computed JSON-LD block matches (regex.exec[].groups[1] contains the body). */
-export function jsonLdBlocks(ctx: {
-  html: string;
-}): RegExpExecArray[] {
+export function jsonLdBlocks(ctx: { html: string }): RegExpExecArray[] {
   const cached = (ctx as unknown as Record<symbol, RegExpExecArray[] | undefined>)[JSONLD_BLOCKS];
   if (cached) return cached;
   return Array.from(ctx.html.matchAll(JSONLD_RE));

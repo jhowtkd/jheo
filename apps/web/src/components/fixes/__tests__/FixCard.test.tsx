@@ -14,10 +14,17 @@ const finding = {
 };
 
 const baseSuggestion: Suggestion = {
-  id: 's1', findingId: 'f1', kind: 'snippet', category: 'seo',
-  before: '<title>Old</title>', after: '<title>New</title>',
-  confidence: 'high', rationale: 'Better title.', locale: 'en',
-  status: 'pending', model: 'fake',
+  id: 's1',
+  findingId: 'f1',
+  kind: 'snippet',
+  category: 'seo',
+  before: '<title>Old</title>',
+  after: '<title>New</title>',
+  confidence: 'high',
+  rationale: 'Better title.',
+  locale: 'en',
+  status: 'pending',
+  model: 'fake',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   decidedAt: null,
@@ -32,7 +39,16 @@ beforeEach(async () => {
 describe('FixCard', () => {
   it('shows the Generate button when no suggestion exists', () => {
     const onGenerate = vi.fn();
-    render(<FixCard finding={finding} suggestion={null} onGenerate={onGenerate} onAccept={() => {}} onReject={() => {}} onRegenerate={() => {}} />);
+    render(
+      <FixCard
+        finding={finding}
+        suggestion={null}
+        onGenerate={onGenerate}
+        onAccept={() => {}}
+        onReject={() => {}}
+        onRegenerate={() => {}}
+      />,
+    );
     expect(screen.getByText(/sugerir/i)).toBeTruthy();
   });
 
@@ -68,7 +84,16 @@ describe('FixCard', () => {
 
   it('calls onGenerate when the Generate button is clicked', () => {
     const onGenerate = vi.fn();
-    render(<FixCard finding={finding} suggestion={null} onGenerate={onGenerate} onAccept={() => {}} onReject={() => {}} onRegenerate={() => {}} />);
+    render(
+      <FixCard
+        finding={finding}
+        suggestion={null}
+        onGenerate={onGenerate}
+        onAccept={() => {}}
+        onReject={() => {}}
+        onRegenerate={() => {}}
+      />,
+    );
     fireEvent.click(screen.getByText(/sugerir/i));
     expect(onGenerate).toHaveBeenCalledOnce();
   });

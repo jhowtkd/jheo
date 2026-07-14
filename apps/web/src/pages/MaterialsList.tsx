@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
-import { createMaterial, deleteMaterial, humanError, listMaterials, type Material } from '../api.js';
+import {
+  createMaterial,
+  deleteMaterial,
+  humanError,
+  listMaterials,
+  type Material,
+} from '../api.js';
 import { EmptyState, ErrorState } from '../components/states/index.js';
 import { localePath } from '../i18n/localePath.js';
 
@@ -58,9 +64,16 @@ export function MaterialsList() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">
+              {t('nav.projects')}
+            </Link>
             <span className="muted tiny">/</span>
-            <Link to={localePath('projectDashboard', { projectId: projectId! })} className="muted tiny">{projectId?.slice(0, 8)}</Link>
+            <Link
+              to={localePath('projectDashboard', { projectId: projectId! })}
+              className="muted tiny"
+            >
+              {projectId?.slice(0, 8)}
+            </Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('materials.breadcrumb')}</span>
           </div>
@@ -75,7 +88,14 @@ export function MaterialsList() {
       <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
         <div className="card__title">{t('materials.add')}</div>
 
-        <div className="row" style={{ gap: 'var(--space-2)', marginTop: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+        <div
+          className="row"
+          style={{
+            gap: 'var(--space-2)',
+            marginTop: 'var(--space-3)',
+            marginBottom: 'var(--space-4)',
+          }}
+        >
           {TYPES.map((tt) => (
             <button
               key={tt.value}
@@ -92,7 +112,10 @@ export function MaterialsList() {
         </div>
 
         <form
-          onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            create.mutate();
+          }}
           className="col"
           style={{ gap: 'var(--space-3)' }}
         >
@@ -157,10 +180,7 @@ export function MaterialsList() {
         })()}
 
       {materials.data && materials.data.length === 0 && !materials.isLoading && (
-        <EmptyState
-          titleKey="materials.empty.title"
-          hintKey="materials.empty.hint"
-        >
+        <EmptyState titleKey="materials.empty.title" hintKey="materials.empty.hint">
           <svg viewBox="0 0 56 56">
             <rect x="10" y="10" width="36" height="36" rx="3" />
             <path d="M10 18h36" />
@@ -188,7 +208,8 @@ export function MaterialsList() {
                   key={m.id}
                   material={m}
                   onRemove={() => {
-                    if (confirm(t('materials.deleteConfirm', { title: m.title }))) remove.mutate(m.id);
+                    if (confirm(t('materials.deleteConfirm', { title: m.title })))
+                      remove.mutate(m.id);
                   }}
                 />
               ))}
@@ -215,12 +236,18 @@ function MaterialRow({ material, onRemove }: { material: Material; onRemove: () 
         {material.charCount.toLocaleString()} {t('materials.table.chars')}
       </td>
       <td>
-        <span className={`badge badge--${material.embeddingStatus === 'ready' ? 'completed' : 'queued'}`}>
+        <span
+          className={`badge badge--${material.embeddingStatus === 'ready' ? 'completed' : 'queued'}`}
+        >
           {material.embeddingStatus}
         </span>
       </td>
       <td style={{ textAlign: 'right' }}>
-        <button className="btn btn--ghost btn--sm" onClick={onRemove} title={t('materials.deleteTitle')}>
+        <button
+          className="btn btn--ghost btn--sm"
+          onClick={onRemove}
+          title={t('materials.deleteTitle')}
+        >
           ×
         </button>
       </td>

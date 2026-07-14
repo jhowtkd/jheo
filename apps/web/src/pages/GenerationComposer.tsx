@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { createGeneration, humanError, listGenerations, listMaterials, listTemplates } from '../api.js';
+import {
+  createGeneration,
+  humanError,
+  listGenerations,
+  listMaterials,
+  listTemplates,
+} from '../api.js';
 import { ErrorState } from '../components/states/index.js';
 import { localePath } from '../i18n/localePath.js';
 
@@ -58,9 +64,16 @@ export function GenerationComposer() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">
+              {t('nav.projects')}
+            </Link>
             <span className="muted tiny">/</span>
-            <Link to={localePath('projectDashboard', { projectId: projectId! })} className="muted tiny">{projectId?.slice(0, 8)}</Link>
+            <Link
+              to={localePath('projectDashboard', { projectId: projectId! })}
+              className="muted tiny"
+            >
+              {projectId?.slice(0, 8)}
+            </Link>
             <span className="muted tiny">/</span>
             <span className="tiny">{t('generation.composer.breadcrumb')}</span>
           </div>
@@ -78,7 +91,10 @@ export function GenerationComposer() {
         }}
       >
         <form
-          onSubmit={(e) => { e.preventDefault(); create.mutate(); }}
+          onSubmit={(e) => {
+            e.preventDefault();
+            create.mutate();
+          }}
           className="col"
           style={{ gap: 'var(--space-4)' }}
         >
@@ -92,12 +108,16 @@ export function GenerationComposer() {
               >
                 <option value="">
                   {activeTemplate
-                    ? t('generation.composer.activeOption', { name: activeTemplate.name, version: activeTemplate.version })
+                    ? t('generation.composer.activeOption', {
+                        name: activeTemplate.name,
+                        version: activeTemplate.version,
+                      })
                     : t('generation.composer.selectTemplate')}
                 </option>
                 {templates.data?.map((tt) => (
                   <option key={tt.id} value={tt.id}>
-                    {tt.name} (v{tt.version}){tt.isActive ? t('generation.composer.optionActive') : ''}
+                    {tt.name} (v{tt.version})
+                    {tt.isActive ? t('generation.composer.optionActive') : ''}
                   </option>
                 ))}
               </select>
@@ -120,7 +140,10 @@ export function GenerationComposer() {
 
           <div className="card">
             <div className="card__title">{t('generation.composer.materialsCard')}</div>
-            <p className="tiny muted" style={{ marginTop: 'var(--space-1)', marginBottom: 'var(--space-3)' }}>
+            <p
+              className="tiny muted"
+              style={{ marginTop: 'var(--space-1)', marginBottom: 'var(--space-3)' }}
+            >
               {materialIds.length === 0
                 ? t('generation.composer.noMaterials')
                 : t('generation.composer.selectedCount', { count: materialIds.length })}
@@ -128,12 +151,21 @@ export function GenerationComposer() {
             {materials.data && materials.data.length === 0 ? (
               <p className="tiny muted">
                 {t('generation.composer.noMaterialsEmpty')}{' '}
-                <Link to={localePath('materialsProject', { projectId: projectId! })}>{t('generation.composer.addMaterialsLink')}</Link>
+                <Link to={localePath('materialsProject', { projectId: projectId! })}>
+                  {t('generation.composer.addMaterialsLink')}
+                </Link>
               </p>
             ) : (
-              <div className="col" style={{ gap: 'var(--space-2)', maxHeight: 240, overflowY: 'auto' }}>
+              <div
+                className="col"
+                style={{ gap: 'var(--space-2)', maxHeight: 240, overflowY: 'auto' }}
+              >
                 {materials.data?.map((m) => (
-                  <label key={m.id} className="row" style={{ gap: 'var(--space-2)', cursor: 'pointer' }}>
+                  <label
+                    key={m.id}
+                    className="row"
+                    style={{ gap: 'var(--space-2)', cursor: 'pointer' }}
+                  >
                     <input
                       type="checkbox"
                       checked={selectedMaterialIds.has(m.id)}
@@ -144,7 +176,9 @@ export function GenerationComposer() {
                       }}
                     />
                     <span style={{ flex: 1 }}>{m.title}</span>
-                    <span className="tiny tabular muted">{m.charCount} {t('materials.table.chars')}</span>
+                    <span className="tiny tabular muted">
+                      {m.charCount} {t('materials.table.chars')}
+                    </span>
                   </label>
                 ))}
               </div>
@@ -163,7 +197,13 @@ export function GenerationComposer() {
             >
               <div className="field">
                 <label className="field__label">{t('generation.composer.provider')}</label>
-                <select className="select" value={provider} onChange={(e) => setProvider(e.target.value as 'openai' | 'anthropic' | 'openrouter')}>
+                <select
+                  className="select"
+                  value={provider}
+                  onChange={(e) =>
+                    setProvider(e.target.value as 'openai' | 'anthropic' | 'openrouter')
+                  }
+                >
                   <option value="openai">{t('generation.composer.providerOpenai')}</option>
                   <option value="anthropic">{t('generation.composer.providerAnthropic')}</option>
                   <option value="openrouter">{t('generation.composer.providerOpenrouter')}</option>
@@ -193,7 +233,10 @@ export function GenerationComposer() {
             </div>
           </div>
 
-          <div className="row" style={{ justifyContent: 'flex-end', gap: 'var(--space-2)', alignItems: 'center' }}>
+          <div
+            className="row"
+            style={{ justifyContent: 'flex-end', gap: 'var(--space-2)', alignItems: 'center' }}
+          >
             {create.isError &&
               (() => {
                 const e = humanError(create.error);
@@ -210,11 +253,15 @@ export function GenerationComposer() {
             {!templateId && !activeTemplate && (
               <p className="tiny" role="status" style={{ margin: 0 }}>
                 {t('generation.composer.needTemplateHint')}{' '}
-                <Link to={localePath('templates')}>{t('generation.composer.needTemplateLink')}</Link>
+                <Link to={localePath('templates')}>
+                  {t('generation.composer.needTemplateLink')}
+                </Link>
               </p>
             )}
             <button type="submit" className="btn btn--primary" disabled={submitDisabled}>
-              {create.isPending ? t('generation.composer.queueing') : t('generation.composer.submit')}
+              {create.isPending
+                ? t('generation.composer.queueing')
+                : t('generation.composer.submit')}
             </button>
           </div>
         </form>

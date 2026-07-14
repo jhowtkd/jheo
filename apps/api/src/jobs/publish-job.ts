@@ -117,13 +117,18 @@ export function makePublishHandler(deps: {
     // injection invariant — wrapping happens at the API/worker boundary,
     // preserving the "core is infra-free" F3 rule.
     const guardedFetchFn: typeof fetch = (input, init) =>
-      guardedFetch(
-        typeof input === 'string' ? input : input.toString(),
-        { ...init, timeoutMs: 15_000 },
-      ) as Promise<Response>;
+      guardedFetch(typeof input === 'string' ? input : input.toString(), {
+        ...init,
+        timeoutMs: 15_000,
+      }) as Promise<Response>;
 
     try {
-      const fm = publish.generation.outputFrontMatter as { title?: string; slug?: string; tags?: string[]; description?: string };
+      const fm = publish.generation.outputFrontMatter as {
+        title?: string;
+        slug?: string;
+        tags?: string[];
+        description?: string;
+      };
       const result = await publisher.publish(
         {
           content: {
@@ -146,8 +151,12 @@ export function makePublishHandler(deps: {
         where: { id: publish.id },
         data: {
           finishedAt: new Date(),
-          ...(result.externalId !== undefined ? { externalId: result.externalId } : { externalId: null }),
-          ...(result.externalUrl !== undefined ? { externalUrl: result.externalUrl } : { externalUrl: null }),
+          ...(result.externalId !== undefined
+            ? { externalId: result.externalId }
+            : { externalId: null }),
+          ...(result.externalUrl !== undefined
+            ? { externalUrl: result.externalUrl }
+            : { externalUrl: null }),
           response: { status: result.raw.status, body: result.raw.body.slice(0, 1024) },
         },
       });
@@ -156,9 +165,9 @@ export function makePublishHandler(deps: {
       const channelType = publish.channel.type;
       const externalUrl = result.externalUrl;
       if (
-        deps.gscInspectEnqueue
-        && externalUrl
-        && (channelType === 'wordpress' || channelType === 'http')
+        deps.gscInspectEnqueue &&
+        externalUrl &&
+        (channelType === 'wordpress' || channelType === 'http')
       ) {
         try {
           await deps.gscInspectEnqueue({

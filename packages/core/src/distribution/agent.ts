@@ -43,7 +43,8 @@ export class AgentPublisher implements Publisher {
 
   async publish(req: PublishRequest, _fetchFn: typeof fetch): Promise<PublishResult> {
     const c = req.config as AgentConfig;
-    const baseDir = (req.config as AgentConfig & { outputDir?: string }).outputDir ?? DEFAULT_OUTPUT_DIR;
+    const baseDir =
+      (req.config as AgentConfig & { outputDir?: string }).outputDir ?? DEFAULT_OUTPUT_DIR;
     const dir = resolve(baseDir, publishIdDir(req));
     mkdirSync(dir, { recursive: true });
     const fm = req.content.frontMatter;

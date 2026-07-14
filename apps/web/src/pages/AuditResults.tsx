@@ -19,7 +19,7 @@ export function AuditResults() {
     queryFn: () => getAudit(auditId!),
     enabled: !!auditId,
     refetchInterval: (query) => {
-      const a = query.state.data as (Awaited<ReturnType<typeof getAudit>> | undefined);
+      const a = query.state.data as Awaited<ReturnType<typeof getAudit>> | undefined;
       if (!a) return 2000;
       return a.status === 'running' || a.status === 'queued' ? 2000 : false;
     },
@@ -39,7 +39,10 @@ export function AuditResults() {
     return (
       <div className="page">
         <div className="skeleton skeleton--title" style={{ marginBottom: 'var(--space-3)' }} />
-        <div className="skeleton skeleton--text" style={{ width: '40%', marginBottom: 'var(--space-8)' }} />
+        <div
+          className="skeleton skeleton--text"
+          style={{ width: '40%', marginBottom: 'var(--space-8)' }}
+        />
         <div className="skeleton skeleton--card" />
       </div>
     );
@@ -56,9 +59,14 @@ export function AuditResults() {
       <div className="page__header">
         <div>
           <div className="row" style={{ marginBottom: 'var(--space-2)', gap: 'var(--space-2)' }}>
-            <Link to={localePath('projects')} className="muted tiny">{t('nav.projects')}</Link>
+            <Link to={localePath('projects')} className="muted tiny">
+              {t('nav.projects')}
+            </Link>
             <span className="muted tiny">/</span>
-            <Link to={localePath('projectDashboard', { projectId: a.projectId })} className="muted tiny">
+            <Link
+              to={localePath('projectDashboard', { projectId: a.projectId })}
+              className="muted tiny"
+            >
               {a.projectId.slice(0, 8)}
             </Link>
             <span className="muted tiny">/</span>
@@ -86,74 +94,89 @@ export function AuditResults() {
         </div>
       )}
 
-      {effectiveTab === 'executive' && (
-        <ExecutiveReportView auditId={a.id} />
-      )}
+      {effectiveTab === 'executive' && <ExecutiveReportView auditId={a.id} />}
 
       {effectiveTab === 'technical' && (
-      <>
-      {a.score && (
-        <div style={{ marginBottom: 'var(--space-8)' }}>
-          <ScoreCard
-            health={{
-              overall: a.score.overall,
-              byCategory: {
-                seo: a.score.byCategory.seo ?? null,
-                cwv: a.score.byCategory.cwv ?? null,
-                geo: a.score.byCategory.geo ?? null,
-                a11y: a.score.byCategory.a11y ?? null,
-                content: a.score.byCategory.content ?? null,
-              },
-              pagesAudited: a.score.pagesAudited ?? 0,
-              pagesTotal: a.score.pagesTotal ?? 0,
-              pagesWithError: a.score.pagesWithError ?? 0,
-              lastAuditAt: a.finishedAt,
+        <>
+          {a.score && (
+            <div style={{ marginBottom: 'var(--space-8)' }}>
+              <ScoreCard
+                health={{
+                  overall: a.score.overall,
+                  byCategory: {
+                    seo: a.score.byCategory.seo ?? null,
+                    cwv: a.score.byCategory.cwv ?? null,
+                    geo: a.score.byCategory.geo ?? null,
+                    a11y: a.score.byCategory.a11y ?? null,
+                    content: a.score.byCategory.content ?? null,
+                  },
+                  pagesAudited: a.score.pagesAudited ?? 0,
+                  pagesTotal: a.score.pagesTotal ?? 0,
+                  pagesWithError: a.score.pagesWithError ?? 0,
+                  lastAuditAt: a.finishedAt,
+                }}
+                history={history}
+                previousOverall={previousOverall}
+                recomputed={Boolean(a.score.recomputedAt)}
+              />
+            </div>
+          )}
+
+          <div
+            className="card"
+            style={{
+              marginBottom: 'var(--space-6)',
+              padding: 'var(--space-5) var(--space-6)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-6)',
+              flexWrap: 'wrap',
             }}
-            history={history}
-            previousOverall={previousOverall}
-            recomputed={Boolean(a.score.recomputedAt)}
-          />
-        </div>
-      )}
+          >
+            <span
+              className="tiny"
+              style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}
+            >
+              {t('audit.results.findings')}
+            </span>
+            <div className="row" style={{ gap: 'var(--space-5)' }}>
+              <span className="row" style={{ gap: 'var(--space-2)' }}>
+                <span className="finding__sev sev--error" style={{ paddingTop: 0 }}>
+                  {t('audit.results.error')}
+                </span>
+                <span className="tabular" style={{ fontWeight: 600 }}>
+                  {errorCount}
+                </span>
+              </span>
+              <span className="row" style={{ gap: 'var(--space-2)' }}>
+                <span className="finding__sev sev--warning" style={{ paddingTop: 0 }}>
+                  {t('audit.results.warning')}
+                </span>
+                <span className="tabular" style={{ fontWeight: 600 }}>
+                  {warningCount}
+                </span>
+              </span>
+              <span className="row" style={{ gap: 'var(--space-2)' }}>
+                <span className="finding__sev sev--info" style={{ paddingTop: 0 }}>
+                  {t('audit.results.info')}
+                </span>
+                <span className="tabular" style={{ fontWeight: 600 }}>
+                  {infoCount}
+                </span>
+              </span>
+            </div>
+            <div style={{ marginLeft: 'auto' }}>
+              <span className="tabular" style={{ fontSize: 'var(--fs-xl)', fontWeight: 700 }}>
+                {a.findings.length}
+              </span>
+              <span className="tiny muted" style={{ marginLeft: 'var(--space-2)' }}>
+                {t('audit.results.total')}
+              </span>
+            </div>
+          </div>
 
-      <div
-        className="card"
-        style={{
-          marginBottom: 'var(--space-6)',
-          padding: 'var(--space-5) var(--space-6)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-6)',
-          flexWrap: 'wrap',
-        }}
-      >
-        <span className="tiny" style={{ textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>
-          {t('audit.results.findings')}
-        </span>
-        <div className="row" style={{ gap: 'var(--space-5)' }}>
-          <span className="row" style={{ gap: 'var(--space-2)' }}>
-            <span className="finding__sev sev--error" style={{ paddingTop: 0 }}>{t('audit.results.error')}</span>
-            <span className="tabular" style={{ fontWeight: 600 }}>{errorCount}</span>
-          </span>
-          <span className="row" style={{ gap: 'var(--space-2)' }}>
-            <span className="finding__sev sev--warning" style={{ paddingTop: 0 }}>{t('audit.results.warning')}</span>
-            <span className="tabular" style={{ fontWeight: 600 }}>{warningCount}</span>
-          </span>
-          <span className="row" style={{ gap: 'var(--space-2)' }}>
-            <span className="finding__sev sev--info" style={{ paddingTop: 0 }}>{t('audit.results.info')}</span>
-            <span className="tabular" style={{ fontWeight: 600 }}>{infoCount}</span>
-          </span>
-        </div>
-        <div style={{ marginLeft: 'auto' }}>
-          <span className="tabular" style={{ fontSize: 'var(--fs-xl)', fontWeight: 700 }}>
-            {a.findings.length}
-          </span>
-          <span className="tiny muted" style={{ marginLeft: 'var(--space-2)' }}>{t('audit.results.total')}</span>
-        </div>
-      </div>
-
-      <FindingList findings={findings} byCategory={findingsByCategory} />
-      </>
+          <FindingList findings={findings} byCategory={findingsByCategory} />
+        </>
       )}
     </div>
   );

@@ -65,25 +65,33 @@ export async function discoverSite(
     }
   }
 
-  while (sitemapHead < sitemapQueue.length && (maxPages === 0 || found.size < maxPages) && seenSitemaps.size < 50) {
+  while (
+    sitemapHead < sitemapQueue.length &&
+    (maxPages === 0 || found.size < maxPages) &&
+    seenSitemaps.size < 50
+  ) {
     const sitemapUrl = sitemapQueue[sitemapHead++]!;
     if (seenSitemaps.has(sitemapUrl)) continue;
     seenSitemaps.add(sitemapUrl);
     try {
-      const response = await fetchText(sitemapUrl, { headers: { Accept: 'application/xml,text/xml' } });
+      const response = await fetchText(sitemapUrl, {
+        headers: { Accept: 'application/xml,text/xml' },
+      });
       if (response.status !== 200) continue;
       const isIndex = /<sitemapindex\b/i.test(response.text);
       for (const raw of locations(response.text)) {
         if (isIndex) {
           try {
             const sitemap = new URL(raw, sitemapUrl);
-            if (['http:', 'https:'].includes(sitemap.protocol)) sitemapQueue.push(sitemap.toString());
+            if (['http:', 'https:'].includes(sitemap.protocol))
+              sitemapQueue.push(sitemap.toString());
           } catch {
             // Ignore malformed nested sitemap URLs.
           }
         } else {
           const url = internalUrl(raw, root);
-          if (url && (maxPages === 0 || found.size < maxPages) && !found.has(url)) found.set(url, 'sitemap');
+          if (url && (maxPages === 0 || found.size < maxPages) && !found.has(url))
+            found.set(url, 'sitemap');
         }
       }
     } catch {
