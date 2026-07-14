@@ -113,7 +113,7 @@ export async function runExecutiveReport(
     const prompt =
       attempt === 0
         ? user
-        : `${user}\n\nCORRECTION: Your previous output failed schema validation. Output ONLY valid JSON with all required fields.`;
+        : `${user}\n\nCORRECTION: Your previous output failed schema validation. Output ONLY valid JSON with all required fields. affectedPages must be an integer count of pages (e.g. 4), never an array of URLs.`;
     const req = buildReq(prompt, system);
     const res = await provider.complete(req, fetchFn);
     const parsed = tryParseJson(res.text);

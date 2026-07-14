@@ -37,6 +37,12 @@ export const AuditSummarySchema = z.object({
   gsc: GscReportSummarySchema.optional(),
 });
 
+/** MiniMax (and similar) often emit page URL lists; schema wants a count. */
+const AffectedPagesCountSchema = z.preprocess(
+  (val) => (Array.isArray(val) ? val.length : val),
+  z.number().int().nonnegative(),
+);
+
 export const ExecutiveNarrativeSchema = z.object({
   executiveSummary: z.string().min(50).max(2000),
   topIssues: z
@@ -46,7 +52,7 @@ export const ExecutiveNarrativeSchema = z.object({
         title: z.string(),
         businessImpact: z.string(),
         impactLevel: z.enum(['high', 'medium', 'low']),
-        affectedPages: z.number().int().nonnegative(),
+        affectedPages: AffectedPagesCountSchema,
       }),
     )
     .min(1)

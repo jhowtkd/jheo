@@ -86,6 +86,27 @@ describe('runExecutiveReport', () => {
     expect(provider.complete).toHaveBeenCalledTimes(2);
   });
 
+  it('coerces MiniMax-style affectedPages URL arrays into counts', async () => {
+    const withArrays = {
+      ...validNarrative,
+      topIssues: [
+        {
+          rule: 'meta.missing-description',
+          title: 'Descrições meta ausentes',
+          businessImpact: 'Reduz CTR nas buscas',
+          impactLevel: 'high' as const,
+          affectedPages: ['/a', '/b', '/c', '/d'],
+        },
+      ],
+    };
+    const out = await runExecutiveReport(
+      makeProvider(() => JSON.stringify(withArrays)),
+      summary,
+      'pt-BR',
+    );
+    expect(out.topIssues[0]?.affectedPages).toBe(4);
+  });
+
   it('attaches raw text to ExecutiveReportLlmError', async () => {
     try {
       await runExecutiveReport(makeProvider(() => 'not json'), summary, 'en');
