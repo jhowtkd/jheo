@@ -16,18 +16,10 @@ export {
   type ScoreBreakdown,
   type ScoreOptions,
 } from './audit/score.js';
-export {
-  OpenAIProvider,
-} from './llm/openai.js';
-export {
-  AnthropicProvider,
-} from './llm/anthropic.js';
-export {
-  OpenRouterProvider,
-} from './llm/openrouter.js';
-export {
-  OpenAIEmbeddingProvider,
-} from './llm/embeddings.js';
+export { OpenAIProvider } from './llm/openai.js';
+export { AnthropicProvider } from './llm/anthropic.js';
+export { OpenRouterProvider } from './llm/openrouter.js';
+export { OpenAIEmbeddingProvider } from './llm/embeddings.js';
 export type {
   LLMProvider,
   EmbeddingProvider,
@@ -40,29 +32,24 @@ export {
   runGeneration,
   buildSystemPrompt,
   stripLlmThinking,
+  parseMarkdownWithFrontmatter,
   type RetrievedMaterial,
   type GenerationContext,
   type GenerationResult,
   type GenerationProviders,
+  type ParseResult,
+  type ParseError,
 } from './generation/index.js';
-export {
-  aggregateReviewState,
-} from './distribution/aggregate.js';
+export { aggregateReviewState } from './distribution/aggregate.js';
 export type {
   Publisher,
   PublishStatus,
   PublishRequest,
   PublishResult,
 } from './distribution/types.js';
-export {
-  WordPressPublisher,
-} from './distribution/wordpress.js';
-export {
-  HttpPublisher,
-} from './distribution/http.js';
-export {
-  AgentPublisher,
-} from './distribution/agent.js';
+export { WordPressPublisher } from './distribution/wordpress.js';
+export { HttpPublisher } from './distribution/http.js';
+export { AgentPublisher } from './distribution/agent.js';
 export {
   createGscClient,
   fetchSearchAnalyticsDay,
