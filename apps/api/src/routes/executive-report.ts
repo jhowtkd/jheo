@@ -15,7 +15,14 @@ export const executiveReportRoutes: FastifyPluginAsync<ExecutiveReportDeps> = as
 ) => {
   app.get<{ Params: { id: string }; Querystring: { force?: string } }>(
     '/api/audits/:id/executive-report',
-    { config: { rateLimit: { max: 10, windowMs: 60_000 } } },
+    {
+      // The UI polls every 2s while status === 'generating' (see
+      // ExecutiveReportView's refetchInterval), so a 10/min bucket
+      // would trip after ~20s of normal waiting. 60/min accommodates
+      // the poll cadence; the actual LLM regeneration is gated by
+      // `?force=1`, which is the user-initiated expensive path.
+      config: { rateLimit: { max: 60, windowMs: 60_000 } },
+    },
     async (req, reply) => {
       const locale = (req.locale ?? 'en') as 'en' | 'pt-BR';
       const auditId = req.params.id;
