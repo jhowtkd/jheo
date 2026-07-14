@@ -27,7 +27,16 @@ export function ExecutiveReportView({ auditId }: Props) {
   const q = useQuery({
     queryKey: ['executive-report', auditId],
     queryFn: () => getExecutiveReport(auditId),
-    refetchInterval: (query) => (query.state.data?.status === 'generating' ? 2000 : false),
+    // Poll only while the server is still generating AND no error has been
+    // observed. Without the `query.state.error` guard, a burst of 429/503
+    // responses leaves React Query holding the last successful `data` (which
+    // was 'generating') and the refetchInterval keeps firing every 2s
+    // forever — exactly the loop that produced the "429 spam" the user
+    // saw in the console.
+    refetchInterval: (query) => {
+      if (query.state.error) return false;
+      return query.state.data?.status === 'generating' ? 2000 : false;
+    },
   });
 
   const data = q.data;

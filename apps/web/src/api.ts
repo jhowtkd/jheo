@@ -590,12 +590,21 @@ export async function translateTexts(
 
   // ponytail: chunk to stay under Fastify's 1 MB bodyLimit — long-form
   // content (generations/materials) with 50 texts can easily overflow it.
-  const BATCH = 10;
+  // The server caps the body at 50 texts per call (Body schema in
+  // apps/api/src/routes/translate.ts), so the max batch is 50. Batching
+  // at the cap reduces round-trips 5× vs the previous BATCH=10 default,
+  // which matters because the api enforces 10 req/min/IP.
+  const BATCH = 50;
   const results: Array<{ original: string; translated: string; cached: boolean }> = [];
   for (let i = 0; i < texts.length; i += BATCH) {
     const batch = texts.slice(i, i + BATCH);
     let res: Response | null = null;
-    for (let attempt = 0; attempt < 4; attempt++) {
+    // Retry at most once on 429 and respect the server's Retry-After.
+    // Retrying up to 4 times inside a 60-second window only amplified
+    // the rate-limit storm (the api caps at 10 req/min/IP, so a hot
+    // batch could eat the whole budget in retries alone).
+    let retried = false;
+    for (;;) {
       res = await localeFetch('/api/translate', {
         method: 'POST',
         headers: {
@@ -605,7 +614,13 @@ export async function translateTexts(
         body: JSON.stringify({ texts: batch, targetLocale, context }),
       });
       if (res.status !== 429) break;
-      const retryAfterSec = Number(res.headers.get('retry-after') ?? '1');
+      if (retried) {
+        // Second 429 — bail. The caller will surface rate_limited and
+        // the UI falls back to the source text for this batch.
+        break;
+      }
+      retried = true;
+      const retryAfterSec = Number(res.headers.get('retry-after') ?? '60');
       await new Promise((resolve) => setTimeout(resolve, Math.max(1, retryAfterSec) * 1000));
     }
     if (!res!.ok) {
@@ -707,7 +722,20 @@ export type ExecutiveReportResponse = {
 export async function getExecutiveReport(auditId: string): Promise<ExecutiveReportResponse> {
   const r = await localeFetch(`${API}/audits/${auditId}/executive-report`);
   if (r.status === 202) return r.json();
-  if (!r.ok) throw new Error(`Failed to load executive report: ${r.status}`);
+  if (!r.ok) {
+    // 429 means we tripped the bucket — surface a typed error so the UI
+    // (and the polling loop in ExecutiveReportView) can stop retrying.
+    if (r.status === 429) {
+      const retryAfter = Number(r.headers.get('retry-after') ?? '60');
+      const err = new Error('rate_limited') as Error & { retryAfterSec: number };
+      err.retryAfterSec = retryAfter;
+      throw err;
+    }
+    // 503 from the api means no LLM provider is configured; the report
+    // can't be generated until that's fixed, so don't poll.
+    if (r.status === 503) throw new Error('no_llm_provider');
+    throw new Error(`Failed to load executive report: ${r.status}`);
+  }
   return r.json();
 }
 
