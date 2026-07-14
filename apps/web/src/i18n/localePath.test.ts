@@ -26,29 +26,26 @@ describe('localePath', () => {
     expect(pathForLocale('pt-BR', 'projects')).toBe('/projetos');
     expect(pathForLocale('pt-BR', 'audits')).toBe('/auditorias');
     expect(pathForLocale('pt-BR', 'templates')).toBe('/modelos');
-    expect(pathForLocale('pt-BR', 'materialsProject', { projectId: 'p1' }))
-      .toBe('/projetos/p1/materials');
+    expect(pathForLocale('pt-BR', 'materialsProject', { projectId: 'p1' })).toBe(
+      '/projetos/p1/materials',
+    );
     expect(pathForLocale('pt-BR', 'fixes')).toBe('/correcoes');
     expect(pathForLocale('pt-BR', 'reports')).toBe('/relatorios');
-    expect(pathForLocale('pt-BR', 'generationReview', { generationId: 'g1' }))
-      .toBe('/geracoes/g1');
+    expect(pathForLocale('pt-BR', 'generationReview', { generationId: 'g1' })).toBe('/geracoes/g1');
     expect(pathForLocale('pt-BR', 'settings')).toBe('/configuracoes');
-    expect(pathForLocale('pt-BR', 'channelsProject', { projectId: 'p1' }))
-      .toBe('/projetos/p1/channels');
-    expect(pathForLocale('pt-BR', 'channelEditor', { channelId: 'c1' }))
-      .toBe('/canais/c1');
+    expect(pathForLocale('pt-BR', 'channelsProject', { projectId: 'p1' })).toBe(
+      '/projetos/p1/channels',
+    );
+    expect(pathForLocale('pt-BR', 'channelEditor', { channelId: 'c1' })).toBe('/canais/c1');
   });
 
   it('preserves param segments across locales for nested routes', () => {
-    expect(pathForLocale('en', 'auditRunner', { projectId: 'p1' }))
-      .toBe('/projects/p1/audit');
-    expect(pathForLocale('pt-BR', 'auditRunner', { projectId: 'p1' }))
-      .toBe('/projetos/p1/audit');
+    expect(pathForLocale('en', 'auditRunner', { projectId: 'p1' })).toBe('/projects/p1/audit');
+    expect(pathForLocale('pt-BR', 'auditRunner', { projectId: 'p1' })).toBe('/projetos/p1/audit');
   });
 
   it('encodes params', () => {
-    expect(pathForLocale('en', 'auditResults', { auditId: 'a/b' }))
-      .toBe('/audits/a%2Fb');
+    expect(pathForLocale('en', 'auditResults', { auditId: 'a/b' })).toBe('/audits/a%2Fb');
   });
 
   it('throws when a required param is missing', () => {
@@ -74,12 +71,9 @@ describe('localePath', () => {
   });
 
   it('leaves unlocalized first segments (publishes) alone', () => {
-    expect(pathForLocale('en', 'publishDetail', { publishId: 'x' }))
-      .toBe('/publishes/x');
-    expect(pathForLocale('pt-BR', 'publishDetail', { publishId: 'x' }))
-      .toBe('/publishes/x');
-    expect(pathForLocale('en', 'agentBundle', { publishId: 'x' }))
-      .toBe('/publishes/x/bundle');
+    expect(pathForLocale('en', 'publishDetail', { publishId: 'x' })).toBe('/publishes/x');
+    expect(pathForLocale('pt-BR', 'publishDetail', { publishId: 'x' })).toBe('/publishes/x');
+    expect(pathForLocale('en', 'agentBundle', { publishId: 'x' })).toBe('/publishes/x/bundle');
   });
 
   it('englishPath and ptBRPath helpers are aliases', () => {
@@ -123,10 +117,8 @@ describe('localePath', () => {
   it('siblingPath maps the first segment and keeps the rest', () => {
     expect(siblingPath('en', 'pt-BR', '/projects')).toBe('/projetos');
     expect(siblingPath('pt-BR', 'en', '/projetos')).toBe('/projects');
-    expect(siblingPath('en', 'pt-BR', '/projects/p1/audit'))
-      .toBe('/projetos/p1/audit');
-    expect(siblingPath('pt-BR', 'en', '/projetos/p1/audit'))
-      .toBe('/projects/p1/audit');
+    expect(siblingPath('en', 'pt-BR', '/projects/p1/audit')).toBe('/projetos/p1/audit');
+    expect(siblingPath('pt-BR', 'en', '/projetos/p1/audit')).toBe('/projects/p1/audit');
   });
 
   it('siblingPath leaves paths alone when first segment is already in the target locale', () => {
@@ -205,11 +197,26 @@ describe('localePath', () => {
     // missing param; if it doesn't throw, the result must round-trip
     // against englishPathTemplate / ptBRPathTemplate.
     const ids: RouteId[] = [
-      'projects', 'projectDashboard', 'auditRunner', 'audits', 'auditResults',
-      'materialsProject', 'materialsGate', 'compose', 'generationsGate',
-      'templates', 'templateEditor', 'fixes', 'reports', 'generationReview',
-      'channelsProject', 'channelsGate', 'channelEditor',
-      'publishDetail', 'agentBundle', 'settings',
+      'projects',
+      'projectDashboard',
+      'auditRunner',
+      'audits',
+      'auditResults',
+      'materialsProject',
+      'materialsGate',
+      'compose',
+      'generationsGate',
+      'templates',
+      'templateEditor',
+      'fixes',
+      'reports',
+      'generationReview',
+      'channelsProject',
+      'channelsGate',
+      'channelEditor',
+      'publishDetail',
+      'agentBundle',
+      'settings',
     ];
     for (const id of ids) {
       for (const locale of ['en', 'pt-BR'] as const) {
@@ -219,7 +226,9 @@ describe('localePath', () => {
         if (hasParams) {
           // The concrete path builder must throw with a useful message.
           let threw = false;
-          try { pathForLocale(locale, id); } catch (e) {
+          try {
+            pathForLocale(locale, id);
+          } catch (e) {
             threw = true;
             // The error must name the id and at least one :param.
             expect((e as Error).message).toContain(id);
@@ -239,17 +248,17 @@ describe('localePath', () => {
     // `params.foo` — make sure all placeholders in the live templates
     // match the param keys the app actually uses.
     const knownKeys: Record<string, string[]> = {
-      projectDashboard:  ['projectId'],
-      auditRunner:       ['projectId'],
-      auditResults:      ['auditId'],
-      materialsProject:  ['projectId'],
-      compose:           ['projectId'],
-      templateEditor:    ['templateId'],
-      generationReview:  ['generationId'],
-      channelsProject:   ['projectId'],
-      channelEditor:     ['channelId'],
-      publishDetail:     ['publishId'],
-      agentBundle:       ['publishId'],
+      projectDashboard: ['projectId'],
+      auditRunner: ['projectId'],
+      auditResults: ['auditId'],
+      materialsProject: ['projectId'],
+      compose: ['projectId'],
+      templateEditor: ['templateId'],
+      generationReview: ['generationId'],
+      channelsProject: ['projectId'],
+      channelEditor: ['channelId'],
+      publishDetail: ['publishId'],
+      agentBundle: ['publishId'],
     };
     for (const [id, keys] of Object.entries(knownKeys)) {
       for (const locale of ['en', 'pt-BR'] as const) {

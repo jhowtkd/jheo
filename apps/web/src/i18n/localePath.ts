@@ -23,58 +23,55 @@ export type RouteId =
   | 'agentBundle'
   | 'settings';
 
-type LocalizedId = Exclude<
-  RouteId,
-  'publishDetail' | 'agentBundle'
->;
+type LocalizedId = Exclude<RouteId, 'publishDetail' | 'agentBundle'>;
 
 // First-segment localization per S4/D5 spec. Routes whose first segment is
 // intentionally not localized (publishes/*) are absent here and handled in
 // pathForLocale by using TAIL verbatim.
 const FIRST_SEGMENT: Record<LocalizedId, Record<SupportedLocale, string>> = {
-  projects:           { en: 'projects',     'pt-BR': 'projetos' },
-  projectDashboard:   { en: 'projects',     'pt-BR': 'projetos' },
-  auditRunner:        { en: 'projects',     'pt-BR': 'projetos' },
-  audits:             { en: 'audits',       'pt-BR': 'auditorias' },
-  auditResults:       { en: 'audits',       'pt-BR': 'auditorias' },
-  materialsProject:   { en: 'projects',     'pt-BR': 'projetos' },
-  materialsGate:      { en: 'materials',    'pt-BR': 'materiais' },
-  compose:            { en: 'projects',     'pt-BR': 'projetos' },
-  generationsGate:    { en: 'generations',  'pt-BR': 'geracoes' },
-  templates:          { en: 'templates',    'pt-BR': 'modelos' },
-  templateEditor:     { en: 'templates',    'pt-BR': 'modelos' },
-  fixes:              { en: 'fixes',        'pt-BR': 'correcoes' },
-  reports:            { en: 'reports',      'pt-BR': 'relatorios' },
-  generationReview:   { en: 'generations',  'pt-BR': 'geracoes' },
-  channelsProject:    { en: 'projects',     'pt-BR': 'projetos' },
-  channelsGate:       { en: 'channels',     'pt-BR': 'canais' },
-  channelEditor:      { en: 'channels',     'pt-BR': 'canais' },
-  settings:           { en: 'settings',     'pt-BR': 'configuracoes' },
+  projects: { en: 'projects', 'pt-BR': 'projetos' },
+  projectDashboard: { en: 'projects', 'pt-BR': 'projetos' },
+  auditRunner: { en: 'projects', 'pt-BR': 'projetos' },
+  audits: { en: 'audits', 'pt-BR': 'auditorias' },
+  auditResults: { en: 'audits', 'pt-BR': 'auditorias' },
+  materialsProject: { en: 'projects', 'pt-BR': 'projetos' },
+  materialsGate: { en: 'materials', 'pt-BR': 'materiais' },
+  compose: { en: 'projects', 'pt-BR': 'projetos' },
+  generationsGate: { en: 'generations', 'pt-BR': 'geracoes' },
+  templates: { en: 'templates', 'pt-BR': 'modelos' },
+  templateEditor: { en: 'templates', 'pt-BR': 'modelos' },
+  fixes: { en: 'fixes', 'pt-BR': 'correcoes' },
+  reports: { en: 'reports', 'pt-BR': 'relatorios' },
+  generationReview: { en: 'generations', 'pt-BR': 'geracoes' },
+  channelsProject: { en: 'projects', 'pt-BR': 'projetos' },
+  channelsGate: { en: 'channels', 'pt-BR': 'canais' },
+  channelEditor: { en: 'channels', 'pt-BR': 'canais' },
+  settings: { en: 'settings', 'pt-BR': 'configuracoes' },
 };
 
 // Path tail in canonical English. Param segments are :slug; substituted at call.
 // For unlocalized first segments, tail already begins with /publishes.
 const TAIL: Record<RouteId, string> = {
-  projects:           '',
-  projectDashboard:   '/:projectId',
-  auditRunner:        '/:projectId/audit',
-  audits:             '',
-  auditResults:       '/:auditId',
-  materialsProject:   '/:projectId/materials',
-  materialsGate:      '',
-  compose:            '/:projectId/compose',
-  generationsGate:    '',
-  templates:          '',
-  templateEditor:     '/:templateId',
-  fixes:              '',
-  reports:            '',
-  generationReview:   '/:generationId',
-  channelsProject:    '/:projectId/channels',
-  channelsGate:       '',
-  channelEditor:      '/:channelId',
-  publishDetail:      '/publishes/:publishId',
-  agentBundle:        '/publishes/:publishId/bundle',
-  settings:           '',
+  projects: '',
+  projectDashboard: '/:projectId',
+  auditRunner: '/:projectId/audit',
+  audits: '',
+  auditResults: '/:auditId',
+  materialsProject: '/:projectId/materials',
+  materialsGate: '',
+  compose: '/:projectId/compose',
+  generationsGate: '',
+  templates: '',
+  templateEditor: '/:templateId',
+  fixes: '',
+  reports: '',
+  generationReview: '/:generationId',
+  channelsProject: '/:projectId/channels',
+  channelsGate: '',
+  channelEditor: '/:channelId',
+  publishDetail: '/publishes/:publishId',
+  agentBundle: '/publishes/:publishId/bundle',
+  settings: '',
 };
 
 function fillParams(template: string, id: RouteId, params?: Record<string, string>): string {
@@ -153,14 +150,20 @@ export function localePath(id: RouteId, params?: Record<string, string>): string
 const FIRST_BY_LOCALE: Record<SupportedLocale, Record<string, LocalizedId[]>> = {
   en: (() => {
     const m: Record<string, LocalizedId[]> = {};
-    for (const [id, segs] of Object.entries(FIRST_SEGMENT) as [LocalizedId, Record<SupportedLocale, string>][]) {
+    for (const [id, segs] of Object.entries(FIRST_SEGMENT) as [
+      LocalizedId,
+      Record<SupportedLocale, string>,
+    ][]) {
       (m[segs.en] ??= []).push(id);
     }
     return m;
   })(),
   'pt-BR': (() => {
     const m: Record<string, LocalizedId[]> = {};
-    for (const [id, segs] of Object.entries(FIRST_SEGMENT) as [LocalizedId, Record<SupportedLocale, string>][]) {
+    for (const [id, segs] of Object.entries(FIRST_SEGMENT) as [
+      LocalizedId,
+      Record<SupportedLocale, string>,
+    ][]) {
       (m[segs['pt-BR']] ??= []).push(id);
     }
     return m;
@@ -169,8 +172,14 @@ const FIRST_BY_LOCALE: Record<SupportedLocale, Record<string, LocalizedId[]>> = 
 
 // All route id → path template pairs for both locales, with segment count.
 // Used to resolve a pathname to its most specific RouteId.
-const ALL_PATHS: Array<{ id: RouteId; locale: SupportedLocale; template: string; segments: number }> = (() => {
-  const out: Array<{ id: RouteId; locale: SupportedLocale; template: string; segments: number }> = [];
+const ALL_PATHS: Array<{
+  id: RouteId;
+  locale: SupportedLocale;
+  template: string;
+  segments: number;
+}> = (() => {
+  const out: Array<{ id: RouteId; locale: SupportedLocale; template: string; segments: number }> =
+    [];
   for (const id of Object.keys(TAIL) as RouteId[]) {
     for (const locale of ['en', 'pt-BR'] as const) {
       const tpl = pathTemplateForLocale(locale, id);
@@ -202,7 +211,10 @@ export function routeIdFromPath(pathname: string): RouteId | null {
       const want = entrySegs[i]!;
       const got = parts[i]!;
       if (want.startsWith(':')) continue; // param — any value ok
-      if (want !== got) { ok = false; break; }
+      if (want !== got) {
+        ok = false;
+        break;
+      }
     }
     if (ok && (!best || entry.segments > best.segments)) {
       best = { id: entry.id, segments: entry.segments };
@@ -277,8 +289,6 @@ export function rootRouteIdFromPath(pathname: string): RouteId | null {
   const firstSeg = parts[0]!;
   if (firstSeg === 'publishes') return null;
   return (
-    ROOT_ID_BY_FIRST_SEGMENT.en[firstSeg] ??
-    ROOT_ID_BY_FIRST_SEGMENT['pt-BR'][firstSeg] ??
-    null
+    ROOT_ID_BY_FIRST_SEGMENT.en[firstSeg] ?? ROOT_ID_BY_FIRST_SEGMENT['pt-BR'][firstSeg] ?? null
   );
 }
