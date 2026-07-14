@@ -18,7 +18,17 @@ vi.mock('../src/db.js', () => {
   const transaction = vi.fn(async (ops: unknown[]) => Promise.all(ops as Promise<unknown>[]));
   return {
     prisma: {
-      audit: { findUnique: auditFindUnique, update: auditUpdate },
+      audit: {
+        findUnique: auditFindUnique,
+        update: auditUpdate,
+        // The catch path uses a conditional updateMany so it does not
+        // clobber a status an operator (or a concurrent worker) set
+        // during an in-flight run. The audit-job-catch-clobber test
+        // exercises this branch; this test exercises the happy path
+        // so the catch never runs — but the mock must exist since the
+        // function reference is in the closure.
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
       project: { findUnique: projectFindUnique },
       projectPage: {
         createMany: vi.fn(),
@@ -36,7 +46,13 @@ vi.mock('../src/db.js', () => {
         // to match the single persisted ProjectPage so the loop exits.
         count: vi.fn().mockResolvedValue(1),
       },
-      finding: { create: findingCreate, createMany: vi.fn() },
+      finding: {
+        create: findingCreate,
+        createMany: vi.fn(),
+        // completeAuditFromPageScores pulls persisted findings; default
+        // to empty so the rollup runs with no findings.
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       $transaction: transaction,
     },
   };
@@ -44,6 +60,13 @@ vi.mock('../src/db.js', () => {
 
 vi.mock('@jheo/core', () => ({
   runAudit: vi.fn(async () => ({ findings: [], score: { overall: 100 } })),
+  scoreFindings: vi.fn(() => ({
+    overall: 100,
+    byCategory: {},
+    bySeverity: {},
+    version: 'test-fake',
+  })),
+  SCORE_ENGINE_VERSION: 'test-fake',
 }));
 
 const originalFetch = globalThis.fetch;

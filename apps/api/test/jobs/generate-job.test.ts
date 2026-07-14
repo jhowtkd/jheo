@@ -2,6 +2,7 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vite
 import { makeGenerateHandler } from '../../src/jobs/generate-job.js';
 import { loadMaterialsForGeneration } from '../../src/jobs/generate-job.js';
 import { prisma } from '../../src/db.js';
+import { parseMarkdownWithFrontmatter } from '@jheo/core';
 
 const sampleParsedOutput = `---
 title: Hello
@@ -107,9 +108,26 @@ describe('jobs/generate-job', () => {
     expect(fakePrisma.generation.update).toHaveBeenCalled();
     const calls = fakePrisma.generation.update.mock.calls;
     expect(calls.some((c: any[]) => c[0]?.data?.status === 'running')).toBe(true);
-    expect(
-      calls.some((c: any[]) => c[0]?.data?.status === 'completed' && c[0]?.data?.outputMarkdown === sampleParsedOutput),
-    ).toBe(true);
+
+    // The completed update persists outputMarkdown produced by the core
+    // pipeline's serializeMarkdown(), which round-trips the model's text
+    // through parseMarkdownWithFrontmatter to strip think blocks. The
+    // resulting string is not byte-equal to the raw LLM response (YAML
+    // quoting / whitespace can change), so assert semantically: parse the
+    // persisted output back and confirm the frontmatter + body survived.
+    const completedCall = calls.find(
+      (c: any[]) => c[0]?.data?.status === 'completed' && typeof c[0]?.data?.outputMarkdown === 'string',
+    );
+    expect(completedCall).toBeDefined();
+    const persisted = completedCall![0].data.outputMarkdown as string;
+    const expectedParsed = parseMarkdownWithFrontmatter(sampleParsedOutput);
+    const actualParsed = parseMarkdownWithFrontmatter(persisted);
+    expect(actualParsed.ok).toBe(true);
+    expect(actualParsed.parsed).not.toBeNull();
+    // Frontmatter fields round-trip exactly for the sample we send in.
+    expect(actualParsed.parsed!.frontMatter).toEqual(expectedParsed.parsed!.frontMatter);
+    // Body is what the LLM produced.
+    expect(actualParsed.parsed!.body.trim()).toBe(expectedParsed.parsed!.body.trim());
   });
 });
 

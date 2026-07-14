@@ -41,16 +41,32 @@ vi.mock('../src/db.js', () => {
         // to match the single persisted ProjectPage so the loop exits.
         count: vi.fn().mockResolvedValue(1),
       },
-      finding: { createMany: vi.fn().mockResolvedValue({ count: 0 }) },
+      finding: {
+        createMany: vi.fn().mockResolvedValue({ count: 0 }),
+        // completeAuditFromPageScores pulls persisted findings to roll up
+        // the parent Audit score; default to an empty result so happy-path
+        // tests exercise the rollup with no findings.
+        findMany: vi.fn().mockResolvedValue([]),
+      },
       $transaction: transaction,
     },
   };
 });
 
 // runAudit is no longer called from the handler — the per-page worker calls
-// it. Mock it for legacy callers that still import it.
+// it. scoreFindings is invoked from completeAuditFromPageScores for the
+// parent-Audit score rollup. Return a plausible minimal ScoreBreakdown so
+// the happy-path test exercises the rollup branch without depending on the
+// real scoring implementation.
 vi.mock('@jheo/core', () => ({
   runAudit: vi.fn(async () => ({ findings: [], score: { overall: 100 } })),
+  scoreFindings: vi.fn(() => ({
+    overall: 100,
+    byCategory: {},
+    bySeverity: {},
+    version: 'test-fake',
+  })),
+  SCORE_ENGINE_VERSION: 'test-fake',
 }));
 
 const originalFetch = globalThis.fetch;
@@ -104,9 +120,14 @@ describe('runProjectAuditJob handler (orchestrator)', () => {
 
     // The handler MUST close the audit, with status 'completed' even when
     // pagesAudited is 0 (the polling loop saw all pages terminal).
-    const updateCalls = (prisma.audit.update as unknown as ReturnType<typeof vi.fn>).mock.calls;
-    const lastUpdate = updateCalls.at(-1)?.[0];
-    expect(lastUpdate.data.status).toBe('completed');
+    // completeAuditFromPageScores uses a conditional updateMany (where:
+    // status='running') so it does not clobber a manually-set terminal
+    // status, mirroring the catch path. Default mock returns { count: 1 }.
+    const updateManyCalls = (prisma.audit.updateMany as unknown as ReturnType<typeof vi.fn>).mock.calls;
+    const completedCall = updateManyCalls.find((c) => c[0]?.data?.status === 'completed');
+    expect(completedCall).toBeDefined();
+    expect(completedCall![0].data.status).toBe('completed');
+    expect(completedCall![0].where).toEqual({ id: 'a1', status: 'running' });
 
     // One auditPageQueue.add call per persisted ProjectPage.
     expect(queue.auditPageQueue.add).toHaveBeenCalledTimes(1);
