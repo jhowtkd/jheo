@@ -40,7 +40,15 @@ export function GenerationReview() {
     onSuccess: async () => q.refetch(),
   });
 
-  if (!q.data) {
+  // Hooks must run unconditionally (before any early return).
+  const g = q.data;
+  const { translated: translatedBody, error: bodyError } = useDataTranslations({
+    texts: g?.outputMarkdown ? [g.outputMarkdown] : [],
+    sourceLocale: (g?.locale as SupportedLocale) ?? 'en',
+    context: 'generation',
+  });
+
+  if (!g) {
     return (
       <div className="page">
         <div className="skeleton skeleton--title" style={{ marginBottom: 'var(--space-3)' }} />
@@ -48,16 +56,9 @@ export function GenerationReview() {
       </div>
     );
   }
-  const g = q.data;
   const fm = (g.outputFrontMatter ?? {}) as Record<string, unknown>;
   const title =
     (fm.title as string) || t('generation.review.titleFallback', { id: g.id.slice(0, 8) });
-
-  const { translated: translatedBody, error: bodyError } = useDataTranslations({
-    texts: g.outputMarkdown ? [g.outputMarkdown] : [],
-    sourceLocale: (g.locale as SupportedLocale) ?? 'en',
-    context: 'generation',
-  });
   const renderedBody = g.outputMarkdown
     ? (translatedBody.get(g.outputMarkdown) ?? g.outputMarkdown)
     : null;
