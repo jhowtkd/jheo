@@ -30,9 +30,16 @@ export function useDataTranslations(opts: {
   const [translated, setTranslated] = useState<Map<string, string>>(new Map());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<TranslateError>(null);
+  // Local primitives for effect deps (module-level i18n.language is not a React dep).
+  const uiLocale = (i18n.language as SupportedLocale) ?? 'en';
+  // Stable content key so identity-churn of `texts` arrays doesn't re-fire,
+  // and so the effect deps stay simple values (no texts.join(...) expression).
+  const textsKey = texts.join('\u0000');
 
   useEffect(() => {
-    const uiLocale = (i18n.language as SupportedLocale) ?? 'en';
+    // Reconstruct from key: empty array and [""] both key to "", treat as [].
+    // Callers pass human-readable finding/generation strings, not lone "".
+    const texts = textsKey === '' ? [] : textsKey.split('\u0000');
     if (uiLocale === 'en' || uiLocale === sourceLocale) {
       setError(null);
       setLoading(false);
@@ -93,7 +100,7 @@ export function useDataTranslations(opts: {
     return () => {
       cancelled = true;
     };
-  }, [i18n.language, texts.join('\u0000'), sourceLocale, context]);
+  }, [uiLocale, textsKey, sourceLocale, context]);
 
   return { translated, loading, error };
 }
