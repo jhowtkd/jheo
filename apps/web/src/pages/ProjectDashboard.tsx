@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import {
@@ -44,6 +44,7 @@ function formatDate(iso: string): string {
 export function ProjectDashboard() {
   const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
+  const qc = useQueryClient();
   const [filter, setFilter] = useState<FilterValue>('all');
   const apiFilter = filter === 'all' ? undefined : filter;
   const [openPageAuditId, setOpenPageAuditId] = useState<string | null>(null);
@@ -136,8 +137,13 @@ export function ProjectDashboard() {
 
   const reAudit = useMutation({
     mutationFn: (pageId: string) => reAuditPage(pageId),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setOpenPageAuditId(data.pageAuditId);
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['project-pages', projectId] }),
+        qc.invalidateQueries({ queryKey: ['project-health', projectId] }),
+        qc.invalidateQueries({ queryKey: ['page-audit-detail'] }),
+      ]);
     },
     onError: (err: Error, pageId: string) => {
       setActionError({ err, pageId });
