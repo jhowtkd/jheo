@@ -140,7 +140,7 @@ export function GenerationReview() {
                 <div className="col" style={{ gap: 0 }}>
                   {g.sources.map((s, i) => (
                     <div
-                      key={i}
+                      key={s.id}
                       style={{
                         padding: i > 0 ? 'var(--space-3) 0 0' : 0,
                         borderTop: i > 0 ? '1px solid var(--border)' : 'none',

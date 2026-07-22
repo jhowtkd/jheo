@@ -328,8 +328,12 @@ function GscTable({
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, i) => (
-              <tr key={String(row.query ?? row.page ?? i)}>
+            {rows.map((row) => (
+              <tr
+                key={String(
+                  row.query ?? row.page ?? columns.map((c) => row[c.key]).join('|'),
+                )}
+              >
                 {columns.map((col) => {
                   const raw = row[col.key];
                   const display =
