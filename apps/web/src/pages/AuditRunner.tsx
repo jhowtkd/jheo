@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { humanError, runAudit } from '../api.js';
@@ -12,6 +12,7 @@ export function AuditRunner() {
   const { t } = useTranslation();
   const { projectId } = useParams<{ projectId: string }>();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   const [maxPages, setMaxPages] = useState(50);
   const [sources, setSources] = useState({ root: true, sitemap: true, crawl: true });
@@ -22,7 +23,14 @@ export function AuditRunner() {
         maxPages,
         sources,
       }),
-    onSuccess: (audit) => navigate(localePath('auditResults', { auditId: audit.id })),
+    onSuccess: async (audit) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ['project', projectId] }),
+        qc.invalidateQueries({ queryKey: ['audits'] }),
+        qc.invalidateQueries({ queryKey: ['project-health', projectId] }),
+      ]);
+      navigate(localePath('auditResults', { auditId: audit.id }));
+    },
   });
 
   const etaSeconds = maxPages * SECONDS_PER_PAGE;
