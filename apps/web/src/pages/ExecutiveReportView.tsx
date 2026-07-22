@@ -301,8 +301,8 @@ function ReadyReport({ auditId, data }: { auditId: string; data: ExecutiveReport
             {t('audit.executive.sections.recommendations')}
           </h2>
           <ol style={{ margin: 0, paddingLeft: 'var(--space-5)', lineHeight: 1.6 }}>
-            {narrative.recommendations.map((rec, i) => (
-              <li key={i} style={{ marginBottom: 'var(--space-2)' }}>
+            {narrative.recommendations.map((rec) => (
+              <li key={rec} style={{ marginBottom: 'var(--space-2)' }}>
                 {rec}
               </li>
             ))}
